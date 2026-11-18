@@ -39,32 +39,52 @@ def query(q, cache):
 
 def main():
     df = pd.read_parquet(ROOT.parent / "datasets/wine_reviews_deduped.parquet")
-    places = df[["country", "province", "region_1"]].drop_duplicates().reset_index(drop=True)
+    places = (df.groupby(["country", "province", "region_1"], dropna=False).size().rename("n").reset_index()
+              .sort_values("n", ascending=False).reset_index(drop=True))
     cache = json.load(open(CACHE)) if CACHE.exists() else {}
-    rows = []
-    for i, p in enumerate(places.itertuples(), 1):
+    res = {}
+
+    def q_for(p, lvl):
+        if pd.isna(p.country):
+            return None
         c = CMAP.get(p.country, p.country)
         prov, reg = clean(p.province), clean(p.region_1)
-        hit, level = None, None
-        for lvl, parts in (("region_1", [reg, prov, c]), ("province", [prov, c]), ("country", [c])):
-            if lvl == "region_1" and not reg:
+        parts = {"region_1": [reg, prov, c], "province": [prov, c], "country": [c]}[lvl]
+        return None if (lvl == "region_1" and not reg) or (lvl == "province" and not prov) else ", ".join(x for x in parts if x)
+
+    def write():
+        rows = []
+        for p in places.itertuples():
+            best = None
+            for lvl in ("region_1", "province", "country"):
+                q = q_for(p, lvl)
+                h = cache.get(q) if q else None
+                if h:
+                    best = (lvl, h); break
+            rows.append(dict(country=p.country, province=p.province, region_1=p.region_1, n=p.n,
+                             lat=best[1]["lat"] if best else None, lon=best[1]["lon"] if best else None,
+                             geo_level=best[0] if best else None, geo_name=best[1]["name"] if best else None))
+        out = pd.DataFrame(rows)
+        out.to_parquet(ROOT / "outputs/places_geocoded.parquet", index=False)
+        json.dump(cache, open(CACHE, "w"))
+        return out
+
+    # pass A: province (fallback country) for everything; pass B: region_1 by descending review count
+    for lvl in ("province", "country", "region_1"):
+        done = 0
+        for p in places.itertuples():
+            q = q_for(p, lvl)
+            if q is None or (lvl == "country" and cache.get(q_for(p, "province"))):
                 continue
-            if lvl == "province" and not prov:
+            if lvl == "region_1" and cache.get(q_for(p, "region_1"), 0) is not 0:
                 continue
-            hit = query(", ".join(x for x in parts if x), cache)
-            if hit:
-                level = lvl
-                break
-        rows.append(dict(country=p.country, province=p.province, region_1=p.region_1,
-                         lat=hit["lat"] if hit else None, lon=hit["lon"] if hit else None,
-                         geo_level=level, geo_name=hit["name"] if hit else None))
-        if i % 25 == 0:
-            json.dump(cache, open(CACHE, "w"))
-            print(f"{i}/{len(places)}", flush=True)
-    json.dump(cache, open(CACHE, "w"))
-    out = pd.DataFrame(rows)
-    out.to_parquet(ROOT / "outputs/places_geocoded.parquet", index=False)
-    print(out.geo_level.value_counts(dropna=False).to_dict())
+            query(q, cache)
+            done += 1
+            if done % 25 == 0:
+                out = write()
+                print(lvl, done, f"resolved={out.geo_level.value_counts().to_dict()}", flush=True)
+    out = write()
+    print("final", out.geo_level.value_counts(dropna=False).to_dict())
 
 
 if __name__ == "__main__":

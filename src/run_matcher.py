@@ -70,7 +70,7 @@ def main():
                 prev = None
     vec = pd.DataFrame(rows)
     tag = "all" if n == "all" else n
-    suffix = "_bert" if extra else ""
+    suffix = "_extra" if extra else ""
     vec.to_parquet(OUT / f"wset_vectors_{tag}{suffix}.parquet", index=False)
     pd.DataFrame(unmatched.most_common(5000), columns=["term", "count"]).to_csv(OUT / f"unmatched_unigrams_{tag}{suffix}.csv", index=False)
     pd.DataFrame(bigr.most_common(3000), columns=["term", "count"]).to_csv(OUT / f"unmatched_bigrams_{tag}{suffix}.csv", index=False)

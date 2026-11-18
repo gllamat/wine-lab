@@ -14,6 +14,14 @@ STOPLIKE = set("flavor flavour aroma fruit finish palate note acidity tannin nos
                .split())
 
 
+NONAROMA = set("balance balanced soft smooth silky velvety firm tight rich round ripe fresh bright light heavy bold lean thin juicy "
+               "savory elegant complex structured structure depth richness weight quality plump polished textured rustic brisk "
+               "bitter sweet dry crisp lively flavored flavoured fruity fruitiness ripeness body alcohol acid warm exotic "
+               "scent smell bottling mix accent accented variety grown produced making dish skin fermented grilled "
+               "hint bit deliver alongside seem best showing plenty attractive much quite add too although enough close pair "
+               "even bring after aftertaste imported followed offering only provide rather".split())
+
+
 def main():
     name, n = sys.argv[1], sys.argv[2]
     lex = Lexicon()
@@ -37,9 +45,21 @@ def main():
         P /= np.maximum(np.linalg.norm(P, axis=1, keepdims=True), 1e-9)
         return P, cnt
 
-    # --- leave-one-out validation (single-token forms of descriptors with >=3 forms)
-    res = []
+    # --- negative class: structure cues + generic words (things that are NOT aromas)
+    negf = sorted({" ".join(k) for k, v in lex.entries.items() if v[0] != "aroma"} | STOPLIKE | NONAROMA)
+    N = embed_texts(negf, tok, mdl, bs=128, maxlen=16)
     P_full, cnt_full = protos()
+
+    def decide(vec, P, Nm, excl_neg=None):
+        sd = P @ vec
+        top = np.argsort(-sd)[:2]
+        sn = Nm @ vec
+        if excl_neg is not None:
+            sn = np.delete(sn, excl_neg)
+        return top[0], float(sd[top[0]]), float(sn.max())
+
+    # --- leave-one-out: aroma forms (should map to right cluster) + negative forms (should be rejected)
+    res = []
     for i, (f, c, d) in enumerate(forms):
         key = f"{c}/{d}"
         if len(f.split()) != 1 or cnt_full[didx[key]] < 3:
@@ -47,25 +67,36 @@ def main():
         P, cnt = protos(exclude=i)
         P[didx[key]] = (P_full[didx[key]] * cnt_full[didx[key]] - F[i]) / (cnt_full[didx[key]] - 1)
         P[didx[key]] /= np.linalg.norm(P[didx[key]])
-        s = P @ F[i]
-        top = np.argsort(-s)[:2]
-        res.append(dict(form=f, true=key, pred=dnames[top[0]], sim=float(s[top[0]]), margin=float(s[top[0]] - s[top[1]]),
-                        ok_desc=dnames[top[0]] == key, ok_cluster=dcl[dnames[top[0]]] == c))
+        j, sd, sn = decide(F[i], P, N)
+        res.append(dict(form=f, kind="aroma", true=key, pred=dnames[j], sim=sd, neg_sim=sn,
+                        ok_cluster=dcl[dnames[j]] == c))
+    for i, f in enumerate(negf):
+        if len(f.split()) != 1:
+            continue
+        j, sd, sn = decide(N[i], P_full, N, excl_neg=i)
+        res.append(dict(form=f, kind="neg", true="NONE", pred=dnames[j], sim=sd, neg_sim=sn, ok_cluster=False))
     r = pd.DataFrame(res)
     r.to_csv(ROOT / f"outputs/loo_{name}.csv", index=False)
-    print(f"[{name}] LOO n={len(r)} acc_descriptor={r.ok_desc.mean():.3f} acc_cluster={r.ok_cluster.mean():.3f}")
-    # pick the lowest sim threshold with cluster-level precision >= 0.8 (else report best available)
+    na, nn = (r.kind == "aroma").sum(), (r.kind == "neg").sum()
+    # prior: real candidates are mostly non-aroma -> weight negatives x3 when estimating precision
+    def stats(t, m):
+        acc = r[(r.sim >= t) & (r.sim - r.neg_sim >= m)]
+        tp = acc[(acc.kind == "aroma") & acc.ok_cluster].shape[0]
+        fp = acc.shape[0] - tp
+        w = 3.0 * (na / max(nn, 1))
+        prec = tp / max(tp + fp * w if False else tp + (acc[acc.kind == "neg"].shape[0] * w) + acc[(acc.kind == "aroma") & ~acc.ok_cluster].shape[0], 1)
+        return prec, tp / max(na, 1)
     best = None
-    for t in np.arange(0.3, 0.95, 0.01):
-        sub = r[r.sim >= t]
-        if len(sub) >= 30 and sub.ok_cluster.mean() >= 0.8:
-            best = (float(t), len(sub) / len(r), float(sub.ok_cluster.mean()))
-            break
-    print(f"[{name}] threshold for >=80% cluster precision:", best)
-    json.dump({"threshold": best}, open(ROOT / f"outputs/threshold_{name}.json", "w"))
+    for t in np.arange(0.3, 0.95, 0.02):
+        for m in (0.0, 0.03, 0.06, 0.1):
+            prec, rec = stats(t, m)
+            if prec >= 0.8 and rec >= 0.05 and (best is None or rec > best[3]):
+                best = (float(t), float(m), prec, rec)
+    print(f"[{name}] LOO aroma n={na} neg n={nn}; best (thr, margin, weighted precision, recall): {best}")
+    json.dump({"best": best}, open(ROOT / f"outputs/threshold_{name}.json", "w"))
     if best is None:
         print("no usable threshold; skipping term mapping"); return
-    thr = best[0]
+    thr, mar = best[0], best[1]
     # --- candidate terms: frequent unmatched unigrams not in stop-like or place/grape vocab
     um = pd.read_csv(ROOT / f"outputs/unmatched_unigrams_{n}.csv")
     um = um[(um["count"] >= 8)]
@@ -77,15 +108,17 @@ def main():
     cands = [t for t in um.term if t not in STOPLIKE and t not in names and (t,) not in lex.entries]
     C = embed_texts(cands, tok, mdl, bs=128, maxlen=16)
     S = C @ P_full.T
+    SN = C @ N.T
     rows = []
+    cnts = um.set_index("term")["count"]
     for i, t in enumerate(cands):
-        order = np.argsort(-S[i])[:2]
-        rows.append(dict(term=t, desc=dnames[order[0]], sim=float(S[i, order[0]]), margin=float(S[i, order[0]] - S[i, order[1]]),
-                         count=int(um.set_index("term").loc[t, "count"]), accepted=bool(S[i, order[0]] >= thr)))
+        j = int(np.argmax(S[i])); sd = float(S[i, j]); sn = float(SN[i].max())
+        rows.append(dict(term=t, desc=dnames[j], sim=sd, neg_sim=sn, nearest_neg=negf[int(np.argmax(SN[i]))],
+                         count=int(cnts[t]), accepted=bool(sd >= thr and sd - sn >= mar)))
     m = pd.DataFrame(rows)
     m.to_csv(ROOT / f"outputs/term_map_{name}.csv", index=False)
     acc = m[m.accepted]
-    print(f"[{name}] candidates={len(m)} accepted={len(acc)} (sim>={thr:.2f})")
+    print(f"[{name}] candidates={len(m)} accepted={len(acc)} (sim>={thr:.2f}, margin>={mar:.2f})")
     extra = {r.term: ["aroma", r.desc.split("/")[0], r.desc.split("/")[1]] for r in acc.itertuples()}
     json.dump(extra, open(ROOT / f"outputs/extra_terms_{name}.json", "w"), indent=1, sort_keys=True)
 
