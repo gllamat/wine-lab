@@ -43,6 +43,12 @@ tr.clk{cursor:pointer}tr.clk:hover{background:var(--line)}
 .sat .o{display:inline-block;padding:0 6px;border-radius:4px;color:var(--muted);line-height:1.6}.sat .o.on{background:var(--accent);color:#fff;font-weight:600}
 .sat .d{color:var(--line);margin:0 1px}.sat .tl{margin:1px 0}.sat .tn{display:inline-block;width:74px;font-size:11px;text-transform:uppercase;letter-spacing:.04em}
 @media (max-width:640px){.sat-r{grid-template-columns:1fr}.sat-e{margin-top:-2px}}
+.sat.side .sat-colh{display:grid;grid-template-columns:130px 1fr 1fr;gap:10px;padding:4px 10px;font-weight:700;background:var(--line)}
+.sat-r2{display:grid;grid-template-columns:130px 1fr 1fr;gap:10px;padding:5px 10px;border-top:1px solid var(--line);align-items:start;border-left:3px solid transparent}
+.sat-r2.diff{border-left-color:var(--accent2);background:#e0b05012}.sat-r2.ok{border-left-color:#59a14f55}
+.neq{color:var(--accent2);font-weight:700}.nr{color:#4e79a7;font-weight:700}.one{color:var(--muted)}.sat-r2.near{border-left-color:#4e79a799}.sat-r2.one{border-left-color:var(--line)}.eq{color:#59a14f}.sat .tk.only{border-style:dashed}
+.sat-c{min-width:0}.sat-c .sat-e{margin-top:2px}
+@media (max-width:760px){.sat-r2,.sat.side .sat-colh{grid-template-columns:1fr}}
 .diagram{width:100%;height:auto}.diagram .bx{fill:var(--panel);stroke:var(--line)}.diagram .ar{stroke:var(--muted);fill:none;stroke-width:1.5;marker-end:url(#ar)}
 .diagram .t{fill:var(--ink);font:12.5px system-ui,sans-serif}.diagram .tb{font-weight:600;font-size:13.5px}.diagram .m{fill:var(--muted)}
 .diagram .fa{fill:#59a14f26;stroke:#59a14f}.diagram .fs{fill:#4e79a726;stroke:#4e79a7}.diagram .fr{fill:#f28e2b26;stroke:#f28e2b}.diagram .fn{fill:#8883;stroke:#888}.diagram .fe{fill:#b07aa126;stroke:#b07aa1}
@@ -78,8 +84,8 @@ tr.clk{cursor:pointer}tr.clk:hover{background:var(--line)}
   <div class="panel"><b>Embedding → WSET dimension (AUC / R²)</b><div id="probePlot" class="plot s"></div></div>
 </div><div class="panel" style="margin-top:12px"><b>Layout faithfulness (trustworthiness)</b><div id="trustTable"></div></div></section>
 <section id="examples">
-  <p class="note warn" id="exNote">Real reviews mapped by the matcher. Review text is copyrighted scraped content, so this tab only works on a local copy — it is excluded from deployment.</p>
-  <div class="row"><label>Case <select id="exCase"></select></label><label>Country <select id="exCountry"></select></label><label>Quality <select id="exQ"><option value="">all</option><option>acceptable</option><option>good</option><option>very_good</option><option>outstanding</option></select></label>
+  <p class="note warn" id="exNote">Real reviews mapped by BOTH methods, side by side: the deterministic keyword rules (left) and Jev (right). Review text is copyrighted scraped content, so this tab only works on a local copy — it is excluded from deployment.</p>
+  <div class="row"><label>Case <select id="exCase"></select></label><label>Country <select id="exCountry"></select></label><label>Set <select id="exQ"><option value="">all</option><option value="pilot-500">Jev pilot (500)</option><option value="new-1000">new 1,000 (both methods)</option><option value="none">deterministic only</option></select></label><label>Order <select id="exSort"><option value="order">dataset order</option><option value="diff">most disagreement first</option><option value="agree">most agreement first</option></select></label>
     <input id="exQuery" type="search" placeholder="search text…" style="max-width:240px"><span class="note" id="exCount"></span></div>
   <div id="exList"></div><button class="btn" id="exMore" style="margin-top:8px">show more</button>
 </section>
@@ -205,44 +211,71 @@ const QB=[[82,"acceptable"],[86,"good"],[90,"very_good"],[101,"outstanding"]];
 const qualityOf=p=>{ if(p==null)return null; for(const [hi,n] of QB) if(p<=hi) return n; return null; };
 const COLOURS={white:["lemon-green","lemon","gold","amber","brown"],"rosé":["pink","salmon","orange"],red:["purple","ruby","garnet","tawny","brown"]};
 const CGROUP={white:["white"],sparkling:["white"],rose:["rosé"],red:["red"]};
-function satCard(r,colour,points){
-  const pos=r.hits.filter(h=>!h.neg), ev=(pred)=>[...new Set(pos.filter(pred).map(h=>h.surface))].slice(0,4).join(", ");
-  const opt=(list,on)=>list.map(x=>`<span class="o${on.has(x)?" on":""}">${fmt(x)}</span>`).join('<span class="d">–</span>');
-  const row=(lab,html,evid)=>`<div class="sat-r"><div class="sat-l">${lab}</div><div class="sat-o">${html}</div><div class="sat-e">${esc(evid||"")}</div></div>`;
-  const scale=(s,lab)=>{ const hs=pos.filter(h=>h.kind==="structure"&&h.f1===s), lv=LEX.scales[s]; let on=new Set();
-    if(hs.length){ const m=hs.reduce((a,h)=>a+(+h.f2),0)/hs.length; on=new Set([lv[Math.round(m)-1]]); }
-    return row(lab||s.replace(/_/g," "),opt(lv,on),ev(h=>h.kind==="structure"&&h.f1===s)); };
-  const cats=f=>new Set(pos.filter(h=>h.kind==="cat"&&h.f1===f).map(h=>h.f2));
-  const cg=CGROUP[colour]||Object.keys(COLOURS), cs=cats("colour");
-  const colourHtml=Object.entries(COLOURS).map(([g,l])=>`<div><span class="note">${g}:</span> ${opt(l,new Set(cg.includes(g)?[...cs]:[]))}</div>`).join("");
-  const aromaBy=pred=>{ const m={}; pos.filter(h=>h.kind==="aroma"&&pred(h.scope)).forEach(h=>{const o=m[h.f1]=m[h.f1]||{d:new Set(),amb:false}; o.d.add(h.f2); if(h.amb>1)o.amb=true}); return m; };
-  const tierLines=m=>["primary","secondary","tertiary"].map(t=>{ const c=Object.entries(m).filter(([k])=>LEX.tier[k]===t);
-    return `<div class="tl"><span class="tn" style="color:${TIERC[t]}">${t}</span>${c.length?c.map(([k,o])=>`<span class="tk" style="border-color:${TIERC[t]};background:${TIERC[t]}22" title="${o.amb?"word is listed under several SAT clusters":""}">${k.replace(/_/g," ")}: ${[...o.d].map(x=>x.replace(/_/g," ")).join(", ")}${o.amb?"~":""}</span>`).join(""):'<span class="o">—</span>'}</div>`}).join("");
-  const nose=aromaBy(s=>s==="nose"||s==="both"), pal=aromaBy(s=>s==="palate"||s==="both"), un=aromaBy(s=>s==="unspecified");
-  const q=qualityOf(points), fl=k=>pos.some(h=>h.kind==="readiness"&&h.f1===k);
-  const rd=fl("too_old")?"too_old":fl("drink_now")&&fl("can_age")?"drink_now_potential":fl("drink_now")?"drink_now":fl("can_age")?"not_ready_potential":null;
-  const RD=[["drink_now_potential","can drink now, but has potential for ageing"],["drink_now","drink now: not suitable for ageing / potential not stated"],["not_ready_potential","not suitable for drinking now: too young, has potential"],["too_old","too old"]];
+const SECT=[["APPEARANCE",["clarity","app_int","colour"]],["NOSE",["condition","nose_int","aroma_nose","unattr","development"]],["PALATE",["sweetness","acidity","tannin","alcohol","body","mousse","flav_int","aroma_palate","finish"]],["CONCLUSIONS",["quality","readiness"]]];
+const SCALEROW={nose_int:"nose_intensity",development:"development",sweetness:"sweetness",acidity:"acidity",tannin:"tannin",alcohol:"alcohol",body:"body",mousse:"mousse",flav_int:"flavour_intensity",finish:"finish"};
+const RLAB={clarity:"Clarity",app_int:"Intensity",colour:"Colour",condition:"Condition",nose_int:"Intensity",aroma_nose:"Aroma characteristics",unattr:"not attributed to nose or palate",development:"Development",sweetness:"Sweetness",acidity:"Acidity",tannin:"Tannin",alcohol:"Alcohol",body:"Body",mousse:"Mousse",flav_int:"Flavour intensity",aroma_palate:"Flavour characteristics",finish:"Finish",quality:"Quality level",readiness:"Level of readiness"};
+const RD=[["drink_now_potential","can drink now, but has potential for ageing"],["drink_now","drink now: not suitable for ageing / potential not stated"],["not_ready_potential","not suitable for drinking now: too young, has potential"],["too_old","too old"]];
+const CHARS=new Set(["aroma_nose","aroma_palate","unattr"]);
+const rowOpts=id=>SCALEROW[id]?LEX.scales[SCALEROW[id]]:{clarity:["clear","hazy"],app_int:["pale","medium","deep"],condition:["clean","unclean"],quality:["faulty","poor","acceptable","good","very_good","outstanding"]}[id];
+/* ---- deterministic model from matcher hits ---- */
+function detModel(r,colour,points){
+  const pos=r.hits.filter(h=>!h.neg), M={}, ev=p=>[...new Set(pos.filter(p).map(h=>h.surface))].slice(0,4).join(", ");
+  const cats=f=>new Set(pos.filter(h=>h.kind==="cat"&&h.f1===f).map(h=>h.f2)), ce=f=>ev(h=>h.kind==="cat"&&h.f1===f);
+  M.clarity={on:cats("clarity"),ev:ce("clarity")}; M.app_int={on:cats("appearance_intensity"),ev:ce("appearance_intensity")};
+  M.colour={on:cats("colour"),ev:ce("colour")}; M.condition={on:cats("condition"),ev:ce("condition")};
+  for(const [id,s] of Object.entries(SCALEROW)){ const hs=pos.filter(h=>h.kind==="structure"&&h.f1===s), lv=LEX.scales[s]; let on=new Set();
+    if(hs.length){ const m=hs.reduce((a,h)=>a+(+h.f2),0)/hs.length; on=new Set([lv[Math.round(m)-1]]); } M[id]={on,ev:ev(h=>h.kind==="structure"&&h.f1===s)}; }
+  const by=pred=>{ const m=new Map(); pos.filter(h=>h.kind==="aroma"&&pred(h.scope)).forEach(h=>{const o=m.get(h.f1)||{d:new Set(),amb:false}; o.d.add(h.f2); if(h.amb>1)o.amb=true; m.set(h.f1,o)}); return m; };
+  M.aroma_nose={chars:by(s=>s==="nose"||s==="both")}; M.aroma_palate={chars:by(s=>s==="palate"||s==="both")}; M.unattr={chars:by(s=>s==="unspecified")};
+  const q=qualityOf(points); M.quality={on:new Set(q?[q]:[]),ev:points!=null?`proxy from critic score (${points} pts) — not a tasting judgement`:"proxy from critic points (none given)"};
+  const fl=k=>pos.some(h=>h.kind==="readiness"&&h.f1===k), rd=fl("too_old")?"too_old":fl("drink_now")&&fl("can_age")?"drink_now_potential":fl("drink_now")?"drink_now":fl("can_age")?"not_ready_potential":null;
   const yrs=r.years.length?"years "+r.years.map(y=>y[0]+(y[1]?"–"+y[1]:"")).join(", "):"";
-  return `<div class="sat">
-   <div class="sat-h">APPEARANCE</div>
-   ${row("Clarity",opt(["clear","hazy"],cats("clarity")),ev(h=>h.kind==="cat"&&h.f1==="clarity"))}
-   ${row("Intensity",opt(["pale","medium","deep"],cats("appearance_intensity")),ev(h=>h.kind==="cat"&&h.f1==="appearance_intensity"))}
-   ${row("Colour",colourHtml,ev(h=>h.kind==="cat"&&h.f1==="colour"))}
-   <div class="sat-h">NOSE</div>
-   ${row("Condition",opt(["clean","unclean"],cats("condition")),ev(h=>h.kind==="cat"&&h.f1==="condition"))}
-   ${scale("nose_intensity","Intensity")}
-   ${row("Aroma characteristics",tierLines(nose),"")}
-   ${Object.keys(un).length?row("<span class='note'>not attributed to nose or palate</span>",tierLines(un),""):""}
-   ${scale("development","Development")}
-   <div class="sat-h">PALATE</div>
-   ${scale("sweetness")}${scale("acidity")}${scale("tannin")}${scale("alcohol")}${scale("body")}${scale("mousse")}${scale("flavour_intensity","Flavour intensity")}
-   ${row("Flavour characteristics",tierLines(pal),"")}
-   ${scale("finish")}
-   <div class="sat-h">CONCLUSIONS</div>
-   ${row("Quality level",opt(["faulty","poor","acceptable","good","very_good","outstanding"],new Set(q?[q]:[])),points!=null?`proxy from critic score (${points} pts) — not a tasting judgement`:"proxy from critic points (none given)")}
-   ${row("Level of readiness",RD.map(([k,t])=>`<div><span class="o${rd===k?" on":""}">${t}</span></div>`).join(""),(ev(h=>h.kind==="readiness")+" "+yrs).trim())}
-  </div>`; }
-function matchHtml(text,embed,colour,points){ const key=embed?"e":"r";
+  M.readiness={on:new Set(rd?[rd]:[]),ev:(ev(h=>h.kind==="readiness")+" "+yrs).trim()};
+  return M; }
+/* ---- Jev model from compact answers (noul p | [score,conf] | [choice,conf]) ---- */
+function jevModel(J){
+  const M={}, ch=(k)=>{const a=J[k]; return a&&a[0]!=="not_stated"?{on:new Set([a[0]]),ev:`confidence ${a[1].toFixed(2)}`}:{on:new Set(),ev:a?`not stated (conf ${a[1].toFixed(2)})`:""}};
+  M.clarity=ch("app__clarity"); M.app_int=ch("app__intensity"); M.colour=ch("app__colour");
+  const pc=J["nose__condition"]; M.condition={on:new Set(pc>=.5?["unclean"]:[]),ev:`P(fault) ${pc.toFixed(2)}`};
+  for(const [id,s] of Object.entries(SCALEROW)){ const st=J["stated__"+s], lv=J["level__"+s], levels=LEX.scales[s]; let on=new Set(), ev=`stated ${st.toFixed(2)}`;
+    if(st>=.5){ on=new Set([levels[Math.min(levels.length-1,Math.max(0,Math.round(lv[0])))]]); ev+=` · level ${lv[0].toFixed(1)} of 0–${levels.length-1} · conf ${lv[1].toFixed(2)}`; } M[id]={on,ev}; }
+  const by=pre=>{ const m=new Map(); for(const cl of Object.keys(LEX.tier)){ const p=J[pre+cl]; if(p>=.5) m.set(cl,{p}); } return m; };
+  M.aroma_nose={chars:by("nose__")}; M.aroma_palate={chars:by("palate__")}; M.unattr={chars:new Map()};
+  const qs=J.quality; M.quality={on:new Set([rowOpts("quality")[Math.min(5,Math.max(0,Math.round(qs[0])))]]),ev:`Jev's judgement from the text: ${qs[0].toFixed(1)} of 0–5 · conf ${qs[1].toFixed(2)}`};
+  const rd=J.readiness; M.readiness={on:new Set(rd[0]!=="not_stated"?[rd[0]]:[]),ev:`confidence ${rd[1].toFixed(2)}`};
+  return M; }
+/* ---- rendering ---- */
+const opt=(list,on)=>list.map(x=>`<span class="o${on.has(x)?" on":""}">${fmt(x)}</span>`).join('<span class="d">–</span>');
+function strip(id,m,other,colour){
+  if(CHARS.has(id)){ const ot=other&&other.chars;
+    return ["primary","secondary","tertiary"].map(t=>{ const c=[...m.chars.entries()].filter(([k])=>LEX.tier[k]===t);
+      return `<div class="tl"><span class="tn" style="color:${TIERC[t]}">${t}</span>${c.length?c.map(([k,o])=>`<span class="tk${ot&&!ot.has(k)?" only":""}" style="border-color:${TIERC[t]};background:${TIERC[t]}22" title="${ot&&!ot.has(k)?"only this method found it":o.amb?"word is listed under several SAT clusters":""}">${k.replace(/_/g," ")}${o.d?": "+[...o.d].map(x=>x.replace(/_/g," ")).join(", ")+(o.amb?"~":""):" "+o.p.toFixed(2)}</span>`).join(""):'<span class="o">—</span>'}</div>`}).join(""); }
+  if(id==="colour"){ const cg=CGROUP[colour]||Object.keys(COLOURS); return Object.entries(COLOURS).map(([g,l])=>`<div><span class="note">${g}:</span> ${opt(l,new Set(cg.includes(g)?[...m.on]:[]))}</div>`).join(""); }
+  if(id==="readiness") return RD.map(([k,t])=>`<div><span class="o${m.on.has(k)?" on":""}">${t}</span></div>`).join("");
+  return opt(rowOpts(id),m.on); }
+function rowStatus(id,a,b){
+  if(CHARS.has(id)){ const A=a.chars,B=b.chars; if(!A.size&&!B.size) return "none"; if(!A.size||!B.size) return "one";
+    const x=[...A.keys()].sort().join(), y=[...B.keys()].sort().join(); if(x===y) return "same";
+    const inter=[...A.keys()].filter(k=>B.has(k)).length, uni=new Set([...A.keys(),...B.keys()]).size; return inter/uni>=0.5?"near":"differ"; }
+  const sa=a.on.size>0, sb=b.on.size>0; if(!sa&&!sb) return "none"; if(!sa||!sb) return "one";
+  if([...a.on].sort().join()===[...b.on].sort().join()) return "same";
+  if(id!=="colour"&&id!=="readiness"&&id!=="condition"&&id!=="clarity"){ const o=rowOpts(id); if(o){ const i=o.indexOf([...a.on][0]), j=o.indexOf([...b.on][0]); if(i>=0&&j>=0&&Math.abs(i-j)===1) return "near"; } }
+  return "differ"; }
+function compareModels(D,J){ const c={same:0,near:0,differ:0,one:0}; for(const [,ids] of SECT) for(const id of ids){ if(id==="quality"||id==="unattr")continue; const st=rowStatus(id,D[id],J[id]); if(st!=="none") c[st]++; } return c; }
+function renderCard(D,J,colour){ const side=!!J, cmp=side?compareModels(D,J):null;
+  let h=`<div class="sat${side?" side":""}">`;
+  if(side) h+=`<div class="sat-colh"><div></div><div>Deterministic <span class="note">(keyword rules, $0)</span></div><div>Jev <span class="note">(typed AI answers, probabilities)</span></div></div>`;
+  for(const [title,ids] of SECT){ h+=`<div class="sat-h">${title}</div>`;
+    for(const id of ids){ if(id==="unattr"&&!D.unattr.chars.size) continue;
+      const lab=id==="unattr"?`<span class='note'>${RLAB[id]}</span>`:RLAB[id];
+      if(!side){ h+=`<div class="sat-r"><div class="sat-l">${lab}</div><div class="sat-o">${strip(id,D[id],null,colour)}</div><div class="sat-e">${esc(D[id].ev||"")}</div></div>`; continue; }
+      if(id==="unattr"){ h+=`<div class="sat-r2"><div class="sat-l">${lab}</div><div class="sat-c">${strip(id,D[id],null,colour)}</div><div class="sat-c"><span class="note">Jev does not make this distinction</span></div></div>`; continue; }
+      const st=id==="quality"?"none":rowStatus(id,D[id],J[id]), flag={none:"",same:" ok",near:" near",differ:" diff",one:" one"}[st], MK={ok:'<span class="eq" title="both methods agree">=</span>',near:'<span class="nr" title="both state it; adjacent levels / overlapping sets">≈</span>',diff:'<span class="neq" title="both state it and differ">≠</span>',one:'<span class="one" title="only one method states this">◐</span>'}[flag.trim()]||"";
+      h+=`<div class="sat-r2${flag}"><div class="sat-l">${lab} ${MK}</div>
+        <div class="sat-c">${strip(id,D[id],J[id],colour)}<div class="sat-e">${esc(D[id].ev||"")}</div></div>
+        <div class="sat-c">${strip(id,J[id],D[id],colour)}<div class="sat-e">${esc(J[id].ev||"")}</div></div></div>`; } }
+  return {html:h+"</div>",cmp}; }
+function matchHtml(text,embed,colour,points,jev){ const key=embed?"e":"r";
   MT[key]=MT[key]||new WsetMatcher.Matcher(LEX,{embed:key==="e"}); const r=MT[key].match(text,colour||null);
   const byStart={}; r.hits.forEach(h=>{(byStart[h.start]=byStart[h.start]||[]).push(h)});
   let chips="", i=0; while(i<r.toks.length){ const hs=byStart[i];
@@ -250,11 +283,13 @@ function matchHtml(text,embed,colour,points){ const key=embed?"e":"r";
     if(hs){ const end=Math.max(...hs.map(h=>h.end)), neg=hs.every(h=>h.neg), k=hs[0].kind;
       chips+=`<span class="tk k-${k}${neg?" neg":""}" title="${esc(hs.map(h=>label(h.kind,h.f1,h.f2)+" ["+h.tag+(h.scope!=="unspecified"?", "+h.scope:"")+(h.amb>1?", ambiguous":"")+"]"+(h.neg?" negated":"")).join("; "))}">${esc(r.toks.slice(i,end).join(" "))}${hs[0].scope==="nose"||hs[0].scope==="palate"?`<sup>${hs[0].scope==="nose"?"N":"P"}</sup>`:""}</span>`; i=end; }
     else {chips+=`<span class="tk" style="border-color:transparent;color:var(--muted)">${esc(r.toks[i])}</span>`; i++;} }
-  return `<p class="note" style="margin:8px 0 4px">SAT-style card (project mapping of this text — <b>not an official WSET document</b>; layout follows the WSET Level 3 SAT structure). Wine colour used to resolve tertiary clusters: <b>${colour||"unknown"}</b>. Highlighted = stated in the text; no highlight = not stated.</p>${satCard(r,colour,points)}
-   <details style="margin-top:8px"><summary class="note">How the words were mapped (tokens and evidence, ${r.hits.length} hits)</summary>
+  const D=detModel(r,colour,points), card=renderCard(D,jev?jevModel(jev):null,colour);
+  const sum=card.cmp?`<span class="tk" style="border-color:var(--accent)"><b>${card.cmp.same}</b> same (=) · <b>${card.cmp.near}</b> adjacent (≈) · <b>${card.cmp.differ}</b> differ (≠) · <b>${card.cmp.one}</b> stated by only one method (◐)</span>`:"";
+  return `<p class="note" style="margin:8px 0 4px">SAT-style card (project mapping — <b>not an official WSET document</b>). Wine colour used for tertiary clusters: <b>${colour||"unknown"}</b>. Highlighted = stated; no highlight = not stated. Dashed chips = only one method found it. = same · ≈ adjacent level or overlapping · ≠ both state it, different · ◐ only one method states it. ${sum}</p>${card.html}
+   <details style="margin-top:8px"><summary class="note">How the deterministic words were mapped (${r.hits.length} hits)</summary>
    <p class="note" style="margin:6px 0 2px">green = aroma, blue = structure, purple = appearance/condition, orange = readiness; <sup>N</sup>/<sup>P</sup> = nose/palate scope; struck-through = negated</p><div>${chips}</div>
    <table><tr><th>form</th><th>→ target</th><th>source</th><th>scope</th><th></th></tr>${r.hits.map(h=>`<tr><td>${esc(h.surface)}</td><td>${esc(label(h.kind,h.f1,h.f2))}</td><td>${h.tag}</td><td>${h.scope==="unspecified"?"":h.scope}</td><td>${h.neg?"negated":""}</td></tr>`).join("")}</table></details>`; }
-function runTry(){ $("tryOut").innerHTML=matchHtml($("tryText").value,$("tryEmbed").checked,$("tryColour").value,null); }
+function runTry(){ $("tryOut").innerHTML=matchHtml($("tryText").value,$("tryEmbed").checked,$("tryColour").value,null,null); }
 function drawForms(){ const k=$("fk").value,f=$("ff").value,s=$("fsrc").value,mn=+$("fmin").value,q=$("fq").value.trim().toLowerCase();
   FROWS=FORMS.filter(r=>(!k||r[1]===k)&&(!f||r[2]===f)&&(!s||r[4]===s)&&r[5]>=mn&&(!q||(r[0]+" "+r[2]+" "+r[3]).toLowerCase().includes(q))).sort((a,b)=>b[5]-a[5]||a[0].localeCompare(b[0]));
   $("fcount").textContent=` ${FROWS.length.toLocaleString()} of ${FORMS.length.toLocaleString()} forms`;
@@ -274,18 +309,26 @@ async function mappings(){ LEX=await load("lexicon"); FORMS=await load("forms");
 async function method(){ const l=await load("lexicon"), f=await load("forms"); if(l){ $("dgA").textContent=l.descriptors.length; $("dgS").textContent=Object.keys(l.scales).length; }
   if(f){ $("dgF").textContent=new Set(f.filter(r=>r[4]==="rule").map(r=>r[0])).size.toLocaleString(); } }
 /* ---------- Examples tab (local only) ---------- */
-let EX=null,EXF=[],EXSHOW=20;
-function drawEx(){ const c=$("exCase").value,y=$("exCountry").value,q=$("exQ").value,t=$("exQuery").value.trim().toLowerCase();
-  EXF=EX.filter(e=>(!c||e.cases.includes(c))&&(!y||e.country===y)&&(!q||e.quality===q)&&(!t||e.text.toLowerCase().includes(t)));
-  $("exCount").textContent=` ${EXF.length} of ${EX.length}`;
-  $("exList").innerHTML=EXF.slice(0,EXSHOW).map(e=>`<div class="panel" style="margin-bottom:10px"><div class="note">${esc([e.variety,e.region,e.country].filter(Boolean).join(" · "))} · ${e.points??"?"} pts${e.vintage?" · "+e.vintage:""}${e.price?" · $"+e.price:""} · ${e.quality||""}</div>
-   <p style="margin:6px 0">${esc(e.text)}</p>${matchHtml(e.text,true,e.colour,e.points)}<div class="note" style="margin-top:6px">${e.cases.map(x=>`<span class="tk">${esc(x)}</span>`).join("")}</div></div>`).join("");
+let EX=null,EXF=[],EXSHOW=10;
+function diffOf(e){ if(!e.jev) return null; if(e._d) return e._d; MT.e=MT.e||new WsetMatcher.Matcher(LEX,{embed:true});
+  const r=MT.e.match(e.text,e.colour||null); e._d=compareModels(detModel(r,e.colour,e.points),jevModel(e.jev)); return e._d; }
+function drawEx(){ const c=$("exCase").value,y=$("exCountry").value,q=$("exQ").value,t=$("exQuery").value.trim().toLowerCase(),so=$("exSort").value;
+  EXF=EX.filter(e=>(!c||e.cases.includes(c))&&(!y||e.country===y)&&(!q||(q==="none"?!e.batch:e.batch===q))&&(!t||e.text.toLowerCase().includes(t)));
+  let note="";
+  const withJ=EXF.filter(e=>e.jev);
+  if(withJ.length){ const t={same:0,near:0,differ:0,one:0}; withJ.forEach(e=>{const d=diffOf(e); for(const k in t)t[k]+=d[k]}); const both=t.same+t.near+t.differ, all=both+t.one;
+    note=` · ${withJ.length} with both methods: where both state a field, ${(100*(t.same+t.near)/Math.max(1,both)).toFixed(0)}% are the same or adjacent (${(100*t.same/Math.max(1,both)).toFixed(0)}% exactly the same); ${(100*t.one/Math.max(1,all)).toFixed(0)}% of stated fields are stated by only one method`; }
+  if(so!=="order"){ const r=e=>{const d=diffOf(e); return d?(d.differ*2+d.near)/Math.max(1,d.same+d.near+d.differ):-1}; const k=e=>{const d=diffOf(e); return d?d.differ*100+d.near*10+d.one:-1};
+    EXF=[...EXF].sort((a,b)=>so==="diff"?(k(b)-k(a)):so==="agree"?((r(a)<0)-(r(b)<0)||r(a)-r(b)):0); }
+  $("exCount").textContent=` ${EXF.length} of ${EX.length}${note}`;
+  $("exList").innerHTML=EXF.slice(0,EXSHOW).map(e=>`<div class="panel" style="margin-bottom:12px"><div class="note">${esc([e.variety,e.region,e.country].filter(Boolean).join(" · "))} · ${e.points??"?"} pts${e.vintage?" · "+e.vintage:""}${e.price?" · $"+e.price:""} · ${e.colour}${e.batch?" · set: "+e.batch:""}</div>
+   <p style="margin:6px 0"><span class="note">Review:</span> ${esc(e.text)}</p>${matchHtml(e.text,true,e.colour,e.points,e.jev)}<div class="note" style="margin-top:6px">${e.cases.map(x=>`<span class="tk">${esc(x)}</span>`).join("")}</div></div>`).join("");
   $("exMore").style.display=EXF.length>EXSHOW?"":"none"; }
 async function examples(){ if(!LEX) LEX=await load("lexicon"); EX=await load("examples");
   if(!EX||!LEX){ $("exList").innerHTML='<div class="panel"><p>No examples available here. They are generated locally by <code>src/build_examples.py</code> and are deliberately not deployed.</p></div>'; $("exMore").style.display="none"; return; }
   const cases=[...new Set(EX.flatMap(e=>e.cases))].sort(), ctys=[...new Set(EX.map(e=>e.country))].sort();
   $("exCase").innerHTML='<option value="">all</option>'+cases.map(c=>`<option>${esc(c)}</option>`).join(""); $("exCountry").innerHTML='<option value="">all</option>'+ctys.map(c=>`<option>${esc(c)}</option>`).join("");
-  ["exCase","exCountry","exQ"].forEach(i=>$(i).onchange=()=>{EXSHOW=20;drawEx()}); $("exQuery").oninput=()=>{EXSHOW=20;drawEx()}; $("exMore").onclick=()=>{EXSHOW+=20;drawEx()}; drawEx(); }
+  ["exCase","exCountry","exQ","exSort"].forEach(i=>$(i).onchange=()=>{EXSHOW=10;drawEx()}); $("exQuery").oninput=()=>{EXSHOW=10;drawEx()}; $("exMore").onclick=()=>{EXSHOW+=10;drawEx()}; if(cases.includes("with Jev (side by side)")) $("exCase").value="with Jev (side by side)"; EXSHOW=10; drawEx(); }
 /* ---------- Missing tab ---------- */
 let MS=null,MF=[],MSHOW=150;
 function drawMiss(){ const g=$("mgap").value.toLowerCase(),c=$("mcty").value,q=$("mq").value.trim().toLowerCase();

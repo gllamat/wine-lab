@@ -86,12 +86,15 @@ def main():
     if not key:
         sys.exit("set TYPESAFE_API_KEY in the environment or .env")
     n = int(sys.argv[1]); model = sys.argv[sys.argv.index("--model") + 1] if "--model" in sys.argv else "jev-latest"
-    vec = pd.read_parquet(ROOT / "outputs/wset_vectors_20000.parquet", columns=["id"])
     raw = pd.read_parquet(ROOT.parent / "datasets/wine_reviews_deduped.parquet", columns=["description"])
     raw["id"] = raw.description.map(review_id)
     raw = raw.drop_duplicates("id").set_index("id")
-    ids = vec.sample(n, random_state=5).id.tolist()
-    out_f = ROOT / "outputs/jev_pilot.jsonl"
+    if "--ids-from" in sys.argv:                      # explicit id list (csv with an 'id' column)
+        ids = pd.read_csv(sys.argv[sys.argv.index("--ids-from") + 1])["id"].tolist()[:n]
+    else:
+        vec = pd.read_parquet(ROOT / "outputs/wset_vectors_20000.parquet", columns=["id"])
+        ids = vec.sample(n, random_state=5).id.tolist()
+    out_f = ROOT / (sys.argv[sys.argv.index("--out") + 1] if "--out" in sys.argv else "outputs/jev_pilot.jsonl")
     done = {json.loads(l)["id"] for l in open(out_f)} if out_f.exists() else set()
     todo = [i for i in ids if i not in done]
     s = requests.Session()
