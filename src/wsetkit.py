@@ -8,14 +8,17 @@ NEG = {"no", "not", "without", "lacks", "lacking", "lack", "devoid", "minus", "n
        "never", "free", "absent", "hardly"}
 BOUNDARY = {"|", "but", "yet", "although", "though", "however", "while", "with", "and"}
 NEG_WINDOW = 3
-LEMMA_EXC = {"molasses": "molasses", "citrus": "citrus", "asparagus": "asparagus", "grass": "grass"}
+LEMMA_EXC = {"molasses": "molasses", "citrus": "citrus", "asparagus": "asparagus", "grass": "grass",
+             "christmas": "christmas", "lees": "lees", "bias": "bias", "canvas": "canvas"}
 
 # Wine Enthusiast points -> WSET-style quality band (project assumption, documented in README)
 QUALITY_BANDS = [(82, "acceptable"), (86, "good"), (90, "very_good"), (101, "outstanding")]
 
 
 def lemma(t: str) -> str:
-    if t in LEMMA_EXC or len(t) <= 3 or not t.isalpha():
+    if t in LEMMA_EXC:
+        return t
+    if len(t) <= 3 or not t.isalpha():
         return t
     if t.endswith("ies") and len(t) > 4:
         return t[:-3] + "y"
@@ -56,7 +59,7 @@ def quality_band(points):
 
 class Lexicon:
     def __init__(self, extra=None):
-        self.entries = {}      # token tuple -> (kind, field, value)
+        self.entries = {}      # token tuple -> list of (kind, field, value, tag); one surface may set several kinds
         self.conflicts = []
         self.descriptors = []  # (cluster, descriptor)
         self.scales = {}
@@ -91,32 +94,58 @@ class Lexicon:
         key = tuple(tokenize(form))
         if not key:
             return
-        if key in self.entries:
-            if self.entries[key][:3] != target:
-                self.conflicts.append((" ".join(key), self.entries[key][:3], target))
-            return
-        self.entries[key] = target + (tag,)
+        cur = self.entries.setdefault(key, [])
+        for t in cur:
+            if t[:3] == target:
+                return
+            if t[0] == target[0]:      # same kind, different value -> real conflict, keep first
+                self.conflicts.append((" ".join(key), t[:3], target))
+                return
+        cur.append(target + (tag,))
+
+    def _find_head(self, toks, i):
+        """Head noun for a bound adjective at i. Returns (head_idx, direct).
+        direct: adjective + <=1 token + head in same clause -> consume through head.
+        cross: 'firm, grippy tannins' / 'soft and silky tannins' -> adjective only, tolerate , and + other cue words."""
+        for j in range(i + 1, min(len(toks), i + 3)):
+            if toks[j] == "|":
+                break
+            if toks[j] in self.heads:
+                return j, True
+        nonskip = 0
+        for j in range(i + 1, min(len(toks), i + 7)):
+            t = toks[j]
+            if t in self.heads:
+                return j, False
+            if t in ("|", "and"):
+                continue
+            ok = t in self.bound or any(e[0] == "structure" for e in self.entries.get((t,), []))
+            if not ok:
+                break
+            nonskip += 1
+            if nonskip > 2:
+                break
+        return None, False
 
     def match(self, text: str):
         toks = tokenize(text)
         i, out, covered = 0, [], [False] * len(toks)
         while i < len(toks):
             if toks[i] in self.bound:
-                head = None
-                for j in range(i + 1, min(len(toks), i + 3)):
-                    if toks[j] == "|":
-                        break
-                    if toks[j] in self.heads:
-                        head = j
-                        break
+                head, direct = self._find_head(toks, i)
                 if head is not None:
                     neg = any(toks[k] in NEG for k in range(max(0, i - NEG_WINDOW), i)
                               if not any(t in BOUNDARY for t in toks[k:i]))
                     out.append(dict(kind="structure", f1=self.heads[toks[head]], f2=self.bound[toks[i]],
-                                    surface=toks[i] + " " + toks[head], neg=neg, tag="bound"))
-                    for j in range(i, head + 1):
-                        covered[j] = True
-                    i = head + 1
+                                    surface=toks[i] + " " + toks[head] if direct else toks[i] + " … " + toks[head],
+                                    neg=neg, tag="bound" if direct else "bound-x"))
+                    if direct:
+                        for j in range(i, head + 1):
+                            covered[j] = True
+                        i = head + 1
+                    else:
+                        covered[i] = True
+                        i += 1
                     continue
             hit = None
             for n in range(min(self.maxlen, len(toks) - i), 0, -1):
@@ -133,8 +162,8 @@ class Lexicon:
                     if toks[j] in NEG:
                         neg = True
                         break
-                kind, a, b, tag = self.entries[key]
-                out.append(dict(kind=kind, f1=a, f2=b, surface=" ".join(key), neg=neg, tag=tag))
+                for kind, a, b, tag in self.entries[key]:
+                    out.append(dict(kind=kind, f1=a, f2=b, surface=" ".join(key), neg=neg, tag=tag))
                 for j in range(i, i + n):
                     covered[j] = True
                 i += n

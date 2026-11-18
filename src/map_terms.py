@@ -27,7 +27,7 @@ def main():
     lex = Lexicon()
     tok, mdl = load(name)
     # --- descriptor prototypes from single/multi-word forms
-    forms = [(" ".join(k), v[1], v[2]) for k, v in lex.entries.items() if v[0] == "aroma"]
+    forms = [(" ".join(k), e[1], e[2]) for k, v in lex.entries.items() for e in v if e[0] == "aroma"]
     F = embed_texts([f for f, _, _ in forms], tok, mdl, bs=128, maxlen=16)
     cl = np.array([c for _, c, _ in forms]); ds = np.array([f"{c}/{d}" for _, c, d in forms])
     dnames = sorted(set(ds)); didx = {d: i for i, d in enumerate(dnames)}
@@ -46,7 +46,7 @@ def main():
         return P, cnt
 
     # --- negative class: structure cues + generic words (things that are NOT aromas)
-    negf = sorted({" ".join(k) for k, v in lex.entries.items() if v[0] != "aroma"} | STOPLIKE | NONAROMA)
+    negf = sorted({" ".join(k) for k, v in lex.entries.items() if all(e[0] != "aroma" for e in v)} | STOPLIKE | NONAROMA)
     N = embed_texts(negf, tok, mdl, bs=128, maxlen=16)
     P_full, cnt_full = protos()
 

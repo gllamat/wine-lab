@@ -65,6 +65,8 @@ heads:
   bodied: body
   alcohol: alcohol
   alcohols: alcohol
+  texture: texture
+  mouthfeel: texture
 bound:
   soft: 1
   smooth: 1

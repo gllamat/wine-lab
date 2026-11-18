@@ -4,6 +4,9 @@
 # Cue strengths are heuristic assumptions of THIS project; they can be tuned.
 version: 1
 scales:
+  texture:      # NOT a WSET SAT field; extra project scale for 'soft/rich texture, mouthfeel'
+    levels: [soft, medium-soft, medium, medium-rich, rich]
+    cues: {}
   acidity:
     levels: [low, medium-, medium, medium+, high]
     cues:
