@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Wine WSET Lab</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.35.2/plotly.min.js"></script>
+<script src="matcher.js"></script>
 <style>
 :root{--bg:#fbf9f6;--panel:#fff;--ink:#241b1f;--muted:#6f6469;--line:#e6dfe2;--accent:#7b1e3a;--accent2:#c08a2d}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#17120f;--panel:#201a17;--ink:#f1e9e4;--muted:#a99c96;--line:#362d29;--accent:#d97a96;--accent2:#e0b050}}
@@ -26,6 +27,17 @@ table{border-collapse:collapse;width:100%;font-size:13px}td,th{border-bottom:1px
 .note{color:var(--muted);font-size:13px}.warn{border-left:3px solid var(--accent2);padding-left:10px}
 .plot{width:100%;height:560px}.plot.s{height:340px}
 @media (max-width:600px){.plot{height:420px}}
+textarea,input[type=search]{width:100%;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:8px;font:inherit}
+.tk{display:inline-block;padding:1px 7px;margin:2px 2px;border-radius:999px;border:1px solid var(--line);font-size:13px}
+.k-aroma{background:#59a14f26;border-color:#59a14f}.k-structure{background:#4e79a726;border-color:#4e79a7}.k-readiness{background:#f28e2b26;border-color:#f28e2b}
+.tk.neg{text-decoration:line-through;opacity:.55}.tk.pipe{border:0;color:var(--muted);padding:0}
+.lv{display:inline-flex;gap:2px;vertical-align:middle}.lv i{width:16px;height:9px;border-radius:2px;background:var(--line)}.lv i.on{background:var(--accent)}
+.sw{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:6px 14px;margin-top:8px}
+.btn{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:4px 10px;font:inherit;cursor:pointer}
+tr.clk{cursor:pointer}tr.clk:hover{background:var(--line)}
+.diagram{width:100%;height:auto}.diagram .bx{fill:var(--panel);stroke:var(--line)}.diagram .ar{stroke:var(--muted);fill:none;stroke-width:1.5;marker-end:url(#ar)}
+.diagram .t{fill:var(--ink);font:12.5px system-ui,sans-serif}.diagram .tb{font-weight:600;font-size:13.5px}.diagram .m{fill:var(--muted)}
+.diagram .fa{fill:#59a14f26;stroke:#59a14f}.diagram .fs{fill:#4e79a726;stroke:#4e79a7}.diagram .fr{fill:#f28e2b26;stroke:#f28e2b}.diagram .fn{fill:#8883;stroke:#888}.diagram .fe{fill:#b07aa126;stroke:#b07aa1}
 </style>
 </head>
 <body>
@@ -56,6 +68,35 @@ table{border-collapse:collapse;width:100%;font-size:13px}td,th{border-bottom:1px
   <div class="panel"><b>Predicting metadata (accuracy / R²)</b><div id="metaPlot" class="plot s"></div></div>
   <div class="panel"><b>Embedding → WSET dimension (AUC / R²)</b><div id="probePlot" class="plot s"></div></div>
 </div><div class="panel" style="margin-top:12px"><b>Layout faithfulness (trustworthiness)</b><div id="trustTable"></div></div></section>
+<section id="mappings">
+  <div class="panel"><b>Try the matcher</b> <span class="note">— the same deterministic logic as the Python pipeline, running in your browser. Your text never leaves the page.</span>
+    <textarea id="tryText" rows="3" spellcheck="false"></textarea>
+    <div class="row" style="margin-top:8px"><label><input type="checkbox" id="tryEmbed" checked> include embedding-mapped terms</label><span id="samples"></span></div>
+    <div id="tryOut"></div></div>
+  <div class="panel" style="margin-top:12px"><b>Lexicon browser</b> <span class="note">— click a row to test it above</span>
+    <div class="row" style="margin-top:8px"><label>Kind <select id="fk"><option value="">all</option><option>aroma</option><option>structure</option><option>readiness</option></select></label>
+      <label>Field <select id="ff"><option value="">all</option></select></label>
+      <label>Source <select id="fsrc"><option value="">all</option><option value="rule">rule (hand-written)</option><option value="bound">bound adjective+noun</option><option value="bound-x">bound across comma/“and”</option><option value="embed">embedding-mapped</option></select></label>
+      <label>Used in ≥ <select id="fmin"><option value="0">any</option><option value="1">1 review</option><option value="10">10</option><option value="100">100</option><option value="1000">1,000</option></select></label>
+      <input id="fq" type="search" placeholder="search form or target…" style="max-width:260px"><span class="note" id="fcount"></span></div>
+    <div style="max-height:440px;overflow:auto"><table id="ftab"></table></div><button class="btn" id="fmore" style="margin-top:8px">show more</button></div>
+  <div class="panel" style="margin-top:12px"><b>What the lexicon misses</b> <span class="note">— most frequent words in reviews that no rule matched. “Embedding guess” is the nearest aroma descriptor from MiniLM; ✓ = accepted (clears the similarity threshold).</span>
+    <div style="max-height:340px;overflow:auto"><table id="utab"></table></div></div>
+</section>
+<section id="method"><div class="panel"><b>How a review becomes a WSET-style vector (no models, no randomness)</b>
+<svg class="diagram" viewBox="0 0 960 560" role="img" aria-label="Deterministic keyword to WSET mapping pipeline">
+<defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#888"/></marker></defs>
+<g><rect class="bx" x="20" y="30" width="170" height="120" rx="8"/><text class="t tb" x="32" y="54">1 · Review text</text><text class="t m" x="32" y="78">free text from the critic</text><text class="t m" x="32" y="96">“Crisp green apple, no</text><text class="t m" x="32" y="114">oak. Bone-dry, long finish.”</text></g><g><rect class="bx" x="208" y="30" width="170" height="120" rx="8"/><text class="t tb" x="220" y="54">2 · Normalise</text><text class="t" x="220" y="78">lowercase, strip accents</text><text class="t" x="220" y="96">hyphen → space</text><text class="t" x="220" y="114">punctuation → clause mark |</text><text class="t" x="220" y="132">plural / lemma rules</text></g><g><rect class="bx" x="396" y="30" width="170" height="120" rx="8"/><text class="t tb" x="408" y="54">3 · Longest match</text><text class="t" x="408" y="78">longest n-gram wins:</text><text class="t" x="408" y="96">“toasted oak” beats “oak”</text><text class="t" x="408" y="114">one form → 1+ targets</text><text class="t" x="408" y="132">(e.g. “needs time”)</text></g><g><rect class="bx" x="584" y="30" width="170" height="120" rx="8"/><text class="t tb" x="596" y="54">4 · Qualify</text><text class="t" x="596" y="78">“soft” needs a head noun</text><text class="t" x="596" y="96">(soft tannins)</text><text class="t" x="596" y="114">negation: no, without,</text><text class="t" x="596" y="132">lacks (3-word window)</text></g><g><rect class="bx" x="772" y="30" width="170" height="120" rx="8"/><text class="t tb" x="784" y="54">5 · WSET-style vector</text><text class="t" x="784" y="78">aroma: <tspan id="dgA">61</tspan> descriptors, 0/1</text><text class="t" x="784" y="96">structure: level 1–5 / empty</text><text class="t" x="784" y="114">readiness + year range</text><text class="t" x="784" y="132">quality band from points</text></g><path class="ar" d="M190 90H206"/><path class="ar" d="M378 90H394"/><path class="ar" d="M566 90H582"/><path class="ar" d="M754 90H770"/><g><rect class="bx fa" x="170" y="205" width="140" height="64" rx="8"/><text class="t tb" x="180" y="228">Aroma lexicon</text><text class="t m" x="180" y="248">descriptor clusters</text></g><g><rect class="bx fs" x="320" y="205" width="140" height="64" rx="8"/><text class="t tb" x="330" y="228">Structure cues</text><text class="t m" x="330" y="248"><tspan id="dgS">9</tspan> scales · levels 1–5</text></g><g><rect class="bx fr" x="470" y="205" width="115" height="64" rx="8"/><text class="t tb" x="480" y="228">Readiness</text><text class="t m" x="480" y="248">drink now / age</text></g><path class="ar" d="M240 205L440 152"/><path class="ar" d="M390 205L470 152"/><path class="ar" d="M527 205L520 152"/><text class="t m" x="330" y="296"><tspan id="dgF">1,300</tspan> surface forms · hand-written, tuned by audit</text><g><rect class="bx" x="605" y="205" width="335" height="64" rx="8"/><text class="t tb" x="617" y="228">Evidence log</text><text class="t m" x="617" y="248">every hit kept: form → field/value, negated?, source</text></g><path class="ar" d="M670 152L720 203"/><g><rect class="bx fe" x="20" y="330" width="345" height="112" rx="8"/><text class="t tb" x="32" y="354">Offline: embedding mapping (MiniLM)</text><text class="t" x="32" y="376">frequent unmatched words → vectors</text><text class="t" x="32" y="394">nearest aroma descriptor vs a “not an aroma” class</text><text class="t" x="32" y="412">accept if similarity ≥ 0.58 and margin ≥ 0.03</text><text class="t" x="32" y="430">→ added to the lexicon, tagged “embed”</text></g>
+<path class="ar" d="M110 330L200 271"/>
+<g><rect class="bx" x="395" y="330" width="545" height="112" rx="8"/><text class="t tb" x="407" y="354">Why it is deterministic</text><text class="t" x="407" y="376">• same text + same lexicon file → same vector, always</text><text class="t" x="407" y="394">• no sampling; pinned model revisions; fixed seeds for UMAP</text><text class="t" x="407" y="412">• the browser matcher is parity-tested against Python</text><text class="t" x="407" y="430">• every cell traces back to the exact word that caused it</text></g>
+<text class="t tb" x="20" y="478">Worked example</text>
+<g><rect class="bx fs" x="20" y="490" width="170" height="44" rx="8"/><text class="t" x="30" y="508">crisp</text><text class="t m" x="30" y="525">→ acidity 4</text></g>
+<g><rect class="bx fa" x="200" y="490" width="190" height="44" rx="8"/><text class="t" x="210" y="508">green apple</text><text class="t m" x="210" y="525">→ green_fruit / apple</text></g>
+<g><rect class="bx fn" x="400" y="490" width="170" height="44" rx="8"/><text class="t" x="410" y="508" text-decoration="line-through">no oak</text><text class="t m" x="410" y="525">negated → ignored</text></g>
+<g><rect class="bx fs" x="580" y="490" width="170" height="44" rx="8"/><text class="t" x="590" y="508">bone-dry</text><text class="t m" x="590" y="525">→ sweetness 1</text></g>
+<g><rect class="bx fs" x="760" y="490" width="180" height="44" rx="8"/><text class="t" x="770" y="508">long</text><text class="t m" x="770" y="525">→ finish 5</text></g>
+</svg>
+<p class="note">Gaps are kept honest: appearance is never mentioned, alcohol rarely, and cue levels are project heuristics — not validated by WSET-qualified tasters.</p></div></section>
 <section id="about"><div class="panel">
 <h3>Method</h3><p>Reviews are normalised and matched against a hand-written WSET-style lexicon (aromas, structure cues, readiness). Unmatched frequent words are mapped to descriptors with MiniLM/BERT embeddings, with a negative class and a leave-one-out calibrated threshold. Everything is deterministic: pinned model revisions, fixed seeds, CPU.</p>
 <h3>Limits</h3><ul><li>Reviews rarely mention appearance, alcohol or sweetness levels; those fields are sparse.</li><li>Cue levels are heuristic assumptions, not validated against WSET-qualified tasters.</li><li>Weather is grid-scale reanalysis at region centroids.</li></ul>
@@ -63,7 +104,7 @@ table{border-collapse:collapse;width:100%;font-size:13px}td,th{border-bottom:1px
 <p class="note" id="built"></p></div></section>
 </main>
 <script>
-const $=id=>document.getElementById(id), TABS=[["overview","Overview"],["spaces","Vector spaces"],["map","Map"],["weather","Weather"],["compare","Compare"],["about","About"]];
+const $=id=>document.getElementById(id), TABS=[["overview","Overview"],["spaces","Vector spaces"],["map","Map"],["weather","Weather"],["compare","Compare"],["mappings","Mappings"],["method","Method"],["about","About"]];
 const cache={}; async function load(n){ if(cache[n]!==undefined) return cache[n]; try{const r=await fetch("data/"+n+".json"); cache[n]=r.ok?await r.json():null;}catch(e){cache[n]=null} return cache[n]; }
 const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const lay=(x={})=>Object.assign({paper_bgcolor:"rgba(0,0,0,0)",plot_bgcolor:"rgba(0,0,0,0)",font:{color:css("--ink")},margin:{l:50,r:10,t:30,b:40}},x);
@@ -75,13 +116,13 @@ function tabs(){ $("tabs").innerHTML=TABS.map(([k,l])=>`<button data-t="${k}">${
 const shown={};
 async function show(t){ document.querySelectorAll("section").forEach(s=>s.classList.toggle("on",s.id===t));
   document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.t===t)); location.hash=t;
-  if(!shown[t]){shown[t]=1; await ({overview,spaces,map,weather,compare,about}[t])();} else if(t==="spaces")drawSpace(); else if(t==="map")drawMap(); else if(t==="weather")drawWeather(); }
+  if(!shown[t]){shown[t]=1; await ({overview,spaces,map,weather,compare,mappings,method,about}[t])();} else if(t==="spaces")drawSpace(); else if(t==="map")drawMap(); else if(t==="weather")drawWeather(); }
 async function overview(){ const o=await load("overview"); if(!o)return missing("overview");
   const c=o.coverage, cards=[[o.n_reviews.toLocaleString(),"reviews"],[o.n_countries,"countries"],[o.n_regions.toLocaleString(),"regions"],[o.n_varieties,"grape labels"],[pct(o.vintage_coverage),"with vintage"],[pct(c.aroma_cluster),"with ≥1 aroma cluster"]];
   $("overview").innerHTML=`<div class="cards">${cards.map(([a,b])=>`<div class="card"><b>${a}</b><small>${b}</small></div>`).join("")}</div>
   <div class="grid2"><div class="panel"><b>Share of reviews where each WSET structure field is stated</b><div id="covPlot" class="plot s"></div></div>
   <div class="panel"><b>Aroma clusters (share of reviews)</b><div id="cluPlot" class="plot s"></div></div></div>
-  <div class="panel" style="margin-top:12px"><b>Most frequent matched forms</b><div style="max-height:320px;overflow:auto"><table><tr><th>kind</th><th>field</th><th>value</th><th>form</th><th>n</th></tr>${(o.top_forms||[]).map(r=>`<tr>${r.map(x=>`<td>${x}</td>`).join("")}</tr>`).join("")}</table></div></div>`;
+  <div class="panel" style="margin-top:12px"><b>Most frequent matched forms</b><div style="max-height:320px;overflow:auto"><table><tr><th>kind</th><th>field</th><th>value</th><th>form</th><th>source</th><th>reviews</th></tr>${(o.top_forms||[]).map(r=>`<tr>${r.map(x=>`<td>${x}</td>`).join("")}</tr>`).join("")}</table></div></div>`;
   const s=Object.entries(c).filter(([k])=>!["aroma_cluster"].includes(k)).sort((a,b)=>a[1]-b[1]);
   Plotly.newPlot("covPlot",[{type:"bar",orientation:"h",x:s.map(d=>d[1]*100),y:s.map(d=>d[0]),marker:{color:css("--accent")}}],lay({xaxis:{title:"% of reviews"},margin:{l:130,r:10,t:10,b:40}}),{displayModeBar:false});
   const k=Object.entries(o.clusters).sort((a,b)=>a[1]-b[1]);
@@ -125,6 +166,50 @@ async function compare(){ const c=await load("compare"); if(!c)return missing("c
   const pr=c.probe_embedding_to_wset, ms=Object.keys(pr), dims=Object.keys(pr[ms[0]]||{});
   Plotly.newPlot("probePlot",ms.map((s,i)=>({type:"bar",name:s,x:dims,y:dims.map(d=>pr[s][d]),marker:{color:PAL[i]}})),lay({barmode:"group",legend:{orientation:"h",y:-0.4},margin:{l:50,r:10,t:10,b:110}}),{displayModeBar:false});
   const t=c.trustworthiness; $("trustTable").innerHTML="<table>"+Object.entries(t).map(([k,v])=>`<tr><td>${k}</td><td>${(+v).toFixed(3)}</td></tr>`).join("")+"</table>"; }
+/* ---------- Mappings tab ---------- */
+let LEX=null,FORMS=null,UNM=null,MT={},FSHOW=150,FROWS=[];
+const SAMPLES=["Crisp green apple and lemon zest, bright acidity, no oak. Light-bodied and bone-dry with a long, mineral finish. Drink now.",
+ "Firm, grippy tannins and black cherry, vanilla and toasted oak. Full-bodied, needs time; best 2020-2030.",
+ "Dusty tannins make for a soft texture in this wine, subtle in dried fruit, Christmas spice and clove."];
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function label(kind,f1,f2){ if(kind==="structure"){const lv=(LEX.scales[f1]||[])[+f2-1]; return `${f1} = ${lv||f2}`} if(kind==="readiness")return f1.replace("_"," "); return `${f1} / ${f2}`; }
+function runTry(){ const text=$("tryText").value, key=$("tryEmbed").checked?"e":"r";
+  MT[key]=MT[key]||new WsetMatcher.Matcher(LEX,{embed:key==="e"}); const r=MT[key].match(text);
+  const byStart={}; r.hits.forEach(h=>{(byStart[h.start]=byStart[h.start]||[]).push(h)});
+  let chips="", i=0; while(i<r.toks.length){ const hs=byStart[i];
+    if(r.toks[i]==="|"){chips+='<span class="tk pipe">|</span>'; i++; continue}
+    if(hs){ const end=Math.max(...hs.map(h=>h.end)), neg=hs.every(h=>h.neg), k=hs[0].kind;
+      chips+=`<span class="tk k-${k}${neg?" neg":""}" title="${esc(hs.map(h=>label(h.kind,h.f1,h.f2)+" ["+h.tag+"]"+(h.neg?" negated":"")).join("; "))}">${esc(r.toks.slice(i,end).join(" "))}</span>`; i=end; }
+    else {chips+=`<span class="tk" style="border-color:transparent;color:var(--muted)">${esc(r.toks[i])}</span>`; i++;} }
+  const pos=r.hits.filter(h=>!h.neg), ar={}; pos.filter(h=>h.kind==="aroma").forEach(h=>{(ar[h.f1]=ar[h.f1]||new Set()).add(h.f2)});
+  const sc=Object.keys(LEX.scales).map(s=>{ const v=pos.filter(h=>h.kind==="structure"&&h.f1===s).map(h=>+h.f2);
+    if(!v.length) return `<div><span class="note">${s}${s==="texture"?" (extra)":""}</span>: <span class="note">not stated</span></div>`;
+    const m=v.reduce((a,b)=>a+b,0)/v.length, lv=LEX.scales[s], name=lv[Math.round(m)-1]||"";
+    return `<div><span class="note">${s}${s==="texture"?" (extra)":""}</span>: <span class="lv">${[1,2,3,4,5].map(k=>`<i class="${k===Math.round(m)?"on":""}"></i>`).join("")}</span> ${name} <span class="note">(${m.toFixed(1)}, ${v.length} cue${v.length>1?"s":""})</span></div>`}).join("");
+  const rd=[...new Set(pos.filter(h=>h.kind==="readiness").map(h=>h.f1.replace("_"," ")))];
+  $("tryOut").innerHTML=`<p style="margin:10px 0 4px"><span class="note">Normalised tokens (colour = aroma / structure / readiness; struck-through = negated):</span></p><div>${chips}</div>
+   <div class="sw"><div><b>Aroma clusters</b><br>${Object.keys(ar).length?Object.entries(ar).map(([c,d])=>`<span class="tk k-aroma">${c}: ${[...d].join(", ")}</span>`).join(""):'<span class="note">none</span>'}</div>
+   <div><b>Structure</b>${sc}</div>
+   <div><b>Readiness</b><br>${rd.length?rd.map(x=>`<span class="tk k-readiness">${x}</span>`).join(""):'<span class="note">not stated</span>'}${r.years.length?` <span class="note">years ${r.years.map(y=>y[0]+(y[1]?"–"+y[1]:"")).join(", ")}</span>`:""}</div></div>
+   <details style="margin-top:10px"><summary class="note">Evidence (${r.hits.length} hits)</summary><table><tr><th>form</th><th>→ target</th><th>source</th><th></th></tr>${r.hits.map(h=>`<tr><td>${esc(h.surface)}</td><td>${esc(label(h.kind,h.f1,h.f2))}</td><td>${h.tag}</td><td>${h.neg?"negated":""}</td></tr>`).join("")}</table></details>`; }
+function drawForms(){ const k=$("fk").value,f=$("ff").value,s=$("fsrc").value,mn=+$("fmin").value,q=$("fq").value.trim().toLowerCase();
+  FROWS=FORMS.filter(r=>(!k||r[1]===k)&&(!f||r[2]===f)&&(!s||r[4]===s)&&r[5]>=mn&&(!q||(r[0]+" "+r[2]+" "+r[3]).toLowerCase().includes(q))).sort((a,b)=>b[5]-a[5]||a[0].localeCompare(b[0]));
+  $("fcount").textContent=` ${FROWS.length.toLocaleString()} of ${FORMS.length.toLocaleString()} forms`;
+  $("ftab").innerHTML="<tr><th>form</th><th>kind</th><th>field</th><th>value</th><th>source</th><th>reviews</th></tr>"+FROWS.slice(0,FSHOW).map((r,i)=>`<tr class="clk" data-i="${i}"><td>${esc(r[0])}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[1]==="structure"?esc((LEX.scales[r[2]]||[])[+r[3]-1]||r[3]):r[3]}</td><td>${r[4]}</td><td>${r[5].toLocaleString()}</td></tr>`).join("");
+  $("fmore").style.display=FROWS.length>FSHOW?"":"none"; }
+async function mappings(){ LEX=await load("lexicon"); FORMS=await load("forms"); UNM=await load("unmatched"); if(!LEX||!FORMS)return missing("mappings");
+  $("tryText").value=SAMPLES[0]; $("samples").innerHTML=SAMPLES.map((s,i)=>`<button class="btn" data-s="${i}">example ${i+1}</button>`).join(" ");
+  $("samples").onclick=e=>{const i=e.target.dataset.s; if(i!=null){$("tryText").value=SAMPLES[i]; runTry()}};
+  $("tryText").oninput=$("tryEmbed").onchange=runTry; runTry();
+  const setFields=()=>{const k=$("fk").value, v=[...new Set(FORMS.filter(r=>!k||r[1]===k).map(r=>r[2]))].sort(); $("ff").innerHTML='<option value="">all</option>'+v.map(x=>`<option>${x}</option>`).join("")};
+  setFields(); $("fk").onchange=()=>{setFields(); FSHOW=150; drawForms()};
+  ["ff","fsrc","fmin"].forEach(i=>$(i).onchange=()=>{FSHOW=150;drawForms()}); $("fq").oninput=()=>{FSHOW=150;drawForms()};
+  $("fmore").onclick=()=>{FSHOW+=300;drawForms()};
+  $("ftab").onclick=e=>{const tr=e.target.closest("tr.clk"); if(!tr)return; const r=FROWS[+tr.dataset.i]; $("tryText").value=r[0].replace(" … ",", "); runTry(); scrollTo({top:0,behavior:"smooth"})};
+  drawForms();
+  if(UNM) $("utab").innerHTML="<tr><th>word</th><th>reviews</th><th>embedding guess</th><th>sim</th><th>accepted</th></tr>"+UNM.map(r=>`<tr><td>${esc(r[0])}</td><td>${r[1].toLocaleString()}</td><td>${r[2]?esc(r[2]):""}</td><td>${r[3]??""}</td><td>${r[4]===null?"":r[4]?"✓":"✗"}</td></tr>`).join(""); }
+async function method(){ const l=await load("lexicon"), f=await load("forms"); if(l){ $("dgA").textContent=l.descriptors.length; $("dgS").textContent=Object.keys(l.scales).length; }
+  if(f){ $("dgF").textContent=new Set(f.filter(r=>r[4]==="rule").map(r=>r[0])).size.toLocaleString(); } }
 async function about(){ const m=await load("meta"); if(m)$("built").textContent="Data built "+m.built+" · sample "+m.sample; }
 $("theme").onclick=()=>{const r=document.documentElement; r.dataset.theme=(r.dataset.theme==="dark"||(!r.dataset.theme&&matchMedia("(prefers-color-scheme:dark)").matches))?"light":"dark"; Object.keys(shown).forEach(k=>shown[k]=0); show(location.hash.slice(1)||"overview")};
 tabs(); show((location.hash||"#overview").slice(1));

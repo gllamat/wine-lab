@@ -58,7 +58,7 @@ def main():
         row["evidence"] = json.dumps([[h["kind"], h["f1"], h["f2"], h["surface"], h["neg"], h["tag"]] for h in hits])
         rows.append(row)
         for h in hits:
-            matched_ct[(h["kind"], str(h["f1"]), str(h["f2"]), h["surface"])] += 1
+            matched_ct[(h["kind"], str(h["f1"]), str(h["f2"]), h["surface"], h["tag"])] += 1
         prev = None
         for t, c in zip(toks, cov):
             if not c and t not in STOP and t != "|" and t.isalpha() and len(t) > 2:
@@ -74,7 +74,7 @@ def main():
     vec.to_parquet(OUT / f"wset_vectors_{tag}{suffix}.parquet", index=False)
     pd.DataFrame(unmatched.most_common(5000), columns=["term", "count"]).to_csv(OUT / f"unmatched_unigrams_{tag}{suffix}.csv", index=False)
     pd.DataFrame(bigr.most_common(3000), columns=["term", "count"]).to_csv(OUT / f"unmatched_bigrams_{tag}{suffix}.csv", index=False)
-    pd.DataFrame([(*k, v) for k, v in matched_ct.most_common()], columns=["kind", "f1", "f2", "surface", "count"]).to_csv(
+    pd.DataFrame([(*k, v) for k, v in matched_ct.most_common()], columns=["kind", "f1", "f2", "surface", "tag", "count"]).to_csv(
         OUT / f"matched_forms_{tag}{suffix}.csv", index=False)
     # summary
     print(f"reviews={len(vec)}  mean_hits={vec.n_hits.mean():.2f}  mean_token_coverage={vec.coverage.mean():.3f}")

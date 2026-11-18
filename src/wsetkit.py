@@ -87,7 +87,7 @@ class Lexicon:
         self.bound = {tokenize(k)[0]: int(v) for k, v in ov["bound"].items()}
         self.year_re = re.compile(s["readiness"]["year_range_regex"])
         for f, tgt in (extra or {}).items():       # BERT-derived additions
-            self._add(f, tgt, tag="bert")
+            self._add(f, tuple(tgt), tag="embed")
         self.maxlen = max(len(k) for k in self.entries)
 
     def _add(self, form, target, tag="rule"):

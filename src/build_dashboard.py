@@ -37,10 +37,35 @@ ov = dict(
     clusters={c[2:]: float(vec_all[c].mean()) for c in vec_all if c.startswith("c_")},
     mean_token_coverage=float(vec_all.coverage.mean()),
 )
-mf = O / ("matched_forms_all.csv" if (O / "matched_forms_all.csv").exists() else f"matched_forms_{n}{vsuf}.csv")
+mf = O / ("matched_forms_all_extra.csv" if (O / "matched_forms_all_extra.csv").exists() else f"matched_forms_{n}{vsuf}.csv")
 if mf.exists():
     ov["top_forms"] = pd.read_csv(mf).head(60).fillna("").astype(str).values.tolist()
 dump("overview.json", ov)
+# ---------------- lexicon (for the in-browser matcher) + browsable form table + what the lexicon misses
+from export_lexicon import write_lexicon
+lex, lj = write_lexicon(D / "lexicon.json")
+if mf.exists():
+    mc = pd.read_csv(mf).fillna("")
+    cnt = {(r.kind, str(r.f1), str(r.f2), r.surface, r.tag): int(r["count"]) for _, r in mc.iterrows()}
+    rows = []
+    for key, targets in lj["entries"]:
+        for kind, f1, f2, tag in targets:
+            rows.append([key, kind, str(f1), str(f2), tag, cnt.get((kind, str(f1), str(f2), key, tag), 0)])
+    for r in mc[mc.tag.isin(["bound", "bound-x"])].itertuples():
+        rows.append([r.surface, r.kind, str(r.f1), str(r.f2), r.tag, int(r.count)])
+    dump("forms.json", rows)
+um = O / "unmatched_unigrams_all_extra.csv"
+if um.exists():
+    u = pd.read_csv(um).head(250)
+    tm = O / "term_map_minilm.csv"
+    near = pd.read_csv(tm).set_index("term") if tm.exists() else None
+    out = []
+    for r in u.itertuples():
+        nd, sim, acc = (None, None, None)
+        if near is not None and r.term in near.index:
+            x = near.loc[r.term]; nd, sim, acc = x.desc, round(float(x.sim), 2), bool(x.accepted)
+        out.append([r.term, int(r.count), nd, sim, acc])
+    dump("unmatched.json", out)
 # ---------------- spaces (coordinates + metadata only)
 cf = O / f"coords_{n}{vsuf}.parquet"
 if cf.exists():
