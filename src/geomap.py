@@ -9,7 +9,8 @@ from wsetkit import ROOT
 
 n = sys.argv[1]
 vsuf = sys.argv[sys.argv.index("--vec") + 1] if "--vec" in sys.argv else ""
-pl = pd.read_parquet(ROOT / "outputs/places_geocoded.parquet").dropna(subset=["lat"])
+from places import load_places
+pl = load_places().dropna(subset=["lat"])
 nm = pd.read_parquet(ROOT / "outputs/reviews_norm.parquet")
 vec = pd.read_parquet(ROOT / f"outputs/wset_vectors_{n}{vsuf}.parquet")
 key = ["country", "province", "region_1"]

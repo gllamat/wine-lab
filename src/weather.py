@@ -1,19 +1,26 @@
-"""Phase 7: growing-season weather per (place, vintage) from the Open-Meteo historical archive (ERA5-based).
-Only coordinates are sent. Cached per location, resumable. Data: Open-Meteo.com (CC BY 4.0; free tier is non-commercial).
+"""Phase 7: growing-season weather per (place, vintage) from NASA POWER (MERRA-2 reanalysis, 0.5x0.625 deg, free, no key).
+Only coordinates are sent. Cached per grid cell, resumable. (Open-Meteo was tried first: its minutely quota allows ~1 location/min.)
 Usage: weather.py [--limit K]"""
 import sys, json, time
 from pathlib import Path
 import numpy as np, pandas as pd, requests
 
 ROOT = Path(__file__).resolve().parent.parent
-CACHE = ROOT / "cache/weather"; CACHE.mkdir(parents=True, exist_ok=True)
-URL = "https://archive-api.open-meteo.com/v1/archive"
-DAILY = "temperature_2m_max,temperature_2m_min,temperature_2m_mean,precipitation_sum,shortwave_radiation_sum"
-START, END = "2000-01-01", "2017-12-31"
+CACHE = ROOT / "cache/weather_power"; CACHE.mkdir(parents=True, exist_ok=True)
+URL = "https://power.larc.nasa.gov/api/temporal/daily/point"
+START, END = "20000101", "20171231"
+# NASA POWER (MERRA-2 based, public domain, no key). Native grid 0.5 deg lat x 0.625 deg lon -> one request per cell.
+LAT_STEP, LON_STEP = 0.5, 0.625
 
 
 def loc_key(lat, lon):
-    return f"{round(lat, 1):.1f}_{round(lon, 1):.1f}"
+    import math
+    return f"{math.floor(lat / LAT_STEP)}_{math.floor(lon / LON_STEP)}"
+
+
+def cell_centre(key):
+    i, j = key.split("_")
+    return (int(i) + 0.5) * LAT_STEP, (int(j) + 0.5) * LON_STEP
 
 
 def fetch(lat, lon, tries=5):
@@ -21,22 +28,32 @@ def fetch(lat, lon, tries=5):
     f = CACHE / f"{k}.json"
     if f.exists():
         return json.load(open(f))
+    clat, clon = cell_centre(k)
     for a in range(tries):
         try:
-            r = requests.get(URL, params=dict(latitude=round(lat, 1), longitude=round(lon, 1), start_date=START, end_date=END,
-                                              daily=DAILY, timezone="UTC"), timeout=120)
+            r = requests.get(URL, params=dict(parameters="T2M,T2M_MAX,T2M_MIN,PRECTOTCORR,ALLSKY_SFC_SW_DWN", community="AG",
+                                              longitude=round(clon, 3), latitude=round(clat, 3), start=START, end=END, format="JSON"),
+                             timeout=120)
             if r.status_code == 200:
-                d = r.json()["daily"]
+                P = r.json()["properties"]["parameter"]
+                days = sorted(P["T2M"])
+                g = lambda name, mult=1.0: [None if P[name][d] == -999 else P[name][d] * mult for d in days]
+                d = {"time": [f"{x[:4]}-{x[4:6]}-{x[6:]}" for x in days], "temperature_2m_mean": g("T2M"),
+                     "temperature_2m_max": g("T2M_MAX"), "temperature_2m_min": g("T2M_MIN"), "precipitation_sum": g("PRECTOTCORR"),
+                     "shortwave_radiation_sum": g("ALLSKY_SFC_SW_DWN", 3.6)}      # kWh/m2/day -> MJ/m2/day
                 json.dump(d, open(f, "w"))
-                time.sleep(0.4)
+                time.sleep(1.0)
                 return d
-            if r.status_code == 429:
-                time.sleep(30 * (a + 1))        # rate limit: back off
-            else:
-                time.sleep(5)
-        except requests.RequestException:
+            fetch.reason = "rate_limited" if r.status_code == 429 else f"http_{r.status_code}"
+            time.sleep(15 * (a + 1))
+        except (requests.RequestException, KeyError, ValueError):
+            fetch.reason = "network_or_parse"
             time.sleep(5)
     return None
+
+
+fetch.reason = None
+STATUS = ROOT / "cache/weather_status.json"
 
 
 def huglin_k(lat):
@@ -78,15 +95,38 @@ def season_metrics(d, lat, vintage):
 
 def main():
     lim = int(sys.argv[sys.argv.index("--limit") + 1]) if "--limit" in sys.argv else None
-    pl = pd.read_parquet(ROOT / "outputs/places_geocoded.parquet").dropna(subset=["lat"])
+    from places import load_places
+    pl = load_places().dropna(subset=["lat"])
     pl["loc"] = [loc_key(a, b) for a, b in zip(pl.lat, pl.lon)]
-    locs = pl.drop_duplicates("loc")[["loc", "lat", "lon"]]
+    nm0 = pd.read_parquet(ROOT / "outputs/reviews_norm.parquet", columns=["country", "province", "region_1", "vintage"])
+    nv = (nm0[nm0.vintage.between(2000, 2017)].groupby(["country", "province", "region_1"], dropna=False).size()
+          .rename("n_v").reset_index())
+    pl = pl.merge(nv, on=["country", "province", "region_1"], how="left")
+    pl["n_v"] = pl.n_v.fillna(0)
+    locs = (pl[pl.n_v > 0].groupby("loc").agg(lat=("lat", "first"), lon=("lon", "first"), n_v=("n_v", "sum"))
+            .sort_values("n_v", ascending=False).reset_index())          # most-reviewed first
     if lim:
         locs = locs.head(lim)
+    status = json.load(open(STATUS)) if STATUS.exists() else {}
+    consecutive = 0
     for i, r in enumerate(locs.itertuples(), 1):
-        fetch(r.lat, r.lon)
+        if (CACHE / f"{r.loc}.json").exists():
+            status[r.loc] = {"status": "ok"}
+            continue
+        fetch.reason = None
+        d = fetch(r.lat, r.lon)
+        if d is not None:
+            status[r.loc] = {"status": "ok"}; consecutive = 0
+        else:
+            status[r.loc] = {"status": "failed", "reason": fetch.reason, "at": time.strftime("%Y-%m-%d %H:%M")}
+            consecutive += 1
+            if fetch.reason == "rate_limited" and consecutive >= 3:
+                print("Rate limit persists (likely the daily quota). Stopping; rerun later to resume.", flush=True)
+                break
         if i % 25 == 0:
-            print(f"{i}/{len(locs)}", flush=True)
+            json.dump(status, open(STATUS, "w"))
+            print(f"{i}/{len(locs)} ok={sum(v['status']=='ok' for v in status.values())}", flush=True)
+    json.dump(status, open(STATUS, "w"))
     rows = []
     nm = pd.read_parquet(ROOT / "outputs/reviews_norm.parquet", columns=["country", "province", "region_1", "vintage"])
     vint = nm.dropna(subset=["vintage"]).merge(pl[["country", "province", "region_1", "loc", "lat"]],

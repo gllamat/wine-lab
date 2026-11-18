@@ -13,7 +13,7 @@ O = ROOT / "outputs"
 
 
 def dump(name, obj):
-    json.dump(obj, open(D / name, "w"), separators=(",", ":"), default=float)
+    json.dump(obj, open(D / name, "w"), separators=(",", ":"), default=float, allow_nan=False)   # NaN is invalid JSON -> fail loudly
     print("wrote", name, round((D / name).stat().st_size / 1024), "KB")
 
 
@@ -89,8 +89,9 @@ if cj.exists():
     dump("compare.json", json.load(open(cj)))
 # ---------------- map
 pg = O / "places_geocoded.parquet"
+from places import load_places
 if pg.exists():
-    pl = pd.read_parquet(pg).dropna(subset=["lat"])
+    pl = load_places().dropna(subset=["lat"])
     key = ["country", "province", "region_1"]
     nk = nm.assign(**{k: nm[k].fillna("∅") for k in key}); pk = pl.assign(**{k: pl[k].fillna("∅") for k in key})
     st = nk.groupby(key).agg(n=("id", "size"), points=("points", "mean"), price=("price", "median"),
@@ -108,6 +109,58 @@ if pg.exists():
     for c in d.select_dtypes("float").columns:
         d[c] = d[c].round(3)
     dump("map.json", json.loads(d.replace({np.nan: None}).to_json(orient="records")))
+# ---------------- missing locations (geocode / weather / vintage gaps)
+if pg.exists():
+    from weather import loc_key, CACHE as WCACHE, STATUS as WSTATUS
+    wst = json.load(open(WSTATUS)) if WSTATUS.exists() else {}
+    pl2 = load_places()
+    key = ["country", "province", "region_1"]
+    ag = (nm.assign(inwin=nm.vintage.between(2000, 2017)).groupby(key, dropna=False)
+            .agg(n=("id", "size"), n_vint=("inwin", "sum"), n_anyvint=("vintage", lambda s: s.notna().sum())).reset_index())
+    m2 = pl2[key + ["lat", "lon", "geo_level", "rejected_km", "pending_alt"]].merge(ag, on=key, how="right")
+    rows, sev = [], {}
+    for r in m2.itertuples():
+        reasons = []
+        has = pd.notna(r.lat)
+        if pd.notna(r.rejected_km):
+            reasons.append(f"region match rejected ({int(r.rejected_km)} km outside country)")
+        if r.pending_alt is True:
+            reasons.append("alternative geocode query pending")
+        if not has:
+            reasons.append("no coordinates"); ws = "n/a"
+        else:
+            if pd.notna(r.region_1) and r.geo_level != "region_1":
+                reasons.append(f"coarse geocode ({r.geo_level})")
+            lk = loc_key(r.lat, r.lon)
+            if r.n_vint == 0:
+                ws = "n/a (no 2000-17 vintage)"
+            elif (WCACHE / f"{lk}.json").exists():
+                ws = "ok"
+            elif wst.get(lk, {}).get("status") == "failed":
+                ws = "failed"; reasons.append("weather download failed")
+            else:
+                ws = "pending"; reasons.append("weather pending")
+        if r.n - r.n_anyvint > 0 and r.n_anyvint == 0:
+            reasons.append("no vintage in titles")
+        if reasons:
+            rows.append([r.country if isinstance(r.country, str) else "(missing)", r.province if pd.notna(r.province) else "", r.region_1 if pd.notna(r.region_1) else "", int(r.n), int(r.n_vint),
+                         r.geo_level if isinstance(r.geo_level, str) else "", None if not has else round(float(r.lat), 3),
+                         None if not has else round(float(r.lon), 3), ws, reasons])
+    rows.sort(key=lambda x: -x[3])
+    tot = int(m2.n.sum())
+    summary = dict(places=int(len(m2)), reviews=tot,
+                   reviews_region_geocoded=int(m2[m2.geo_level == "region_1"].n.sum()),
+                   reviews_province_geocoded=int(m2[m2.geo_level == "province"].n.sum()),
+                   reviews_country_geocoded=int(m2[m2.geo_level == "country"].n.sum()),
+                   reviews_no_coords=int(m2[m2.lat.isna()].n.sum()),
+                   reviews_with_vintage_in_window=int(m2.n_vint.sum()),
+                   reviews_vintage_weather_ok=int(sum(r[4] for r in rows if False) + m2.apply(
+                       lambda r: r.n_vint if pd.notna(r.lat) and (WCACHE / f"{loc_key(r.lat, r.lon)}.json").exists() else 0, axis=1).sum()),
+                   places_with_gaps=len(rows), weather_cells_cached=len(list(WCACHE.glob("*.json"))))
+    dump("missing.json", dict(summary=summary, rows=rows))
+    pd.DataFrame([r[:9] + ["; ".join(r[9])] for r in rows],
+                 columns=["country", "province", "region_1", "reviews", "reviews_vintage_2000_17", "geo_level", "lat", "lon", "weather", "gaps"]
+                 ).to_csv(O / "missing_locations.csv", index=False)
 # ---------------- weather
 jw = O / f"joint_weather_{n}{vsuf}.csv"
 if jw.exists():

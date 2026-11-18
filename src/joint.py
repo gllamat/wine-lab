@@ -11,14 +11,15 @@ from weather import loc_key
 
 n = sys.argv[1]
 vsuf = sys.argv[sys.argv.index("--vec") + 1] if "--vec" in sys.argv else ""
-pl = pd.read_parquet(ROOT / "outputs/places_geocoded.parquet").dropna(subset=["lat"])
+from places import load_places
+pl = load_places().dropna(subset=["lat"])
 pl["loc"] = [loc_key(a, b) for a, b in zip(pl.lat, pl.lon)]
 nm = pd.read_parquet(ROOT / "outputs/reviews_norm.parquet")
 vec = pd.read_parquet(ROOT / f"outputs/wset_vectors_{n}{vsuf}.parquet")
 wx = pd.read_parquet(ROOT / "outputs/weather_metrics.parquet")
 d = (nm.merge(vec, on="id").merge(pl[["country", "province", "region_1", "loc", "geo_level"]], on=["country", "province", "region_1"], how="inner")
        .merge(wx, on=["loc", "vintage"], how="inner"))
-d = d[d.geo_level.isin(["region_1"])] if (d.geo_level == "region_1").sum() > 500 else d   # prefer region-level coordinates
+d = d[d.geo_level.isin(["region_1", "region_1_alt"])] if (d.geo_level == "region_1").sum() > 500 else d   # prefer region-level coordinates
 print("joined rows", len(d), "locations", d["loc"].nunique(), "vintages", d.vintage.nunique())
 W = ["gdd", "huglin", "t_mean", "diurnal", "days_gt35", "rain_season", "rain_harvest", "frost_budbreak", "radiation"]
 Y = ["points", "s_acidity", "s_body", "s_tannin", "s_sweetness", "c_red_fruit", "c_black_fruit", "c_citrus", "c_stone_fruit",

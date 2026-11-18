@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Wine WSET Lab</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.35.2/plotly.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js"></script>
 <script src="matcher.js"></script>
 <style>
 :root{--bg:#fbf9f6;--panel:#fff;--ink:#241b1f;--muted:#6f6469;--line:#e6dfe2;--accent:#7b1e3a;--accent2:#c08a2d}
@@ -68,6 +68,21 @@ tr.clk{cursor:pointer}tr.clk:hover{background:var(--line)}
   <div class="panel"><b>Predicting metadata (accuracy / R²)</b><div id="metaPlot" class="plot s"></div></div>
   <div class="panel"><b>Embedding → WSET dimension (AUC / R²)</b><div id="probePlot" class="plot s"></div></div>
 </div><div class="panel" style="margin-top:12px"><b>Layout faithfulness (trustworthiness)</b><div id="trustTable"></div></div></section>
+<section id="examples">
+  <p class="note warn" id="exNote">Real reviews mapped by the matcher. Review text is copyrighted scraped content, so this tab only works on a local copy — it is excluded from deployment.</p>
+  <div class="row"><label>Case <select id="exCase"></select></label><label>Country <select id="exCountry"></select></label><label>Quality <select id="exQ"><option value="">all</option><option>acceptable</option><option>good</option><option>very_good</option><option>outstanding</option></select></label>
+    <input id="exQuery" type="search" placeholder="search text…" style="max-width:240px"><span class="note" id="exCount"></span></div>
+  <div id="exList"></div><button class="btn" id="exMore" style="margin-top:8px">show more</button>
+</section>
+<section id="missing">
+  <div class="cards" id="missCards"></div>
+  <div class="panel"><b>Locations with gaps</b> <span class="note">— places where coordinates, weather or vintages are missing or doubtful, most-reviewed first. This list shrinks as the geocoder and weather download progress.</span>
+    <div class="row" style="margin-top:8px"><label>Gap <select id="mgap"><option value="">any</option><option>no coordinates</option><option>coarse geocode</option><option>region match rejected</option><option>alternative geocode</option><option>weather pending</option><option>weather download failed</option><option>no vintage</option></select></label>
+      <label>Country <select id="mcty"><option value="">all</option></select></label><input id="mq" type="search" placeholder="search place…" style="max-width:220px">
+      <button class="btn" id="mcsv">download CSV</button><span class="note" id="mcount"></span></div>
+    <div style="max-height:520px;overflow:auto"><table id="mtab"></table></div><button class="btn" id="mmore" style="margin-top:8px">show more</button></div>
+  <p class="note warn">Known limit: a wrong match <i>inside</i> the right country (e.g. a different “Carneros”) cannot be detected automatically — the checks only reject matches that fall implausibly far outside the country. Spot-check large regions.</p>
+</section>
 <section id="mappings">
   <div class="panel"><b>Try the matcher</b> <span class="note">— the same deterministic logic as the Python pipeline, running in your browser. Your text never leaves the page.</span>
     <textarea id="tryText" rows="3" spellcheck="false"></textarea>
@@ -104,7 +119,7 @@ tr.clk{cursor:pointer}tr.clk:hover{background:var(--line)}
 <p class="note" id="built"></p></div></section>
 </main>
 <script>
-const $=id=>document.getElementById(id), TABS=[["overview","Overview"],["spaces","Vector spaces"],["map","Map"],["weather","Weather"],["compare","Compare"],["mappings","Mappings"],["method","Method"],["about","About"]];
+const $=id=>document.getElementById(id), TABS=[["overview","Overview"],["spaces","Vector spaces"],["map","Map"],["weather","Weather"],["compare","Compare"],["examples","Examples"],["mappings","Mappings"],["method","Method"],["missing","Missing"],["about","About"]];
 const cache={}; async function load(n){ if(cache[n]!==undefined) return cache[n]; try{const r=await fetch("data/"+n+".json"); cache[n]=r.ok?await r.json():null;}catch(e){cache[n]=null} return cache[n]; }
 const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const lay=(x={})=>Object.assign({paper_bgcolor:"rgba(0,0,0,0)",plot_bgcolor:"rgba(0,0,0,0)",font:{color:css("--ink")},margin:{l:50,r:10,t:30,b:40}},x);
@@ -116,7 +131,7 @@ function tabs(){ $("tabs").innerHTML=TABS.map(([k,l])=>`<button data-t="${k}">${
 const shown={};
 async function show(t){ document.querySelectorAll("section").forEach(s=>s.classList.toggle("on",s.id===t));
   document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.t===t)); location.hash=t;
-  if(!shown[t]){shown[t]=1; await ({overview,spaces,map,weather,compare,mappings,method,about}[t])();} else if(t==="spaces")drawSpace(); else if(t==="map")drawMap(); else if(t==="weather")drawWeather(); }
+  if(!shown[t]){shown[t]=1; await ({overview,spaces,map,weather,compare,examples,mappings,method,missing:missingTab,about}[t])();} else if(t==="spaces")drawSpace(); else if(t==="map")drawMap(); else if(t==="weather")drawWeather(); }
 async function overview(){ const o=await load("overview"); if(!o)return missing("overview");
   const c=o.coverage, cards=[[o.n_reviews.toLocaleString(),"reviews"],[o.n_countries,"countries"],[o.n_regions.toLocaleString(),"regions"],[o.n_varieties,"grape labels"],[pct(o.vintage_coverage),"with vintage"],[pct(c.aroma_cluster),"with ≥1 aroma cluster"]];
   $("overview").innerHTML=`<div class="cards">${cards.map(([a,b])=>`<div class="card"><b>${a}</b><small>${b}</small></div>`).join("")}</div>
@@ -173,7 +188,7 @@ const SAMPLES=["Crisp green apple and lemon zest, bright acidity, no oak. Light-
  "Dusty tannins make for a soft texture in this wine, subtle in dried fruit, Christmas spice and clove."];
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 function label(kind,f1,f2){ if(kind==="structure"){const lv=(LEX.scales[f1]||[])[+f2-1]; return `${f1} = ${lv||f2}`} if(kind==="readiness")return f1.replace("_"," "); return `${f1} / ${f2}`; }
-function runTry(){ const text=$("tryText").value, key=$("tryEmbed").checked?"e":"r";
+function matchHtml(text,embed){ const key=embed?"e":"r";
   MT[key]=MT[key]||new WsetMatcher.Matcher(LEX,{embed:key==="e"}); const r=MT[key].match(text);
   const byStart={}; r.hits.forEach(h=>{(byStart[h.start]=byStart[h.start]||[]).push(h)});
   let chips="", i=0; while(i<r.toks.length){ const hs=byStart[i];
@@ -187,11 +202,12 @@ function runTry(){ const text=$("tryText").value, key=$("tryEmbed").checked?"e":
     const m=v.reduce((a,b)=>a+b,0)/v.length, lv=LEX.scales[s], name=lv[Math.round(m)-1]||"";
     return `<div><span class="note">${s}${s==="texture"?" (extra)":""}</span>: <span class="lv">${[1,2,3,4,5].map(k=>`<i class="${k===Math.round(m)?"on":""}"></i>`).join("")}</span> ${name} <span class="note">(${m.toFixed(1)}, ${v.length} cue${v.length>1?"s":""})</span></div>`}).join("");
   const rd=[...new Set(pos.filter(h=>h.kind==="readiness").map(h=>h.f1.replace("_"," ")))];
-  $("tryOut").innerHTML=`<p style="margin:10px 0 4px"><span class="note">Normalised tokens (colour = aroma / structure / readiness; struck-through = negated):</span></p><div>${chips}</div>
+  return `<p style="margin:10px 0 4px"><span class="note">Normalised tokens (colour = aroma / structure / readiness; struck-through = negated):</span></p><div>${chips}</div>
    <div class="sw"><div><b>Aroma clusters</b><br>${Object.keys(ar).length?Object.entries(ar).map(([c,d])=>`<span class="tk k-aroma">${c}: ${[...d].join(", ")}</span>`).join(""):'<span class="note">none</span>'}</div>
    <div><b>Structure</b>${sc}</div>
    <div><b>Readiness</b><br>${rd.length?rd.map(x=>`<span class="tk k-readiness">${x}</span>`).join(""):'<span class="note">not stated</span>'}${r.years.length?` <span class="note">years ${r.years.map(y=>y[0]+(y[1]?"–"+y[1]:"")).join(", ")}</span>`:""}</div></div>
    <details style="margin-top:10px"><summary class="note">Evidence (${r.hits.length} hits)</summary><table><tr><th>form</th><th>→ target</th><th>source</th><th></th></tr>${r.hits.map(h=>`<tr><td>${esc(h.surface)}</td><td>${esc(label(h.kind,h.f1,h.f2))}</td><td>${h.tag}</td><td>${h.neg?"negated":""}</td></tr>`).join("")}</table></details>`; }
+function runTry(){ $("tryOut").innerHTML=matchHtml($("tryText").value,$("tryEmbed").checked); }
 function drawForms(){ const k=$("fk").value,f=$("ff").value,s=$("fsrc").value,mn=+$("fmin").value,q=$("fq").value.trim().toLowerCase();
   FROWS=FORMS.filter(r=>(!k||r[1]===k)&&(!f||r[2]===f)&&(!s||r[4]===s)&&r[5]>=mn&&(!q||(r[0]+" "+r[2]+" "+r[3]).toLowerCase().includes(q))).sort((a,b)=>b[5]-a[5]||a[0].localeCompare(b[0]));
   $("fcount").textContent=` ${FROWS.length.toLocaleString()} of ${FORMS.length.toLocaleString()} forms`;
@@ -210,6 +226,33 @@ async function mappings(){ LEX=await load("lexicon"); FORMS=await load("forms");
   if(UNM) $("utab").innerHTML="<tr><th>word</th><th>reviews</th><th>embedding guess</th><th>sim</th><th>accepted</th></tr>"+UNM.map(r=>`<tr><td>${esc(r[0])}</td><td>${r[1].toLocaleString()}</td><td>${r[2]?esc(r[2]):""}</td><td>${r[3]??""}</td><td>${r[4]===null?"":r[4]?"✓":"✗"}</td></tr>`).join(""); }
 async function method(){ const l=await load("lexicon"), f=await load("forms"); if(l){ $("dgA").textContent=l.descriptors.length; $("dgS").textContent=Object.keys(l.scales).length; }
   if(f){ $("dgF").textContent=new Set(f.filter(r=>r[4]==="rule").map(r=>r[0])).size.toLocaleString(); } }
+/* ---------- Examples tab (local only) ---------- */
+let EX=null,EXF=[],EXSHOW=20;
+function drawEx(){ const c=$("exCase").value,y=$("exCountry").value,q=$("exQ").value,t=$("exQuery").value.trim().toLowerCase();
+  EXF=EX.filter(e=>(!c||e.cases.includes(c))&&(!y||e.country===y)&&(!q||e.quality===q)&&(!t||e.text.toLowerCase().includes(t)));
+  $("exCount").textContent=` ${EXF.length} of ${EX.length}`;
+  $("exList").innerHTML=EXF.slice(0,EXSHOW).map(e=>`<div class="panel" style="margin-bottom:10px"><div class="note">${esc([e.variety,e.region,e.country].filter(Boolean).join(" · "))} · ${e.points??"?"} pts${e.vintage?" · "+e.vintage:""}${e.price?" · $"+e.price:""} · ${e.quality||""}</div>
+   <p style="margin:6px 0">${esc(e.text)}</p>${matchHtml(e.text,true)}<div class="note" style="margin-top:6px">${e.cases.map(x=>`<span class="tk">${esc(x)}</span>`).join("")}</div></div>`).join("");
+  $("exMore").style.display=EXF.length>EXSHOW?"":"none"; }
+async function examples(){ if(!LEX) LEX=await load("lexicon"); EX=await load("examples");
+  if(!EX||!LEX){ $("exList").innerHTML='<div class="panel"><p>No examples available here. They are generated locally by <code>src/build_examples.py</code> and are deliberately not deployed.</p></div>'; $("exMore").style.display="none"; return; }
+  const cases=[...new Set(EX.flatMap(e=>e.cases))].sort(), ctys=[...new Set(EX.map(e=>e.country))].sort();
+  $("exCase").innerHTML='<option value="">all</option>'+cases.map(c=>`<option>${esc(c)}</option>`).join(""); $("exCountry").innerHTML='<option value="">all</option>'+ctys.map(c=>`<option>${esc(c)}</option>`).join("");
+  ["exCase","exCountry","exQ"].forEach(i=>$(i).onchange=()=>{EXSHOW=20;drawEx()}); $("exQuery").oninput=()=>{EXSHOW=20;drawEx()}; $("exMore").onclick=()=>{EXSHOW+=20;drawEx()}; drawEx(); }
+/* ---------- Missing tab ---------- */
+let MS=null,MF=[],MSHOW=150;
+function drawMiss(){ const g=$("mgap").value.toLowerCase(),c=$("mcty").value,q=$("mq").value.trim().toLowerCase();
+  MF=MS.rows.filter(r=>(!g||r[9].some(x=>x.toLowerCase().includes(g)))&&(!c||r[0]===c)&&(!q||(r[1]+" "+r[2]).toLowerCase().includes(q)));
+  $("mcount").textContent=` ${MF.length.toLocaleString()} of ${MS.rows.length.toLocaleString()} places · ${MF.reduce((a,r)=>a+r[3],0).toLocaleString()} reviews affected`;
+  $("mtab").innerHTML="<tr><th>country</th><th>province</th><th>region</th><th>reviews</th><th>w/ vintage 2000–17</th><th>geocode</th><th>weather</th><th>gaps</th></tr>"+MF.slice(0,MSHOW).map(r=>`<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td><td>${esc(r[2])}</td><td>${r[3].toLocaleString()}</td><td>${r[4].toLocaleString()}</td><td>${r[5]||"—"}</td><td>${r[8]}</td><td>${r[9].map(esc).join("; ")}</td></tr>`).join("");
+  $("mmore").style.display=MF.length>MSHOW?"":"none"; }
+async function missingTab(){ MS=await load("missing"); if(!MS)return missing("missCards"); const S=MS.summary, P=(a,b)=>(100*a/b).toFixed(1)+"%";
+  $("missCards").innerHTML=[[P(S.reviews_region_geocoded,S.reviews),"reviews at region-level coordinates"],[P(S.reviews_province_geocoded,S.reviews),"province-level only"],[P(S.reviews_country_geocoded,S.reviews),"country-level only"],[S.reviews_no_coords,"reviews with no coordinates"],
+   [P(S.reviews_with_vintage_in_window,S.reviews),"reviews with a 2000–17 vintage"],[P(S.reviews_vintage_weather_ok,S.reviews_with_vintage_in_window),"of those have weather"],[S.weather_cells_cached,"weather grid cells downloaded"],[S.places_with_gaps.toLocaleString(),"places with a gap"]].map(([a,b])=>`<div class="card"><b>${a}</b><small>${b}</small></div>`).join("");
+  $("mcty").innerHTML='<option value="">all</option>'+[...new Set(MS.rows.map(r=>r[0]))].sort().map(c=>`<option>${esc(c)}</option>`).join("");
+  ["mgap","mcty"].forEach(i=>$(i).onchange=()=>{MSHOW=150;drawMiss()}); $("mq").oninput=()=>{MSHOW=150;drawMiss()}; $("mmore").onclick=()=>{MSHOW+=300;drawMiss()};
+  $("mcsv").onclick=()=>{const h="country,province,region_1,reviews,reviews_vintage_2000_17,geo_level,lat,lon,weather,gaps\n"+MF.map(r=>r.slice(0,9).concat([r[9].join("; ")]).map(x=>'"'+String(x??"").replace(/"/g,'""')+'"').join(",")).join("\n");
+    const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([h],{type:"text/csv"})); a.download="missing_locations.csv"; a.click()}; drawMiss(); }
 async function about(){ const m=await load("meta"); if(m)$("built").textContent="Data built "+m.built+" · sample "+m.sample; }
 $("theme").onclick=()=>{const r=document.documentElement; r.dataset.theme=(r.dataset.theme==="dark"||(!r.dataset.theme&&matchMedia("(prefers-color-scheme:dark)").matches))?"light":"dark"; Object.keys(shown).forEach(k=>shown[k]=0); show(location.hash.slice(1)||"overview")};
 tabs(); show((location.hash||"#overview").slice(1));
