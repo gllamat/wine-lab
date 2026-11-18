@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wine WSET Lab</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.35.2/plotly.min.js"></script>
+<style>
+:root{--bg:#fbf9f6;--panel:#fff;--ink:#241b1f;--muted:#6f6469;--line:#e6dfe2;--accent:#7b1e3a;--accent2:#c08a2d}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#17120f;--panel:#201a17;--ink:#f1e9e4;--muted:#a99c96;--line:#362d29;--accent:#d97a96;--accent2:#e0b050}}
+:root[data-theme="dark"]{--bg:#17120f;--panel:#201a17;--ink:#f1e9e4;--muted:#a99c96;--line:#362d29;--accent:#d97a96;--accent2:#e0b050}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}
+header{padding:20px 16px 8px;max-width:1200px;margin:0 auto;display:flex;gap:12px;align-items:baseline;flex-wrap:wrap}
+h1{font-size:22px;margin:0}h1 span{color:var(--accent)}header p{margin:0;color:var(--muted);font-size:13px}
+nav{max-width:1200px;margin:0 auto;padding:0 16px;display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--line)}
+nav button{background:none;border:0;border-bottom:2px solid transparent;color:var(--muted);padding:10px 12px;font:inherit;cursor:pointer}
+nav button.on{color:var(--ink);border-color:var(--accent)}
+main{max-width:1200px;margin:0 auto;padding:16px}section{display:none}section.on{display:block}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px}
+.card,.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.card b{display:block;font-size:22px;color:var(--accent)}.card small{color:var(--muted)}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;align-items:center}
+label{font-size:13px;color:var(--muted)}select{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:5px 8px;font:inherit}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:12px}
+table{border-collapse:collapse;width:100%;font-size:13px}td,th{border-bottom:1px solid var(--line);padding:4px 6px;text-align:left}
+.note{color:var(--muted);font-size:13px}.warn{border-left:3px solid var(--accent2);padding-left:10px}
+.plot{width:100%;height:560px}.plot.s{height:340px}
+@media (max-width:600px){.plot{height:420px}}
+</style>
+</head>
+<body>
+<header><h1>Wine <span>WSET Lab</span></h1><p>Deterministic keyword → WSET-style vectors, embeddings, geography and weather</p>
+<button id="theme" style="margin-left:auto;background:none;border:1px solid var(--line);color:var(--muted);border-radius:6px;padding:3px 8px;cursor:pointer">theme</button></header>
+<nav id="tabs"></nav>
+<main>
+<section id="overview"></section>
+<section id="spaces">
+  <div class="row"><label>Space <select id="sp"></select></label><label>Method <select id="md"><option>umap</option><option>pca</option></select></label>
+  <label>Dims <select id="dm"><option>2</option><option>3</option></select></label><label>Colour <select id="cl"></select></label></div>
+  <div class="panel"><div id="spacePlot" class="plot"></div></div>
+  <p class="note">8,000-review sample. WSET space = aroma descriptors + structure cues (missing cues neutral). Embeddings are mean-pooled; hover shows metadata only.</p>
+</section>
+<section id="map">
+  <div class="row"><label>Metric <select id="mm"></select></label><label>min reviews <select id="mn"><option>10</option><option>30</option><option>100</option></select></label></div>
+  <div class="panel"><div id="mapPlot" class="plot"></div></div>
+  <p class="note">Marker size = review count. Climate layers are 2000–2017 averages from ERA5 reanalysis at the region's geocoded centre (coarse proxy for vineyards).</p>
+</section>
+<section id="weather">
+  <div class="row"><label>View <select id="wv"><option value="rho_within">Within place × grape (vintage effect)</option><option value="rho_across">Across places (confounded)</option></select></label></div>
+  <div class="panel"><div id="weatherPlot" class="plot"></div></div>
+  <p class="note warn">Within-group correlations compare different vintages of the same grape in the same place; across-place correlations mostly reflect geography. Weak ρ values are expected.</p>
+</section>
+<section id="compare"><div class="grid2">
+  <div class="panel"><b>RSA (Spearman) vs WSET vectors</b><div id="rsaPlot" class="plot s"></div></div>
+  <div class="panel"><b>Nearest-neighbour overlap@10 vs WSET</b><div id="knnPlot" class="plot s"></div></div>
+  <div class="panel"><b>Predicting metadata (accuracy / R²)</b><div id="metaPlot" class="plot s"></div></div>
+  <div class="panel"><b>Embedding → WSET dimension (AUC / R²)</b><div id="probePlot" class="plot s"></div></div>
+</div><div class="panel" style="margin-top:12px"><b>Layout faithfulness (trustworthiness)</b><div id="trustTable"></div></div></section>
+<section id="about"><div class="panel">
+<h3>Method</h3><p>Reviews are normalised and matched against a hand-written WSET-style lexicon (aromas, structure cues, readiness). Unmatched frequent words are mapped to descriptors with MiniLM/BERT embeddings, with a negative class and a leave-one-out calibrated threshold. Everything is deterministic: pinned model revisions, fixed seeds, CPU.</p>
+<h3>Limits</h3><ul><li>Reviews rarely mention appearance, alcohol or sweetness levels; those fields are sparse.</li><li>Cue levels are heuristic assumptions, not validated against WSET-qualified tasters.</li><li>Weather is grid-scale reanalysis at region centroids.</li></ul>
+<h3>Data &amp; licences</h3><p>Review corpus: public Wine Enthusiast reviews (Kaggle, reportedly CC BY-NC-SA); only aggregates are shown here, no review text. Weather: Open-Meteo (CC BY 4.0, non-commercial tier). Geocoding: © OpenStreetMap contributors.</p>
+<p class="note" id="built"></p></div></section>
+</main>
+<script>
+const $=id=>document.getElementById(id), TABS=[["overview","Overview"],["spaces","Vector spaces"],["map","Map"],["weather","Weather"],["compare","Compare"],["about","About"]];
+const cache={}; async function load(n){ if(cache[n]!==undefined) return cache[n]; try{const r=await fetch("data/"+n+".json"); cache[n]=r.ok?await r.json():null;}catch(e){cache[n]=null} return cache[n]; }
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const lay=(x={})=>Object.assign({paper_bgcolor:"rgba(0,0,0,0)",plot_bgcolor:"rgba(0,0,0,0)",font:{color:css("--ink")},margin:{l:50,r:10,t:30,b:40}},x);
+const missing=id=>{$(id).innerHTML='<p class="note">Data not generated yet — run build_dashboard.py.</p>'};
+const PAL=["#4e79a7","#f28e2b","#59a14f","#e15759","#b07aa1","#76b7b2","#edc948","#9c755f","#ff9da7","#bab0ac"];
+const pct=x=>(100*x).toFixed(1)+"%";
+function tabs(){ $("tabs").innerHTML=TABS.map(([k,l])=>`<button data-t="${k}">${l}</button>`).join("");
+  $("tabs").onclick=e=>{const t=e.target.dataset.t; if(!t)return; show(t)}; }
+const shown={};
+async function show(t){ document.querySelectorAll("section").forEach(s=>s.classList.toggle("on",s.id===t));
+  document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.t===t)); location.hash=t;
+  if(!shown[t]){shown[t]=1; await ({overview,spaces,map,weather,compare,about}[t])();} else if(t==="spaces")drawSpace(); else if(t==="map")drawMap(); else if(t==="weather")drawWeather(); }
+async function overview(){ const o=await load("overview"); if(!o)return missing("overview");
+  const c=o.coverage, cards=[[o.n_reviews.toLocaleString(),"reviews"],[o.n_countries,"countries"],[o.n_regions.toLocaleString(),"regions"],[o.n_varieties,"grape labels"],[pct(o.vintage_coverage),"with vintage"],[pct(c.aroma_cluster),"with ≥1 aroma cluster"]];
+  $("overview").innerHTML=`<div class="cards">${cards.map(([a,b])=>`<div class="card"><b>${a}</b><small>${b}</small></div>`).join("")}</div>
+  <div class="grid2"><div class="panel"><b>Share of reviews where each WSET structure field is stated</b><div id="covPlot" class="plot s"></div></div>
+  <div class="panel"><b>Aroma clusters (share of reviews)</b><div id="cluPlot" class="plot s"></div></div></div>
+  <div class="panel" style="margin-top:12px"><b>Most frequent matched forms</b><div style="max-height:320px;overflow:auto"><table><tr><th>kind</th><th>field</th><th>value</th><th>form</th><th>n</th></tr>${(o.top_forms||[]).map(r=>`<tr>${r.map(x=>`<td>${x}</td>`).join("")}</tr>`).join("")}</table></div></div>`;
+  const s=Object.entries(c).filter(([k])=>!["aroma_cluster"].includes(k)).sort((a,b)=>a[1]-b[1]);
+  Plotly.newPlot("covPlot",[{type:"bar",orientation:"h",x:s.map(d=>d[1]*100),y:s.map(d=>d[0]),marker:{color:css("--accent")}}],lay({xaxis:{title:"% of reviews"},margin:{l:130,r:10,t:10,b:40}}),{displayModeBar:false});
+  const k=Object.entries(o.clusters).sort((a,b)=>a[1]-b[1]);
+  Plotly.newPlot("cluPlot",[{type:"bar",orientation:"h",x:k.map(d=>d[1]*100),y:k.map(d=>d[0]),marker:{color:css("--accent2")}}],lay({xaxis:{title:"% of reviews"},margin:{l:150,r:10,t:10,b:40}}),{displayModeBar:false}); }
+let SP=null;
+async function spaces(){ SP=await load("spaces"); if(!SP)return missing("spaces");
+  const names=[...new Set(Object.keys(SP.spaces).map(k=>k.split("|")[0]))]; $("sp").innerHTML=names.map(n=>`<option>${n}</option>`).join("");
+  $("cl").innerHTML=["variety_group","country","colour","points","vintage","quality"].map(n=>`<option>${n}</option>`).join("");
+  ["sp","md","dm","cl"].forEach(i=>$(i).onchange=drawSpace); drawSpace(); }
+function drawSpace(){ if(!SP)return; const key=$("sp").value+"|"+$("md").value, dim=+$("dm").value, coords=SP.spaces[key]; if(!coords)return;
+  const sets=[]; const offs=SP.spaces[key].length; // coords stored as [pca2 x,y, pca3 x,y,z]? see layout below
+  // stored per (space|method) in column order of the parquet: dim2 cols then dim3 cols
+  const c2=coords.slice(0,2), c3=coords.slice(2,5), C=dim===2?c2:c3; const cn=$("cl").value, v=SP.meta[cn]; if(!C||!C.length)return;
+  const hover=SP.meta.points.map((_,i)=>`${SP.meta.variety_group[i]||"?"} · ${SP.meta.country[i]||"?"}<br>${SP.meta.points[i]||"?"} pts · ${SP.meta.vintage[i]||"n/a"} · ${SP.meta.colour[i]}`);
+  const num=["points","vintage"].includes(cn); const tr=[]; const T=dim===3?"scatter3d":"scattergl";
+  const mk=(idx,extra)=>Object.assign({type:T,mode:"markers",x:idx.map(i=>C[0][i]),y:idx.map(i=>C[1][i]),text:idx.map(i=>hover[i]),hoverinfo:"text"},dim===3?{z:idx.map(i=>C[2][i])}:{},extra);
+  const all=v.map((_,i)=>i);
+  if(num){ const ok=all.filter(i=>v[i]!=null); tr.push(mk(ok,{marker:{size:dim===3?2.5:4,opacity:.7,color:ok.map(i=>v[i]),colorscale:"Viridis",showscale:true,colorbar:{title:cn}}})); }
+  else { const cats={}; all.forEach(i=>{const k=v[i]??"n/a"; (cats[k]=cats[k]||[]).push(i)});
+    Object.entries(cats).sort((a,b)=>b[1].length-a[1].length).slice(0,24).forEach(([k,idx],j)=>tr.push(mk(idx,{name:k,marker:{size:dim===3?2.5:4,opacity:.7,color:PAL[j%PAL.length]}}))); }
+  Plotly.react("spacePlot",tr,lay({showlegend:!num,legend:{orientation:"h",y:-0.12},margin:{l:10,r:10,t:10,b:10},scene:{xaxis:{showticklabels:false},yaxis:{showticklabels:false},zaxis:{showticklabels:false}},xaxis:{showticklabels:false,zeroline:false},yaxis:{showticklabels:false,zeroline:false}}),{responsive:true}); }
+let MP=null;
+async function map(){ MP=await load("map"); if(!MP)return missing("map");
+  const opts=[["points","Avg points"],["acidity","Acidity cue (1–5)"],["tannin","Tannin cue (1–5)"],["body","Body cue (1–5)"],["sweetness","Sweetness cue (1–5)"],["price","Median price $"],["gdd","Growing degree days"],["rain_season","Season rain mm"],["diurnal","Diurnal range °C"]].filter(([k])=>MP.some(r=>r[k]!=null));
+  $("mm").innerHTML=opts.map(([k,l])=>`<option value="${k}">${l}</option>`).join(""); $("mm").onchange=$("mn").onchange=drawMap; drawMap(); }
+function drawMap(){ if(!MP)return; const m=$("mm").value, mn=+$("mn").value, d=MP.filter(r=>r[m]!=null&&r.n>=mn);
+  Plotly.react("mapPlot",[{type:"scattergeo",mode:"markers",lat:d.map(r=>r.lat),lon:d.map(r=>r.lon),
+   text:d.map(r=>`<b>${r.region_1!=="∅"?r.region_1:r.province}</b>, ${r.country}<br>${r.n} reviews · ${(r.points||0).toFixed(1)} pts<br>${m}: ${(+r[m]).toFixed(2)}<br>top grape: ${r.top_variety}`),hoverinfo:"text",
+   marker:{size:d.map(r=>4+3*Math.log10(r.n)),color:d.map(r=>r[m]),colorscale:"Turbo",showscale:true,opacity:.8,line:{width:.3,color:"#0006"},colorbar:{title:m}}}],
+   lay({margin:{l:0,r:0,t:0,b:0},geo:{projection:{type:"natural earth"},showland:true,landcolor:css("--panel"),showocean:true,oceancolor:css("--bg"),showcountries:true,countrycolor:css("--line"),bgcolor:"rgba(0,0,0,0)"}}),{responsive:true}); }
+let WX=null;
+async function weather(){ WX=await load("weather"); if(!WX)return missing("weather"); $("wv").onchange=drawWeather; drawWeather(); }
+function drawWeather(){ if(!WX)return; const v=$("wv").value, W=[...new Set(WX.map(r=>r.weather))], Y=[...new Set(WX.map(r=>r.outcome))];
+  const z=Y.map(y=>W.map(w=>{const r=WX.find(r=>r.weather===w&&r.outcome===y); return r?r[v]:null}));
+  Plotly.react("weatherPlot",[{type:"heatmap",x:W,y:Y,z,zmin:-.3,zmax:.3,colorscale:"RdBu",reversescale:true,text:z.map(r=>r.map(x=>x==null?"":x.toFixed(2))),texttemplate:"%{text}",colorbar:{title:"Spearman ρ"}}],lay({margin:{l:130,r:10,t:10,b:60}}),{responsive:true}); }
+async function compare(){ const c=await load("compare"); if(!c)return missing("compare");
+  const bar=(id,obj,xt)=>{const k=Object.keys(obj); Plotly.newPlot(id,[{type:"bar",x:k,y:k.map(i=>obj[i]),marker:{color:k.map((_,i)=>PAL[i%PAL.length])}}],lay({yaxis:{title:xt}}),{displayModeBar:false})};
+  bar("rsaPlot",c.rsa,"Spearman ρ"); bar("knnPlot",c["knn_overlap@10"],"overlap");
+  const sp=Object.keys(c.probe_metadata), tg=["variety_group","country","colour","points_r2"];
+  Plotly.newPlot("metaPlot",sp.map((s,i)=>({type:"bar",name:s,x:tg,y:tg.map(t=>c.probe_metadata[s][t]),marker:{color:PAL[i]}})),lay({barmode:"group",legend:{orientation:"h",y:-0.25}}),{displayModeBar:false});
+  const pr=c.probe_embedding_to_wset, ms=Object.keys(pr), dims=Object.keys(pr[ms[0]]||{});
+  Plotly.newPlot("probePlot",ms.map((s,i)=>({type:"bar",name:s,x:dims,y:dims.map(d=>pr[s][d]),marker:{color:PAL[i]}})),lay({barmode:"group",legend:{orientation:"h",y:-0.4},margin:{l:50,r:10,t:10,b:110}}),{displayModeBar:false});
+  const t=c.trustworthiness; $("trustTable").innerHTML="<table>"+Object.entries(t).map(([k,v])=>`<tr><td>${k}</td><td>${(+v).toFixed(3)}</td></tr>`).join("")+"</table>"; }
+async function about(){ const m=await load("meta"); if(m)$("built").textContent="Data built "+m.built+" · sample "+m.sample; }
+$("theme").onclick=()=>{const r=document.documentElement; r.dataset.theme=(r.dataset.theme==="dark"||(!r.dataset.theme&&matchMedia("(prefers-color-scheme:dark)").matches))?"light":"dark"; Object.keys(shown).forEach(k=>shown[k]=0); show(location.hash.slice(1)||"overview")};
+tabs(); show((location.hash||"#overview").slice(1));
+</script>
+</body>
+</html>
