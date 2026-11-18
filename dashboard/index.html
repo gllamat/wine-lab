@@ -36,6 +36,13 @@ textarea,input[type=search]{width:100%;background:var(--panel);color:var(--ink);
 .btn{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:4px 10px;font:inherit;cursor:pointer}
 tr.clk{cursor:pointer}tr.clk:hover{background:var(--line)}
 #keyBanner{max-width:1200px;margin:6px auto 0;padding:0 16px}#keyBanner .kb{border-radius:8px;padding:8px 12px;font-size:14px;border:1px solid var(--line);background:var(--panel)}#keyBanner .kb.bad{border-color:#d33;background:#d3333318}#keyBanner .kb.soon{border-color:var(--accent2);background:#e0b05022}#keyBanner a{color:var(--accent)}
+.sat{border:1px solid var(--line);border-radius:8px;overflow:hidden;font-size:13px;background:var(--panel)}
+.sat-h{background:var(--ink);color:var(--bg);font-weight:700;letter-spacing:.08em;font-size:12px;padding:3px 10px}
+.sat-r{display:grid;grid-template-columns:150px 1fr minmax(0,32%);gap:10px;padding:5px 10px;border-top:1px solid var(--line);align-items:start}
+.sat-h+.sat-r{border-top:0}.sat-l{font-weight:600}.sat-e{color:var(--muted);font-size:12px;word-break:break-word}
+.sat .o{display:inline-block;padding:0 6px;border-radius:4px;color:var(--muted);line-height:1.6}.sat .o.on{background:var(--accent);color:#fff;font-weight:600}
+.sat .d{color:var(--line);margin:0 1px}.sat .tl{margin:1px 0}.sat .tn{display:inline-block;width:74px;font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+@media (max-width:640px){.sat-r{grid-template-columns:1fr}.sat-e{margin-top:-2px}}
 .diagram{width:100%;height:auto}.diagram .bx{fill:var(--panel);stroke:var(--line)}.diagram .ar{stroke:var(--muted);fill:none;stroke-width:1.5;marker-end:url(#ar)}
 .diagram .t{fill:var(--ink);font:12.5px system-ui,sans-serif}.diagram .tb{font-weight:600;font-size:13.5px}.diagram .m{fill:var(--muted)}
 .diagram .fa{fill:#59a14f26;stroke:#59a14f}.diagram .fs{fill:#4e79a726;stroke:#4e79a7}.diagram .fr{fill:#f28e2b26;stroke:#f28e2b}.diagram .fn{fill:#8883;stroke:#888}.diagram .fe{fill:#b07aa126;stroke:#b07aa1}
@@ -191,9 +198,51 @@ const SAMPLES=["Crisp green apple and lemon zest, bright acidity, no oak. Light-
  "Deep ruby in color. Aromas of leather, forest floor and mushroom, with firm tannins on the palate. Drink now or hold."];
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 function label(kind,f1,f2){ if(kind==="structure"){const lv=(LEX.scales[f1]||[])[+f2-1]; return `${f1} = ${lv||f2}`} if(kind==="cat")return `${f1} = ${f2}`; if(kind==="readiness")return f1.replace("_"," "); return `${f1} / ${f2}`; }
-const TIERC={primary:"#59a14f",secondary:"#b07aa1",tertiary:"#c8782a"}, SC={nose:"N",palate:"P",both:"N+P",unspecified:""};
-function outcome(dn,ca,to){ return to?"too old / past its best":dn&&ca?"can drink now, has potential":dn?"drink now (ageing potential not stated)":ca?"not ready: too young, has potential":null; }
-function matchHtml(text,embed,colour){ const key=embed?"e":"r";
+const TIERC={primary:"#59a14f",secondary:"#b07aa1",tertiary:"#c8782a"};
+const NICE={tired:"tired / past its best",fully_developed:"fully developed"};
+const fmt=n=>NICE[n]||String(n).replace(/-$/,"(-)").replace(/\+$/,"(+)").replace(/_/g," ");
+const QB=[[82,"acceptable"],[86,"good"],[90,"very_good"],[101,"outstanding"]];
+const qualityOf=p=>{ if(p==null)return null; for(const [hi,n] of QB) if(p<=hi) return n; return null; };
+const COLOURS={white:["lemon-green","lemon","gold","amber","brown"],"rosé":["pink","salmon","orange"],red:["purple","ruby","garnet","tawny","brown"]};
+const CGROUP={white:["white"],sparkling:["white"],rose:["rosé"],red:["red"]};
+function satCard(r,colour,points){
+  const pos=r.hits.filter(h=>!h.neg), ev=(pred)=>[...new Set(pos.filter(pred).map(h=>h.surface))].slice(0,4).join(", ");
+  const opt=(list,on)=>list.map(x=>`<span class="o${on.has(x)?" on":""}">${fmt(x)}</span>`).join('<span class="d">–</span>');
+  const row=(lab,html,evid)=>`<div class="sat-r"><div class="sat-l">${lab}</div><div class="sat-o">${html}</div><div class="sat-e">${esc(evid||"")}</div></div>`;
+  const scale=(s,lab)=>{ const hs=pos.filter(h=>h.kind==="structure"&&h.f1===s), lv=LEX.scales[s]; let on=new Set();
+    if(hs.length){ const m=hs.reduce((a,h)=>a+(+h.f2),0)/hs.length; on=new Set([lv[Math.round(m)-1]]); }
+    return row(lab||s.replace(/_/g," "),opt(lv,on),ev(h=>h.kind==="structure"&&h.f1===s)); };
+  const cats=f=>new Set(pos.filter(h=>h.kind==="cat"&&h.f1===f).map(h=>h.f2));
+  const cg=CGROUP[colour]||Object.keys(COLOURS), cs=cats("colour");
+  const colourHtml=Object.entries(COLOURS).map(([g,l])=>`<div><span class="note">${g}:</span> ${opt(l,new Set(cg.includes(g)?[...cs]:[]))}</div>`).join("");
+  const aromaBy=pred=>{ const m={}; pos.filter(h=>h.kind==="aroma"&&pred(h.scope)).forEach(h=>{const o=m[h.f1]=m[h.f1]||{d:new Set(),amb:false}; o.d.add(h.f2); if(h.amb>1)o.amb=true}); return m; };
+  const tierLines=m=>["primary","secondary","tertiary"].map(t=>{ const c=Object.entries(m).filter(([k])=>LEX.tier[k]===t);
+    return `<div class="tl"><span class="tn" style="color:${TIERC[t]}">${t}</span>${c.length?c.map(([k,o])=>`<span class="tk" style="border-color:${TIERC[t]};background:${TIERC[t]}22" title="${o.amb?"word is listed under several SAT clusters":""}">${k.replace(/_/g," ")}: ${[...o.d].map(x=>x.replace(/_/g," ")).join(", ")}${o.amb?"~":""}</span>`).join(""):'<span class="o">—</span>'}</div>`}).join("");
+  const nose=aromaBy(s=>s==="nose"||s==="both"), pal=aromaBy(s=>s==="palate"||s==="both"), un=aromaBy(s=>s==="unspecified");
+  const q=qualityOf(points), fl=k=>pos.some(h=>h.kind==="readiness"&&h.f1===k);
+  const rd=fl("too_old")?"too_old":fl("drink_now")&&fl("can_age")?"drink_now_potential":fl("drink_now")?"drink_now":fl("can_age")?"not_ready_potential":null;
+  const RD=[["drink_now_potential","can drink now, but has potential for ageing"],["drink_now","drink now: not suitable for ageing / potential not stated"],["not_ready_potential","not suitable for drinking now: too young, has potential"],["too_old","too old"]];
+  const yrs=r.years.length?"years "+r.years.map(y=>y[0]+(y[1]?"–"+y[1]:"")).join(", "):"";
+  return `<div class="sat">
+   <div class="sat-h">APPEARANCE</div>
+   ${row("Clarity",opt(["clear","hazy"],cats("clarity")),ev(h=>h.kind==="cat"&&h.f1==="clarity"))}
+   ${row("Intensity",opt(["pale","medium","deep"],cats("appearance_intensity")),ev(h=>h.kind==="cat"&&h.f1==="appearance_intensity"))}
+   ${row("Colour",colourHtml,ev(h=>h.kind==="cat"&&h.f1==="colour"))}
+   <div class="sat-h">NOSE</div>
+   ${row("Condition",opt(["clean","unclean"],cats("condition")),ev(h=>h.kind==="cat"&&h.f1==="condition"))}
+   ${scale("nose_intensity","Intensity")}
+   ${row("Aroma characteristics",tierLines(nose),"")}
+   ${Object.keys(un).length?row("<span class='note'>not attributed to nose or palate</span>",tierLines(un),""):""}
+   ${scale("development","Development")}
+   <div class="sat-h">PALATE</div>
+   ${scale("sweetness")}${scale("acidity")}${scale("tannin")}${scale("alcohol")}${scale("body")}${scale("mousse")}${scale("flavour_intensity","Flavour intensity")}
+   ${row("Flavour characteristics",tierLines(pal),"")}
+   ${scale("finish")}
+   <div class="sat-h">CONCLUSIONS</div>
+   ${row("Quality level",opt(["faulty","poor","acceptable","good","very_good","outstanding"],new Set(q?[q]:[])),points!=null?`proxy from critic score (${points} pts) — not a tasting judgement`:"proxy from critic points (none given)")}
+   ${row("Level of readiness",RD.map(([k,t])=>`<div><span class="o${rd===k?" on":""}">${t}</span></div>`).join(""),(ev(h=>h.kind==="readiness")+" "+yrs).trim())}
+  </div>`; }
+function matchHtml(text,embed,colour,points){ const key=embed?"e":"r";
   MT[key]=MT[key]||new WsetMatcher.Matcher(LEX,{embed:key==="e"}); const r=MT[key].match(text,colour||null);
   const byStart={}; r.hits.forEach(h=>{(byStart[h.start]=byStart[h.start]||[]).push(h)});
   let chips="", i=0; while(i<r.toks.length){ const hs=byStart[i];
@@ -201,22 +250,11 @@ function matchHtml(text,embed,colour){ const key=embed?"e":"r";
     if(hs){ const end=Math.max(...hs.map(h=>h.end)), neg=hs.every(h=>h.neg), k=hs[0].kind;
       chips+=`<span class="tk k-${k}${neg?" neg":""}" title="${esc(hs.map(h=>label(h.kind,h.f1,h.f2)+" ["+h.tag+(h.scope!=="unspecified"?", "+h.scope:"")+(h.amb>1?", ambiguous":"")+"]"+(h.neg?" negated":"")).join("; "))}">${esc(r.toks.slice(i,end).join(" "))}${hs[0].scope==="nose"||hs[0].scope==="palate"?`<sup>${hs[0].scope==="nose"?"N":"P"}</sup>`:""}</span>`; i=end; }
     else {chips+=`<span class="tk" style="border-color:transparent;color:var(--muted)">${esc(r.toks[i])}</span>`; i++;} }
-  const pos=r.hits.filter(h=>!h.neg), ar={};
-  pos.filter(h=>h.kind==="aroma").forEach(h=>{const o=ar[h.f1]=ar[h.f1]||{d:new Set(),sc:new Set(),amb:false}; o.d.add(h.f2); o.sc.add(h.scope); if(h.amb>1)o.amb=true});
-  const tierHtml=["primary","secondary","tertiary"].map(t=>{ const cs=Object.entries(ar).filter(([c])=>LEX.tier[c]===t); if(!cs.length) return "";
-    return `<div style="margin-bottom:4px"><span class="note">${t}</span><br>${cs.map(([c,o])=>{ const scs=[...new Set([...o.sc].filter(x=>x!=="unspecified"))].map(x=>SC[x]).join(" "); return `<span class="tk" style="border-color:${TIERC[t]};background:${TIERC[t]}22">${c.replace(/_/g," ")}: ${[...o.d].map(x=>x.replace(/_/g," ")).join(", ")}${o.amb?"~":""}${scs?` <sup>${scs}</sup>`:""}</span>`}).join("")}</div>`}).join("");
-  const sc=Object.keys(LEX.scales).map(s=>{ const v=pos.filter(h=>h.kind==="structure"&&h.f1===s).map(h=>+h.f2), nl=LEX.scales[s].length, ex=s==="texture"?" (extra, not SAT)":"";
-    if(!v.length) return `<div><span class="note">${s.replace(/_/g," ")}${ex}</span>: <span class="note">not stated</span></div>`;
-    const m=v.reduce((a,b)=>a+b,0)/v.length, name=LEX.scales[s][Math.round(m)-1]||"";
-    return `<div><span class="note">${s.replace(/_/g," ")}${ex}</span>: <span class="lv">${Array.from({length:nl},(_,k)=>`<i class="${k+1===Math.round(m)?"on":""}"></i>`).join("")}</span> ${name} <span class="note">(${m.toFixed(1)}/${nl}, ${v.length} cue${v.length>1?"s":""})</span></div>`}).join("");
-  const cat=Object.keys(LEX.cat_fields||{}).map(f=>{ const vs=[...new Set(pos.filter(h=>h.kind==="cat"&&h.f1===f).map(h=>h.f2))]; return `<div><span class="note">${f.replace(/_/g," ")}</span>: ${vs.length?vs.join(", "):'<span class="note">not stated</span>'}</div>`}).join("");
-  const fl=k=>pos.some(h=>h.kind==="readiness"&&h.f1===k), oc=outcome(fl("drink_now"),fl("can_age"),fl("too_old"));
-  return `<p style="margin:10px 0 4px"><span class="note">Normalised tokens (green = aroma, blue = structure, purple = appearance/condition, orange = readiness; <sup>N</sup>/<sup>P</sup> = nose/palate scope; struck-through = negated). Wine colour used for tertiary clusters: <b>${colour||"unknown"}</b>.</span></p><div>${chips}</div>
-   <div class="sw"><div><b>Aroma &amp; flavour clusters</b> <span class="note">(SAT L3 tiers; ~ = word listed under several clusters)</span><br>${tierHtml||'<span class="note">none</span>'}</div>
-   <div><b>Palate &amp; nose structure</b>${sc}</div>
-   <div><b>Appearance &amp; condition</b>${cat}<br><b>Readiness</b><br>${oc?`<span class="tk k-readiness">${oc}</span>`:'<span class="note">not stated</span>'}${r.years.length?` <span class="note">years ${r.years.map(y=>y[0]+(y[1]?"–"+y[1]:"")).join(", ")}</span>`:""}</div></div>
-   <details style="margin-top:10px"><summary class="note">Evidence (${r.hits.length} hits)</summary><table><tr><th>form</th><th>→ target</th><th>source</th><th>scope</th><th></th></tr>${r.hits.map(h=>`<tr><td>${esc(h.surface)}</td><td>${esc(label(h.kind,h.f1,h.f2))}</td><td>${h.tag}</td><td>${h.scope==="unspecified"?"":h.scope}</td><td>${h.neg?"negated":""}</td></tr>`).join("")}</table></details>`; }
-function runTry(){ $("tryOut").innerHTML=matchHtml($("tryText").value,$("tryEmbed").checked,$("tryColour").value); }
+  return `<p class="note" style="margin:8px 0 4px">SAT-style card (project mapping of this text — <b>not an official WSET document</b>; layout follows the WSET Level 3 SAT structure). Wine colour used to resolve tertiary clusters: <b>${colour||"unknown"}</b>. Highlighted = stated in the text; no highlight = not stated.</p>${satCard(r,colour,points)}
+   <details style="margin-top:8px"><summary class="note">How the words were mapped (tokens and evidence, ${r.hits.length} hits)</summary>
+   <p class="note" style="margin:6px 0 2px">green = aroma, blue = structure, purple = appearance/condition, orange = readiness; <sup>N</sup>/<sup>P</sup> = nose/palate scope; struck-through = negated</p><div>${chips}</div>
+   <table><tr><th>form</th><th>→ target</th><th>source</th><th>scope</th><th></th></tr>${r.hits.map(h=>`<tr><td>${esc(h.surface)}</td><td>${esc(label(h.kind,h.f1,h.f2))}</td><td>${h.tag}</td><td>${h.scope==="unspecified"?"":h.scope}</td><td>${h.neg?"negated":""}</td></tr>`).join("")}</table></details>`; }
+function runTry(){ $("tryOut").innerHTML=matchHtml($("tryText").value,$("tryEmbed").checked,$("tryColour").value,null); }
 function drawForms(){ const k=$("fk").value,f=$("ff").value,s=$("fsrc").value,mn=+$("fmin").value,q=$("fq").value.trim().toLowerCase();
   FROWS=FORMS.filter(r=>(!k||r[1]===k)&&(!f||r[2]===f)&&(!s||r[4]===s)&&r[5]>=mn&&(!q||(r[0]+" "+r[2]+" "+r[3]).toLowerCase().includes(q))).sort((a,b)=>b[5]-a[5]||a[0].localeCompare(b[0]));
   $("fcount").textContent=` ${FROWS.length.toLocaleString()} of ${FORMS.length.toLocaleString()} forms`;
@@ -241,7 +279,7 @@ function drawEx(){ const c=$("exCase").value,y=$("exCountry").value,q=$("exQ").v
   EXF=EX.filter(e=>(!c||e.cases.includes(c))&&(!y||e.country===y)&&(!q||e.quality===q)&&(!t||e.text.toLowerCase().includes(t)));
   $("exCount").textContent=` ${EXF.length} of ${EX.length}`;
   $("exList").innerHTML=EXF.slice(0,EXSHOW).map(e=>`<div class="panel" style="margin-bottom:10px"><div class="note">${esc([e.variety,e.region,e.country].filter(Boolean).join(" · "))} · ${e.points??"?"} pts${e.vintage?" · "+e.vintage:""}${e.price?" · $"+e.price:""} · ${e.quality||""}</div>
-   <p style="margin:6px 0">${esc(e.text)}</p>${matchHtml(e.text,true,e.colour)}<div class="note" style="margin-top:6px">${e.cases.map(x=>`<span class="tk">${esc(x)}</span>`).join("")}</div></div>`).join("");
+   <p style="margin:6px 0">${esc(e.text)}</p>${matchHtml(e.text,true,e.colour,e.points)}<div class="note" style="margin-top:6px">${e.cases.map(x=>`<span class="tk">${esc(x)}</span>`).join("")}</div></div>`).join("");
   $("exMore").style.display=EXF.length>EXSHOW?"":"none"; }
 async function examples(){ if(!LEX) LEX=await load("lexicon"); EX=await load("examples");
   if(!EX||!LEX){ $("exList").innerHTML='<div class="panel"><p>No examples available here. They are generated locally by <code>src/build_examples.py</code> and are deliberately not deployed.</p></div>'; $("exMore").style.display="none"; return; }
