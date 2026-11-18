@@ -8,3 +8,5 @@ __pycache__/
 .DS_Store
 dashboard/data/examples.json
 .env
+dashboard/data/key_status.json
+outputs/key_status_history.jsonl
