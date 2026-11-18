@@ -23,13 +23,21 @@ cases = {
     "adjective + noun (soft tannins)": ev.map(lambda h: any(x[5] == "bound" for x in h)),
     "texture cue": d.s_texture.notna(),
     "drink window / year range": d.r_year_from.notna(),
+    "too old / past best": d.readiness == "too_old",
     "needs ageing (can_age)": d.r_can_age == 1,
     "drink now": d.r_drink_now == 1,
     "rich: 4+ structure fields": d.n_scales >= 4,
     "sparse: aroma only": (d.n_scales == 0) & (d.n_hits >= 1),
     "low token coverage (<10%)": d.coverage < 0.10,
-    "sweet / dessert": d.s_sweetness >= 4,
-    "tertiary / aged notes": d.c_oxidative_aged == 1,
+    "sweet / dessert (level 5-6)": d.s_sweetness >= 5,
+    "tertiary notes (unambiguous)": d.t_tertiary == 1,
+    "nose-scoped aroma": d[[c for c in d if c.startswith("cn_")]].max(axis=1) == 1,
+    "palate-scoped flavour": d[[c for c in d if c.startswith("cp_")]].max(axis=1) == 1,
+    "colour / appearance stated": d.cat_colour.notna() | d.cat_appearance_intensity.notna(),
+    "fault / unclean": d.cat_condition.notna(),
+    "mousse (sparkling)": d.s_mousse.notna(),
+    "ambiguous word, colour-resolved": ev.map(lambda h: any(x[0] == "aroma" and x[7] > 1 for x in h)),
+    "readiness: too young (potential)": d.readiness == "not_ready_potential",
 }
 rng = np.random.RandomState(11)
 chosen, tag = {}, {}

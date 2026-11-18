@@ -33,3 +33,27 @@ Scope: lexicon (aromas.yaml, structure.yaml, overrides.yaml), matcher, vectors, 
 3. Split nose vs palate with clause-scoped cues; separate nose intensity.
 4. Readiness as one ordinal outcome; label quality as a points-derived proxy.
 5. Rewrite the Jev question set from the SAT (Choice for colour/readiness/quality, Score for 5/6-level scales, Noul per SAT cluster), rerun the 500-review pilot, rebuild vectors/dashboard.
+
+---
+## 4. Resolution (realignment completed 2026-11-18)
+All eight divergences above were addressed:
+1. Aroma lexicon rebuilt on the SAT's 20 clusters / 3 tiers (130 descriptors). Ambiguous words are kept under every SAT cluster that lists them;
+   white/red tertiary clusters are resolved with wine colour; tier flags use unambiguous evidence only (tertiary reads 35% of reviews, still inflated
+   by words like "earthy"/"leather" that occur in young wines).
+2. Sweetness now has the SAT's 6 levels and the label bug is gone; mousse, nose intensity, colour, clarity, colour depth and condition added (all sparse).
+3. Nose vs palate scope assigned from trigger words in the same sentence (39% of reviews have nose-scoped, 60% palate-scoped aroma). Heuristic, unvalidated.
+4. Readiness is one outcome (too_old / drink_now_potential / drink_now / not_ready_potential); quality is labelled a points proxy.
+5. Jev questions rewritten from the SAT (68 questions, ~4,000 tokens/review, ~$28.6 for the full corpus); pilot rerun on 497 reviews ($0.084).
+6. Browser matcher ported and parity-tested (6,000/6,000 identical incl. colour, scope, categorical fields).
+
+### Jev vs deterministic (497 reviews; agreement, not accuracy)
+Aroma clusters: mean kappa 0.61 (primary 0.67, secondary 0.58, tertiary 0.50). Weak: the SAT "other" cluster (Jev uncertain 97% - the question wording is
+ambiguous), herbaceous, herbal, pungent spice. Scope agreement is low (nose kappa 0.34, palate 0.42). Structure levels agree well where both state them
+(sweetness rho 0.88 on 6 levels; development 0.75; body 0.65) while Jev states finish/development/flavour intensity in 2-3x more reviews than the keyword rules.
+Jev quality score vs critic points: Spearman 0.74.
+
+### Known remaining limits
+- Nothing has been validated by a WSET-qualified taster; Jev is not ground truth.
+- Embedding-mapped terms (68) are ~80% precise on held-out lexicon words and visibly lower by eye (e.g. meld->melon); they are tagged `embed` and excluded from analyses.
+- Appearance/condition/mousse are sparse in reviews (colour 3.8%, fault 0.4%, mousse 0.9% of all reviews).
+- Weather analysis: reanalysis at 0.5 x 0.625 degree cells, associational; n = place x grape x vintage units.

@@ -22,6 +22,9 @@ NONAROMA = set("balance balanced soft smooth silky velvety firm tight rich round
                "even bring after aftertaste imported followed offering only provide rather".split())
 
 
+FOOD = set("steak lamb chicken pork burger pizza pasta ham sausage fish shrimp salmon tuna duck turkey rice salad soup sauce beef veal bacon dish dinner meal lunch cuisine appetizer entree dessert barbecue grill".split())
+
+
 def main():
     name, n = sys.argv[1], sys.argv[2]
     lex = Lexicon()
@@ -29,6 +32,9 @@ def main():
     # --- descriptor prototypes from single/multi-word forms
     forms = [(" ".join(k), e[1], e[2]) for k, v in lex.entries.items() for e in v if e[0] == "aroma"]
     F = embed_texts([f for f, _, _ in forms], tok, mdl, bs=128, maxlen=16)
+    clusters_of = {}
+    for f_, c_, _d in forms:
+        clusters_of.setdefault(f_, set()).add(c_)
     cl = np.array([c for _, c, _ in forms]); ds = np.array([f"{c}/{d}" for _, c, d in forms])
     dnames = sorted(set(ds)); didx = {d: i for i, d in enumerate(dnames)}
     dlab = np.array([didx[x] for x in ds])
@@ -46,7 +52,7 @@ def main():
         return P, cnt
 
     # --- negative class: structure cues + generic words (things that are NOT aromas)
-    negf = sorted({" ".join(k) for k, v in lex.entries.items() if all(e[0] != "aroma" for e in v)} | STOPLIKE | NONAROMA)
+    negf = sorted({" ".join(k) for k, v in lex.entries.items() if all(e[0] != "aroma" for e in v)} | STOPLIKE | NONAROMA | FOOD)
     N = embed_texts(negf, tok, mdl, bs=128, maxlen=16)
     P_full, cnt_full = protos()
 
@@ -69,7 +75,7 @@ def main():
         P[didx[key]] /= np.linalg.norm(P[didx[key]])
         j, sd, sn = decide(F[i], P, N)
         res.append(dict(form=f, kind="aroma", true=key, pred=dnames[j], sim=sd, neg_sim=sn,
-                        ok_cluster=dcl[dnames[j]] == c))
+                        ok_cluster=dcl[dnames[j]] in clusters_of[f]))
     for i, f in enumerate(negf):
         if len(f.split()) != 1:
             continue
@@ -96,7 +102,7 @@ def main():
     json.dump({"best": best}, open(ROOT / f"outputs/threshold_{name}.json", "w"))
     if best is None:
         print("no usable threshold; skipping term mapping"); return
-    thr, mar = best[0], best[1]
+    thr, mar = max(best[0], 0.58), best[1]      # similarity floor 0.58 (junk words slip through below it)
     # --- candidate terms: frequent unmatched unigrams not in stop-like or place/grape vocab
     um = pd.read_csv(ROOT / f"outputs/unmatched_unigrams_{n}.csv")
     um = um[(um["count"] >= 8)]
@@ -105,7 +111,7 @@ def main():
     for col in nm:
         for v in nm[col].dropna().unique():
             names.update(tokenize(str(v)))
-    cands = [t for t in um.term if t not in STOPLIKE and t not in names and (t,) not in lex.entries]
+    cands = [t for t in um.term if t not in STOPLIKE and t not in FOOD and t not in names and (t,) not in lex.entries]
     C = embed_texts(cands, tok, mdl, bs=128, maxlen=16)
     S = C @ P_full.T
     SN = C @ N.T

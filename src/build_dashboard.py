@@ -25,14 +25,20 @@ nm = pd.read_parquet(O / "reviews_norm.parquet")
 # ---------------- overview (full-corpus matcher run if available)
 full = O / "wset_vectors_all.parquet"
 vec_all = pd.read_parquet(full if full.exists() else O / f"wset_vectors_{n}{vsuf}.parquet")
-scales = ["acidity", "tannin", "body", "alcohol", "sweetness", "finish", "flavour_intensity", "development"]
+from wsetkit import Lexicon
+_L = Lexicon()
+scales = [x for x in _L.scales]
 ov = dict(
     n_reviews=int(len(vec_all)), n_countries=int(nm.country.nunique()), n_regions=int(nm.region_1.nunique()),
     n_varieties=int(nm.variety_norm.nunique()), vintage_coverage=float(nm.vintage.notna().mean()),
     coverage={s: float(vec_all["s_" + s].notna().mean()) for s in scales} | {
         "aroma_cluster": float((vec_all[[c for c in vec_all if c.startswith("c_")]].sum(axis=1) > 0).mean()),
-        "drink_now": float(vec_all.r_drink_now.mean()), "can_age": float(vec_all.r_can_age.mean()),
-        "year_range": float(vec_all.r_year_from.notna().mean())},
+        "drink_now": float(vec_all.r_drink_now.mean()), "can_age": float(vec_all.r_can_age.mean()), "too_old": float(vec_all.r_too_old.mean()),
+        "year_range": float(vec_all.r_year_from.notna().mean())} | {"cat_" + f: float(vec_all["cat_" + f].notna().mean()) for f in _L.cat_fields},
+    tiers={t: float(vec_all["t_" + t].mean()) for t in ("primary", "secondary", "tertiary")},
+    cluster_tier=_L.tier,
+    scope=dict(nose=float(vec_all[[c for c in vec_all if c.startswith("cn_")]].max(axis=1).mean()), palate=float(vec_all[[c for c in vec_all if c.startswith("cp_")]].max(axis=1).mean())),
+    readiness=vec_all.readiness.fillna("not_stated").value_counts().to_dict(),
     quality=vec_all.quality_band.value_counts().to_dict(),
     clusters={c[2:]: float(vec_all[c].mean()) for c in vec_all if c.startswith("c_")},
     mean_token_coverage=float(vec_all.coverage.mean()),
@@ -129,7 +135,7 @@ if pg.exists():
         if not has:
             reasons.append("no coordinates"); ws = "n/a"
         else:
-            if pd.notna(r.region_1) and r.geo_level != "region_1":
+            if pd.notna(r.region_1) and r.geo_level not in ("region_1", "region_1_alt"):
                 reasons.append(f"coarse geocode ({r.geo_level})")
             lk = loc_key(r.lat, r.lon)
             if r.n_vint == 0:
@@ -149,7 +155,7 @@ if pg.exists():
     rows.sort(key=lambda x: -x[3])
     tot = int(m2.n.sum())
     summary = dict(places=int(len(m2)), reviews=tot,
-                   reviews_region_geocoded=int(m2[m2.geo_level == "region_1"].n.sum()),
+                   reviews_region_geocoded=int(m2[m2.geo_level.isin(["region_1", "region_1_alt"])].n.sum()),
                    reviews_province_geocoded=int(m2[m2.geo_level == "province"].n.sum()),
                    reviews_country_geocoded=int(m2[m2.geo_level == "country"].n.sum()),
                    reviews_no_coords=int(m2[m2.lat.isna()].n.sum()),
@@ -162,7 +168,7 @@ if pg.exists():
                  columns=["country", "province", "region_1", "reviews", "reviews_vintage_2000_17", "geo_level", "lat", "lon", "weather", "gaps"]
                  ).to_csv(O / "missing_locations.csv", index=False)
 # ---------------- weather
-jw = O / f"joint_weather_{n}{vsuf}.csv"
+jw = O / ("joint_weather_all.csv" if (O / "joint_weather_all.csv").exists() else f"joint_weather_{n}{vsuf}.csv")
 if jw.exists():
     dump("weather.json", json.loads(pd.read_csv(jw).round(4).replace({np.nan: None}).to_json(orient="records")))
 import key_status

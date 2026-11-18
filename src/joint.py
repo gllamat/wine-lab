@@ -22,8 +22,8 @@ d = (nm.merge(vec, on="id").merge(pl[["country", "province", "region_1", "loc", 
 d = d[d.geo_level.isin(["region_1", "region_1_alt"])] if (d.geo_level == "region_1").sum() > 500 else d   # prefer region-level coordinates
 print("joined rows", len(d), "locations", d["loc"].nunique(), "vintages", d.vintage.nunique())
 W = ["gdd", "huglin", "t_mean", "diurnal", "days_gt35", "rain_season", "rain_harvest", "frost_budbreak", "radiation"]
-Y = ["points", "s_acidity", "s_body", "s_tannin", "s_sweetness", "c_red_fruit", "c_black_fruit", "c_citrus", "c_stone_fruit",
-     "c_tropical_fruit", "c_dried_cooked_fruit", "c_oak", "c_herbaceous", "r_can_age"]
+Y = ["points", "s_acidity", "s_body", "s_tannin", "s_sweetness", "c_red_fruit", "c_black_fruit", "c_citrus_fruit", "c_stone_fruit",
+     "c_tropical_fruit", "c_dried_cooked_fruit", "c_oak", "c_herbaceous", "t_tertiary", "r_can_age"]
 d["grp"] = d["loc"] + "|" + d.variety_group.astype(str)
 sz = d.groupby("grp").vintage.transform("nunique")
 dw = d[sz >= 4].copy()                                     # groups with >=4 vintages
@@ -36,11 +36,17 @@ for w in W:
         ok = dw[y].notna()
         if ok.sum() < 300:
             continue
-        yy = dw.loc[ok, y] - dw.loc[ok].groupby("grp")[y].transform("mean")
-        xx = dw.loc[ok, w + "_dm"]
-        r = spearmanr(xx, yy)
-        ra = spearmanr(d.loc[d[y].notna(), w], d.loc[d[y].notna(), y])
-        rows.append(dict(weather=w, outcome=y, n=int(ok.sum()), rho_within=r.correlation, p_within=r.pvalue, rho_across=ra.correlation))
+        # within place x grape: demean, then average to place-grape-VINTAGE units (reviews of one unit share one weather value)
+        tmp = pd.DataFrame({"grp": dw.loc[ok, "grp"], "vintage": dw.loc[ok, "vintage"], "x": dw.loc[ok, w + "_dm"],
+                            "y": dw.loc[ok, y] - dw.loc[ok].groupby("grp")[y].transform("mean")})
+        u = tmp.groupby(["grp", "vintage"]).agg(x=("x", "mean"), y=("y", "mean"), k=("y", "size")).query("k >= 3")
+        if len(u) < 30:
+            continue
+        r = spearmanr(u.x, u.y)
+        tb = pd.DataFrame({"loc": d.loc[d[y].notna(), "loc"], "vintage": d.loc[d[y].notna(), "vintage"], "x": d.loc[d[y].notna(), w], "y": d.loc[d[y].notna(), y]})
+        ua = tb.groupby(["loc", "vintage"]).agg(x=("x", "mean"), y=("y", "mean"), k=("y", "size")).query("k >= 3")
+        ra = spearmanr(ua.x, ua.y)
+        rows.append(dict(weather=w, outcome=y, n=int(len(u)), n_reviews=int(ok.sum()), rho_within=r.correlation, p_within=r.pvalue, rho_across=ra.correlation))
 res = pd.DataFrame(rows)
 res.to_csv(ROOT / f"outputs/joint_weather_{n}{vsuf}.csv", index=False)
 import plotly.graph_objects as go

@@ -8,8 +8,8 @@ let bad = 0, total = 0;
 for (const mode of ["embed", "rule"]) {
   for (const row of fx) {
     total++;
-    const r = mk[mode].match(row.text), py = row[mode];
-    const hits = r.hits.map(h => [h.kind, h.f1, h.f2, h.surface, h.neg, h.tag]);
+    const r = mk[mode].match(row.text, row.colour), py = row[mode];
+    const hits = r.hits.map(h => [h.kind, h.f1, h.f2, h.surface, h.neg, h.tag, h.scope, h.amb, h.ctiers]);
     const ok = JSON.stringify(r.toks) === JSON.stringify(py.toks) && JSON.stringify(hits) === JSON.stringify(py.hits)
       && JSON.stringify(r.years) === JSON.stringify(py.years);
     if (!ok) { bad++; if (bad <= 5) console.log("MISMATCH", mode, JSON.stringify(row.text.slice(0, 120)), "\n JS:", JSON.stringify(hits.slice(0, 6)), "\n PY:", JSON.stringify(py.hits.slice(0, 6))); }

@@ -1,75 +1,1561 @@
-# Structure cues -> ordinal level (WSET-style scales), plus negation-aware matching.
-# Scales follow the WSET SAT levels (low / medium(-) / medium / medium(+) / high etc.)
-# encoded as integers: 1=low .. 5=high for 5-point scales; sweetness 1=dry .. 5=luscious.
-# Cue strengths are heuristic assumptions of THIS project; they can be tuned.
+# Structure scales, categorical fields and readiness cues, aligned to WSET L3 SAT (3W v2.0, 2016).
+# Level numbers are positions on the SAT scale (1 = first level named). Cue strengths are PROJECT HEURISTICS, not part of the SAT.
 version: 1
 scales:
-  texture:      # NOT a WSET SAT field; extra project scale for 'soft/rich texture, mouthfeel'
-    levels: [soft, medium-soft, medium, medium-rich, rich]
+  texture:
+    levels:
+    - soft
+    - medium-soft
+    - medium
+    - medium-rich
+    - rich
     cues: {}
   acidity:
-    levels: [low, medium-, medium, medium+, high]
+    levels:
+    - low
+    - medium-
+    - medium
+    - medium+
+    - high
     cues:
-      1: [flabby, soft acidity, low acidity, low-acid, round acidity, low acid, lacks acidity, lacking acidity, lacking acid, soft, lazy, plush acidity]
-      2: [gentle acidity, mellow acidity, supple acidity, easy acidity, moderate acidity, rounded acidity, balanced acidity soft]
-      3: [balanced acidity, balanced, fresh acidity, good acidity, bright, brightness, freshness, fresh, lively, nice acidity, medium acidity, proper acidity, medium-acidity, integrated acidity, refreshing]
-      4: [crisp, zesty, zippy, vibrant acidity, juicy acidity, mouthwatering, mouth-watering, tangy, lively acidity, vivid acidity, bright acidity, crisp acidity, refreshing acidity, crunchy, snappy, racy, nervy, pert]
-      5: [high acidity, tart, steely acidity, searing, searing acidity, razor, razor-sharp, piercing acidity, mouth-puckering, puckering, sharp, sharp acidity, lemony acidity, lean, tight acidity, firm acidity, citric acidity, acidic, sour, high-acid, tartness, acidity-driven, shrill, biting, cutting acidity, mouth-watering acidity]
+      1:
+      - flabby
+      - soft acidity
+      - low acidity
+      - low-acid
+      - round acidity
+      - low acid
+      - lacks acidity
+      - lacking acidity
+      - lacking acid
+      - soft
+      - lazy
+      - plush acidity
+      2:
+      - gentle acidity
+      - mellow acidity
+      - supple acidity
+      - easy acidity
+      - moderate acidity
+      - rounded acidity
+      - balanced acidity soft
+      3:
+      - balanced acidity
+      - balanced
+      - fresh acidity
+      - good acidity
+      - bright
+      - brightness
+      - freshness
+      - fresh
+      - lively
+      - nice acidity
+      - medium acidity
+      - proper acidity
+      - medium-acidity
+      - integrated acidity
+      - refreshing
+      4:
+      - crisp
+      - zesty
+      - zippy
+      - vibrant acidity
+      - juicy acidity
+      - mouthwatering
+      - mouth-watering
+      - tangy
+      - lively acidity
+      - vivid acidity
+      - bright acidity
+      - crisp acidity
+      - refreshing acidity
+      - crunchy
+      - snappy
+      - racy
+      - nervy
+      - pert
+      5:
+      - high acidity
+      - tart
+      - steely acidity
+      - searing
+      - searing acidity
+      - razor
+      - razor-sharp
+      - piercing acidity
+      - mouth-puckering
+      - puckering
+      - sharp
+      - sharp acidity
+      - lemony acidity
+      - lean
+      - tight acidity
+      - firm acidity
+      - citric acidity
+      - acidic
+      - sour
+      - high-acid
+      - tartness
+      - acidity-driven
+      - shrill
+      - biting
+      - cutting acidity
+      - mouth-watering acidity
   tannin:
-    levels: [low, medium-, medium, medium+, high]
+    levels:
+    - low
+    - medium-
+    - medium
+    - medium+
+    - high
     cues:
-      1: [no tannin, low tannin, soft tannin, silky tannin, velvety tannin, supple tannin, smooth tannin, light tannin, gentle tannin, fleshy, easy tannin, tannin low, round tannin, rounded tannin, tame tannin, polished tannin, plush tannin, soft tannins]
-      2: [fine tannin, fine-grained tannin, fine-grain tannin, mellow tannin, melted tannin, integrated tannin, ripe tannin, sweet tannin, moderate tannin, medium-light tannin]
-      3: [medium tannin, firm tannin, structured, structure, balanced tannin, present tannin, dusty tannin, grippy tannin moderate, good tannin, solid tannin, tannic grip moderate, well-integrated tannin, tannin structure]
-      4: [grippy, grip, tannic, chewy, chewy tannin, firm tannin high, powerful tannin, muscular, muscular tannin, strong tannin, ripe tannin firm, assertive tannin, dense tannin, substantial tannin, hefty tannin, sturdy, sturdy tannin, gripping, gripping tannin, big tannin, robust tannin, tannin-driven, vigorous tannin]
-      5: [high tannin, massive tannin, astringent, astringency, harsh tannin, aggressive tannin, drying tannin, rustic tannin, chalky tannin, hard tannin, rugged tannin, brutal tannin, bracing tannin, tooth-coating, mouth-drying, tough tannin, austere, austere tannin, stern, angular, angular tannin, dry tannin, dusty tannic, tight tannin, imposing tannin, formidable tannin, drying]
+      1:
+      - no tannin
+      - low tannin
+      - soft tannin
+      - silky tannin
+      - velvety tannin
+      - supple tannin
+      - smooth tannin
+      - light tannin
+      - gentle tannin
+      - fleshy
+      - easy tannin
+      - tannin low
+      - round tannin
+      - rounded tannin
+      - tame tannin
+      - polished tannin
+      - plush tannin
+      - soft tannins
+      2:
+      - fine tannin
+      - fine-grained tannin
+      - fine-grain tannin
+      - mellow tannin
+      - melted tannin
+      - integrated tannin
+      - ripe tannin
+      - sweet tannin
+      - moderate tannin
+      - medium-light tannin
+      3:
+      - medium tannin
+      - firm tannin
+      - structured
+      - structure
+      - balanced tannin
+      - present tannin
+      - dusty tannin
+      - grippy tannin moderate
+      - good tannin
+      - solid tannin
+      - tannic grip moderate
+      - well-integrated tannin
+      - tannin structure
+      4:
+      - grippy
+      - grip
+      - tannic
+      - chewy
+      - chewy tannin
+      - firm tannin high
+      - powerful tannin
+      - muscular
+      - muscular tannin
+      - strong tannin
+      - ripe tannin firm
+      - assertive tannin
+      - dense tannin
+      - substantial tannin
+      - hefty tannin
+      - sturdy
+      - sturdy tannin
+      - gripping
+      - gripping tannin
+      - big tannin
+      - robust tannin
+      - tannin-driven
+      - vigorous tannin
+      5:
+      - high tannin
+      - massive tannin
+      - astringent
+      - astringency
+      - harsh tannin
+      - aggressive tannin
+      - drying tannin
+      - rustic tannin
+      - chalky tannin
+      - hard tannin
+      - rugged tannin
+      - brutal tannin
+      - bracing tannin
+      - tooth-coating
+      - mouth-drying
+      - tough tannin
+      - austere
+      - austere tannin
+      - stern
+      - angular
+      - angular tannin
+      - dry tannin
+      - dusty tannic
+      - tight tannin
+      - imposing tannin
+      - formidable tannin
+      - drying
   body:
-    levels: [light, medium-, medium, medium+, full]
+    levels:
+    - light
+    - medium-
+    - medium
+    - medium+
+    - full
     cues:
-      1: [light-bodied, light bodied, light body, delicate, thin, watery, slight, wispy, ethereal, featherweight, lightweight, light, diluted, simple light]
-      2: [medium-light, medium-light body, lithe, lithe body, graceful, elegant light, svelte, easy-drinking, easy drinking, supple body, slender]
-      3: [medium-bodied, medium bodied, medium body, moderate body, mid-weight, midweight, medium weight, medium-weight, balanced body, average weight]
-      4: [rich, round, ample, generous, weighty, plush, full-ish, robust, solid, sturdy body, concentrated, dense, substantial, hearty, opulent, lush]
-      5: [full-bodied, full bodied, full body, heavy, massive, big, bold, powerful, huge, thick, viscous, syrupy, unctuous, brawny, burly, blockbuster, chunky, thick body, extracted, hefty, super-concentrated, very concentrated, heavyweight, heavy-bodied, bruiser, mouth-filling, mouthfilling]
+      1:
+      - light-bodied
+      - light bodied
+      - light body
+      - delicate
+      - thin
+      - watery
+      - slight
+      - wispy
+      - ethereal
+      - featherweight
+      - lightweight
+      - light
+      - diluted
+      - simple light
+      2:
+      - medium-light
+      - medium-light body
+      - lithe
+      - lithe body
+      - graceful
+      - elegant light
+      - svelte
+      - easy-drinking
+      - easy drinking
+      - supple body
+      - slender
+      3:
+      - medium-bodied
+      - medium bodied
+      - medium body
+      - moderate body
+      - mid-weight
+      - midweight
+      - medium weight
+      - medium-weight
+      - balanced body
+      - average weight
+      4:
+      - rich
+      - round
+      - ample
+      - generous
+      - weighty
+      - plush
+      - full-ish
+      - robust
+      - solid
+      - sturdy body
+      - concentrated
+      - dense
+      - substantial
+      - hearty
+      - opulent
+      - lush
+      5:
+      - full-bodied
+      - full bodied
+      - full body
+      - heavy
+      - massive
+      - big
+      - bold
+      - powerful
+      - huge
+      - thick
+      - viscous
+      - syrupy
+      - unctuous
+      - brawny
+      - burly
+      - blockbuster
+      - chunky
+      - thick body
+      - extracted
+      - hefty
+      - super-concentrated
+      - very concentrated
+      - heavyweight
+      - heavy-bodied
+      - bruiser
+      - mouth-filling
+      - mouthfilling
   alcohol:
-    levels: [low, medium, high]
+    levels:
+    - low
+    - medium
+    - high
     cues:
-      1: [low alcohol, low-alcohol, light alcohol, low in alcohol, lower alcohol, spritz, spritzy, frizzante]
-      2: [moderate alcohol, balanced alcohol, medium alcohol]
-      3: [hot, heat, warming, warm finish, boozy, alcoholic, high alcohol, high-alcohol, spirity, fiery, burning, high octane, high-octane, alcoholic heat, alcohol heat, warm, spirit, spirituous, boozy finish, hot finish, hot alcohol]
+      1:
+      - low alcohol
+      - low-alcohol
+      - light alcohol
+      - low in alcohol
+      - lower alcohol
+      - spritz
+      - spritzy
+      - frizzante
+      2:
+      - moderate alcohol
+      - balanced alcohol
+      - medium alcohol
+      3:
+      - hot
+      - heat
+      - warming
+      - warm finish
+      - boozy
+      - alcoholic
+      - high alcohol
+      - high-alcohol
+      - spirity
+      - fiery
+      - burning
+      - high octane
+      - high-octane
+      - alcoholic heat
+      - alcohol heat
+      - warm
+      - spirit
+      - spirituous
+      - boozy finish
+      - hot finish
+      - hot alcohol
   sweetness:
-    levels: [dry, off-dry, medium-dry, medium-sweet, sweet, luscious]
+    levels:
+    - dry
+    - off-dry
+    - medium-dry
+    - medium-sweet
+    - sweet
+    - luscious
     cues:
-      1: [bone dry, bone-dry, dry, bone-dry style, crisp dry, razor dry, tart dry, brut nature, brut, extra brut, extra dry, zero dosage, austere dry, desiccated, sec, secco, trocken, dry style, bone-dry finish]
-      2: [off-dry, off dry, off-dry style, hint of sweetness, touch of sweetness, kiss of sweetness, slightly sweet, lightly sweet, a touch sweet, soft sweetness, demi-sec, semi-dry, halbtrocken, abboccato, semi-sweet, semisweet, medium-dry, medium dry, feinherb]
-      3: [medium-sweet, medium sweet, medium sweetness, semi-sweet style, lieblich, amabile, demi sec]
-      4: [sweet, sweetness, dessert, dessert wine, dessert-style, honeyed sweetness, sweet wine, late harvest, late-harvest, spätlese, auslese, vendange tardive, sauternes, moscato sweet, off-sweet, doux, sweet finish, dolce, passito, vin santo, tokaji, tokay, noble rot, botrytis, botrytised, botrytized, port style, ice wine, icewine, eiswein, sweet style, ripasso sweet, sweet fruit, sweet-fruited, cloying, syrupy sweet, sweet syrup]
-      5: [luscious, lusciously sweet, very sweet, intensely sweet, beerenauslese, trockenbeerenauslese, tba, essence, nectar, nectarous, unctuous sweet, treacle, liquid honey, liquid gold, mega-sweet, super sweet, ultra sweet, lusciously, richly sweet, dense sweetness, syrupy sweetness, super-sweet]
+      1:
+      - bone dry
+      - bone-dry
+      - dry
+      - bone-dry style
+      - crisp dry
+      - razor dry
+      - tart dry
+      - brut nature
+      - brut
+      - extra brut
+      - extra dry
+      - zero dosage
+      - austere dry
+      - desiccated
+      - sec
+      - secco
+      - trocken
+      - dry style
+      - bone-dry finish
+      2:
+      - off-dry
+      - off dry
+      - off-dry style
+      - hint of sweetness
+      - touch of sweetness
+      - kiss of sweetness
+      - slightly sweet
+      - lightly sweet
+      - a touch sweet
+      - soft sweetness
+      - abboccato
+      3:
+      - semi-dry
+      - halbtrocken
+      - medium-dry
+      - medium dry
+      - feinherb
+      4:
+      - medium-sweet
+      - medium sweet
+      - medium sweetness
+      - semi-sweet style
+      - lieblich
+      - amabile
+      - demi-sec
+      - semi-sweet
+      - semisweet
+      - demi sec
+      5:
+      - sweet
+      - sweetness
+      - dessert
+      - dessert wine
+      - dessert-style
+      - honeyed sweetness
+      - sweet wine
+      - late harvest
+      - late-harvest
+      - spätlese
+      - auslese
+      - vendange tardive
+      - sauternes
+      - moscato sweet
+      - off-sweet
+      - doux
+      - sweet finish
+      - dolce
+      - passito
+      - vin santo
+      - tokaji
+      - tokay
+      - noble rot
+      - botrytis
+      - botrytised
+      - botrytized
+      - port style
+      - ice wine
+      - icewine
+      - eiswein
+      - sweet style
+      - ripasso sweet
+      - sweet fruit
+      - sweet-fruited
+      - cloying
+      - syrupy sweet
+      - sweet syrup
+      6:
+      - luscious
+      - lusciously sweet
+      - very sweet
+      - intensely sweet
+      - beerenauslese
+      - trockenbeerenauslese
+      - tba
+      - essence
+      - nectar
+      - nectarous
+      - unctuous sweet
+      - treacle
+      - liquid honey
+      - liquid gold
+      - mega-sweet
+      - super sweet
+      - ultra sweet
+      - lusciously
+      - richly sweet
+      - dense sweetness
+      - syrupy sweetness
+      - super-sweet
   finish:
-    levels: [short, medium-, medium, medium+, long]
+    levels:
+    - short
+    - medium-
+    - medium
+    - medium+
+    - long
     cues:
-      1: [short finish, short, abrupt, clipped, quick finish, fleeting, brief, brief finish, cut short, stops short, disappointing finish, simple finish, ends quickly]
-      2: [shortish, medium-short, a little short, modest finish, modest, brisk finish, quick, fades quickly, fade, fades fast]
-      3: [medium finish, medium-length, medium length, moderate finish, average finish, moderate length, decent finish, decent length, fair finish]
-      4: [lingering, persistent, persistence, extended, good length, long-ish, lengthy, finishing long, finishes long, dwelling, stays, goes on, resonant, echoing, echo, sustained, sustained finish, reverberating, tail]
-      5: [long finish, long, long-lasting, very long finish, endless, never-ending, seemingly endless, interminable, tenacious, extremely long, super long, marathon, forever, goes on forever, lingers, lingering finish, lingers on, lasts, lasts long, lasting finish, lasting, drawn-out]
+      1:
+      - short finish
+      - short
+      - abrupt
+      - clipped
+      - quick finish
+      - fleeting
+      - brief
+      - brief finish
+      - cut short
+      - stops short
+      - disappointing finish
+      - simple finish
+      - ends quickly
+      2:
+      - shortish
+      - medium-short
+      - a little short
+      - modest finish
+      - modest
+      - brisk finish
+      - quick
+      - fades quickly
+      - fade
+      - fades fast
+      3:
+      - medium finish
+      - medium-length
+      - medium length
+      - moderate finish
+      - average finish
+      - moderate length
+      - decent finish
+      - decent length
+      - fair finish
+      4:
+      - lingering
+      - persistent
+      - persistence
+      - extended
+      - good length
+      - long-ish
+      - lengthy
+      - finishing long
+      - finishes long
+      - dwelling
+      - stays
+      - goes on
+      - resonant
+      - echoing
+      - echo
+      - sustained
+      - sustained finish
+      - reverberating
+      - tail
+      5:
+      - long finish
+      - long
+      - long-lasting
+      - very long finish
+      - endless
+      - never-ending
+      - seemingly endless
+      - interminable
+      - tenacious
+      - extremely long
+      - super long
+      - marathon
+      - forever
+      - goes on forever
+      - lingers
+      - lingering finish
+      - lingers on
+      - lasts
+      - lasts long
+      - lasting finish
+      - lasting
+      - drawn-out
   flavour_intensity:
-    levels: [light, medium-, medium, medium+, pronounced]
+    levels:
+    - light
+    - medium-
+    - medium
+    - medium+
+    - pronounced
     cues:
-      1: [neutral, muted, subdued, restrained, closed, shy, simple, faint, faintly, hint, hints, whisper, whiff, slight, barely, light flavour, light flavor, light flavors, light aromatics, light nose, low intensity, innocuous, bland, plain, hollow, nondescript, dumb, tight, reticent, unexpressive, understated, delicate nose, quiet, quiet nose]
-      2: [subtle, mild, gentle, modest nose, soft nose, discreet, light aromas, moderate aromas, quiet fruit, understated aromas, restrained nose, lightly aromatic, gently aromatic, slightly aromatic, soft aromas, soft aromatics, refined, refined nose, pretty nose, delicate fruit]
-      3: [medium intensity, moderate intensity, moderately aromatic, pleasant, pleasant nose, decent, medium-intensity, moderate, moderately intense, appealing, appealing nose, attractive, attractive nose, agreeable, easy nose, good nose, open, open nose, opens, approachable, clean, clean nose, correct, solid nose, straightforward]
-      4: [expressive, intense, intensity, aromatic, fragrant, vivid, vibrant, vibrant fruit, lifted, lifted nose, concentrated flavor, concentrated flavour, concentrated flavors, perfumed nose, fruit-forward, fruity, forward, fruit forward, ripe, ripe fruit, rich fruit, bold fruit, deep, deeply, deeply flavored, deeply flavoured, expressive nose, big nose, strong nose, loud, abundant, abundance, bursting, bursting with, bursts, flavorful, flavourful, flavor-packed, flavour-packed, pungent nose, seductive, seductive nose, striking, striking nose, bouquet, alluring, enticing, enticing nose, powerful nose, powerful aromas, emphatic, emphatic nose, charismatic, emphatic aromas]
-      5: [pronounced, explosive, powerful aromas dense, immense, huge nose, enormous, massive nose, huge, soaring, soaring aromas, wafts, intoxicating, bombastic, aromatic bomb, overpowering, overwhelming, blast, blasting, jumps from the glass, leaps from the glass, bursts from the glass, thundering, thunderous, concentration, extreme, intensely aromatic, hugely aromatic, outsized, opulent nose, over the top, over-the-top, flamboyant, flamboyant nose, showy, showy nose, extravagant, extravagant nose, exuberant, exuberant nose, riotous, riot of, riot, torrent, torrent of, avalanche, avalanche of, flood of]
+      1:
+      - neutral
+      - muted
+      - subdued
+      - restrained
+      - closed
+      - shy
+      - simple
+      - faint
+      - faintly
+      - hint
+      - hints
+      - whisper
+      - whiff
+      - slight
+      - barely
+      - light flavour
+      - light flavor
+      - light flavors
+      - light aromatics
+      - low intensity
+      - innocuous
+      - bland
+      - plain
+      - hollow
+      - nondescript
+      - dumb
+      - tight
+      - unexpressive
+      - understated
+      - quiet
+      2:
+      - subtle
+      - mild
+      - gentle
+      - modest nose
+      - soft nose
+      - discreet
+      - light aromas
+      - moderate aromas
+      - quiet fruit
+      - understated aromas
+      - lightly aromatic
+      - gently aromatic
+      - slightly aromatic
+      - soft aromas
+      - soft aromatics
+      - refined
+      - refined nose
+      - pretty nose
+      - delicate fruit
+      3:
+      - medium intensity
+      - moderate intensity
+      - pleasant
+      - decent
+      - medium-intensity
+      - moderate
+      - moderately intense
+      - appealing
+      - appealing nose
+      - attractive
+      - agreeable
+      - easy nose
+      - good nose
+      - open
+      - opens
+      - approachable
+      - clean
+      - correct
+      - solid nose
+      - straightforward
+      4:
+      - expressive
+      - intense
+      - intensity
+      - vivid
+      - vibrant
+      - vibrant fruit
+      - lifted
+      - concentrated flavor
+      - concentrated flavour
+      - concentrated flavors
+      - fruit-forward
+      - fruity
+      - forward
+      - fruit forward
+      - ripe
+      - ripe fruit
+      - rich fruit
+      - bold fruit
+      - deep
+      - deeply
+      - deeply flavored
+      - deeply flavoured
+      - big nose
+      - strong nose
+      - loud
+      - abundant
+      - abundance
+      - bursting
+      - bursting with
+      - bursts
+      - flavorful
+      - flavourful
+      - flavor-packed
+      - flavour-packed
+      - pungent nose
+      - seductive
+      - seductive nose
+      - striking
+      - striking nose
+      - bouquet
+      - alluring
+      - enticing
+      - powerful aromas
+      - emphatic
+      - emphatic nose
+      - charismatic
+      - emphatic aromas
+      5:
+      - pronounced
+      - explosive
+      - powerful aromas dense
+      - immense
+      - enormous
+      - massive nose
+      - huge
+      - soaring
+      - soaring aromas
+      - bombastic
+      - aromatic bomb
+      - overpowering
+      - overwhelming
+      - blast
+      - blasting
+      - thundering
+      - thunderous
+      - concentration
+      - extreme
+      - intensely aromatic
+      - hugely aromatic
+      - outsized
+      - opulent nose
+      - over the top
+      - over-the-top
+      - flamboyant
+      - flamboyant nose
+      - showy
+      - showy nose
+      - extravagant
+      - extravagant nose
+      - exuberant
+      - riotous
+      - riot of
+      - riot
+      - torrent
+      - torrent of
+      - avalanche
+      - avalanche of
+      - flood of
   development:
-    levels: [youthful, developing, fully_developed, tired]
+    levels:
+    - youthful
+    - developing
+    - fully_developed
+    - tired
     cues:
-      1: [youthful, young, primary, fresh fruit, grapey young, fruit-driven, fruit driven, raw, unevolved, nascent, babyish, baby, infant, just bottled, grape-y, purple, purple fruit, jammy young, vibrant young, in its youth, yet to develop, needs time, needs age, needs aging, needs ageing, needs cellaring, cellar, cellaring, ageworthy, age-worthy, built to age, will age, will develop, should develop, will evolve, will mature, tightly wound, backward, closed up, closed in, unready, shut down, needs several years, bottle age needed]
-      2: [developing, evolving, starting to evolve, beginning to develop, beginning to evolve, starting to develop, starting to show age, beginning to show age, hints of development, early development, developing nicely, opening up, becoming complex, gaining complexity, in the early stages, early stages of development, entering its prime, nearing its peak, approaching maturity, nearing maturity]
-      3: [mature, fully mature, fully developed, mellowed, mellow, mellowing, at its peak, peak, at peak, prime, in its prime, drinking at its best, drinking well, ready, ready to drink, evolved, resolved, complex tertiary, secondary notes, tertiary notes, tertiary, aged, maturity, matured, bottle-aged, bottle aged, well-aged, well aged, gracefully aged, aging gracefully, ageing gracefully, mature fruit, well matured, harmonious, harmony, integrated, integrated fruit, integrated oak, resolved tannin, resolved tannins, resolved fruit]
-      4: [tired, past its prime, past peak, past its best, fading, faded, fading fruit, going over, over the hill, oxidized, oxidised, oxidative, dried out, drying out, drying fruit, drying, decline, declining, declined, senescent, senile, falling apart, fraying, frayed, coming apart, losing fruit, losing its fruit, losing its fruit, losing freshness, lost its fruit, lost fruit, lost freshness, lost its freshness, losing its freshness, fruit has faded, fruit has dried, fruit has dried out, fruit is fading, fruit is drying]
+      1:
+      - youthful
+      - young
+      - primary
+      - fresh fruit
+      - grapey young
+      - fruit-driven
+      - fruit driven
+      - raw
+      - unevolved
+      - nascent
+      - babyish
+      - baby
+      - infant
+      - just bottled
+      - grape-y
+      - purple
+      - purple fruit
+      - jammy young
+      - vibrant young
+      - in its youth
+      - yet to develop
+      - needs time
+      - needs age
+      - needs aging
+      - needs ageing
+      - needs cellaring
+      - cellar
+      - cellaring
+      - ageworthy
+      - age-worthy
+      - built to age
+      - will age
+      - will develop
+      - should develop
+      - will evolve
+      - will mature
+      - tightly wound
+      - backward
+      - closed up
+      - closed in
+      - unready
+      - shut down
+      - needs several years
+      - bottle age needed
+      2:
+      - developing
+      - evolving
+      - starting to evolve
+      - beginning to develop
+      - beginning to evolve
+      - starting to develop
+      - starting to show age
+      - beginning to show age
+      - hints of development
+      - early development
+      - developing nicely
+      - opening up
+      - becoming complex
+      - gaining complexity
+      - in the early stages
+      - early stages of development
+      - entering its prime
+      - nearing its peak
+      - approaching maturity
+      - nearing maturity
+      3:
+      - mature
+      - fully mature
+      - fully developed
+      - mellowed
+      - mellow
+      - mellowing
+      - at its peak
+      - peak
+      - at peak
+      - prime
+      - in its prime
+      - drinking at its best
+      - drinking well
+      - ready
+      - ready to drink
+      - evolved
+      - resolved
+      - complex tertiary
+      - secondary notes
+      - tertiary notes
+      - tertiary
+      - aged
+      - maturity
+      - matured
+      - bottle-aged
+      - bottle aged
+      - well-aged
+      - well aged
+      - gracefully aged
+      - aging gracefully
+      - ageing gracefully
+      - mature fruit
+      - well matured
+      - harmonious
+      - harmony
+      - integrated
+      - integrated fruit
+      - integrated oak
+      - resolved tannin
+      - resolved tannins
+      - resolved fruit
+      4:
+      - tired
+      - past its prime
+      - past peak
+      - past its best
+      - fading
+      - faded
+      - fading fruit
+      - going over
+      - over the hill
+      - oxidized
+      - oxidised
+      - oxidative
+      - dried out
+      - drying out
+      - drying fruit
+      - decline
+      - declining
+      - declined
+      - senescent
+      - senile
+      - falling apart
+      - fraying
+      - frayed
+      - coming apart
+      - losing fruit
+      - losing its fruit
+      - losing its fruit
+      - losing freshness
+      - lost its fruit
+      - lost fruit
+      - lost freshness
+      - lost its freshness
+      - losing its freshness
+      - fruit has faded
+      - fruit has dried
+      - fruit has dried out
+      - fruit is fading
+      - fruit is drying
+  nose_intensity:
+    levels:
+    - light
+    - medium-
+    - medium
+    - medium+
+    - pronounced
+    cues:
+      1:
+      - muted nose
+      - closed nose
+      - shy nose
+      - reticent
+      - faint aroma
+      - subdued nose
+      - light nose
+      - tight nose
+      2:
+      - delicate nose
+      - subtle nose
+      - restrained nose
+      - quiet nose
+      - light aroma
+      - soft aroma
+      - understated aroma
+      - delicate aroma
+      - subtle aroma
+      - discreet nose
+      3:
+      - moderate nose
+      - medium intensity nose
+      - moderately aromatic
+      - pleasant nose
+      - open nose
+      - clean nose
+      4:
+      - expressive nose
+      - fragrant
+      - aromatic
+      - perfumed nose
+      - lifted nose
+      - enticing nose
+      - alluring nose
+      - generous nose
+      - attractive nose
+      - forward nose
+      - fruity nose
+      - expressive aroma
+      5:
+      - pronounced nose
+      - intense nose
+      - powerful nose
+      - explosive nose
+      - soaring aroma
+      - huge nose
+      - intense aroma
+      - powerful aroma
+      - wafts
+      - jumps from the glass
+      - leaps from the glass
+      - bursts from the glass
+      - intoxicating
+      - exuberant nose
+  mousse:
+    levels:
+    - delicate
+    - creamy
+    - aggressive
+    cues:
+      1:
+      - fine bubble
+      - fine mousse
+      - delicate bubble
+      - delicate mousse
+      - fine bead
+      - delicate bead
+      - gentle bubble
+      - gentle mousse
+      - light mousse
+      - tiny bubble
+      - small bubble
+      - fine perlage
+      - delicate effervescence
+      - gentle effervescence
+      - soft bubble
+      - soft mousse
+      - elegant mousse
+      - pinpoint bubble
+      2:
+      - creamy mousse
+      - creamy bubble
+      - creamy bead
+      - silky mousse
+      - silky bubble
+      - velvety mousse
+      - creamy effervescence
+      - rich mousse
+      - plush mousse
+      - cushiony mousse
+      - persistent mousse
+      - persistent bubble
+      3:
+      - aggressive bubble
+      - aggressive mousse
+      - coarse bubble
+      - coarse mousse
+      - big bubble
+      - large bubble
+      - frothy
+      - foamy
+      - fizzy
+      - rough bubble
+      - harsh bubble
+      - aggressive fizz
+      - prickly
+      - spritzy mousse
+      - sharp bubble
 readiness:
-  # regex-style patterns, evaluated deterministically
-  drink_now: ["drink now", "drink it now", "ready now", "ready to drink", "drinking now", "now drink", "drink up", "enjoy now", "enjoy it now", "drink soon", "drink over the next", "should be drunk now", "drink within", "best now", "best drunk now", "best enjoyed now", "best consumed now", "drink this now"]
-  can_age: ["will age", "ageworthy", "age-worthy", "needs time", "cellar", "cellaring", "will improve", "improve with age", "age for", "age until", "should age", "age well", "ages well", "built to age", "needs aging", "needs ageing", "give it time", "give it a few years", "will develop", "will evolve", "will reward", "will benefit", "needs to age", "needs to develop", "too young", "very young", "still young", "still tight", "still closed", "needs a few years", "needs several years", "be patient", "lay down", "lay it down", "can age", "can cellar", "will keep", "long term", "long-term", "aging potential", "ageing potential", "potential for aging", "potential for ageing"]
-  year_range_regex: "\\b(?:drink|best|enjoy|hold|cellar|age|through|until|from|by|between|after|before)\\b\\D{0,20}?((?:19|20)\\d{2})(?:\\s*(?:-|–|—|to|through|until|and)\\s*((?:19|20)\\d{2}|\\d{2}))?"
+  drink_now:
+  - drink now
+  - drink it now
+  - ready now
+  - ready to drink
+  - drinking now
+  - now drink
+  - drink up
+  - enjoy now
+  - enjoy it now
+  - drink soon
+  - drink over the next
+  - should be drunk now
+  - drink within
+  - best now
+  - best drunk now
+  - best enjoyed now
+  - best consumed now
+  - drink this now
+  can_age:
+  - will age
+  - ageworthy
+  - age-worthy
+  - needs time
+  - cellar
+  - cellaring
+  - will improve
+  - improve with age
+  - age for
+  - age until
+  - should age
+  - age well
+  - ages well
+  - built to age
+  - needs aging
+  - needs ageing
+  - give it time
+  - give it a few years
+  - will develop
+  - will evolve
+  - will reward
+  - will benefit
+  - needs to age
+  - needs to develop
+  - too young
+  - very young
+  - still young
+  - still tight
+  - still closed
+  - needs a few years
+  - needs several years
+  - be patient
+  - lay down
+  - lay it down
+  - can age
+  - can cellar
+  - will keep
+  - long term
+  - long-term
+  - aging potential
+  - ageing potential
+  - potential for aging
+  - potential for ageing
+  year_range_regex: \b(?:drink|best|enjoy|hold|cellar|age|through|until|from|by|between|after|before)\b\D{0,20}?((?:19|20)\d{2})(?:\s*(?:-|–|—|to|through|until|and)\s*((?:19|20)\d{2}|\d{2}))?
+  too_old:
+  - past its prime
+  - past its peak
+  - past its best
+  - past peak
+  - past prime
+  - over the hill
+  - tired
+  - faded
+  - fading
+  - declining
+  - too old
+  - gone over
+  - falling apart
+  - senescent
+  - past it
+  - has seen better days
+  - oxidized and tired
+  - dried out
+  - drying out
+categorical:
+- form: lemon green
+  set:
+    colour: lemon-green
+- form: greenish
+  set:
+    colour: lemon-green
+- form: green tinge
+  set:
+    colour: lemon-green
+- form: green hue
+  set:
+    colour: lemon-green
+- form: green tint
+  set:
+    colour: lemon-green
+- form: lemon-green
+  set:
+    colour: lemon-green
+- form: pale green
+  set:
+    colour: lemon-green
+- form: pale lemon
+  set:
+    colour: lemon
+- form: lemon colour
+  set:
+    colour: lemon
+- form: lemon color
+  set:
+    colour: lemon
+- form: lemon yellow
+  set:
+    colour: lemon
+- form: straw
+  set:
+    colour: lemon
+- form: straw colour
+  set:
+    colour: lemon
+- form: straw color
+  set:
+    colour: lemon
+- form: straw yellow
+  set:
+    colour: lemon
+- form: pale straw
+  set:
+    colour: lemon
+- form: pale yellow
+  set:
+    colour: lemon
+- form: yellow colour
+  set:
+    colour: lemon
+- form: yellow color
+  set:
+    colour: lemon
+- form: yellow hue
+  set:
+    colour: lemon
+- form: pale gold
+  set:
+    colour: gold
+- form: gold colour
+  set:
+    colour: gold
+- form: gold color
+  set:
+    colour: gold
+- form: golden colour
+  set:
+    colour: gold
+- form: golden color
+  set:
+    colour: gold
+- form: golden hue
+  set:
+    colour: gold
+- form: golden yellow
+  set:
+    colour: gold
+- form: golden-yellow
+  set:
+    colour: gold
+- form: deep gold
+  set:
+    colour: gold
+- form: golden
+  set:
+    colour: gold
+- form: gold hue
+  set:
+    colour: gold
+- form: amber
+  set:
+    colour: amber
+- form: amber colour
+  set:
+    colour: amber
+- form: amber color
+  set:
+    colour: amber
+- form: amber hue
+  set:
+    colour: amber
+- form: brown colour
+  set:
+    colour: brown
+- form: brown color
+  set:
+    colour: brown
+- form: brownish
+  set:
+    colour: brown
+- form: brown hue
+  set:
+    colour: brown
+- form: brick
+  set:
+    colour: brown
+- form: brick red
+  set:
+    colour: brown
+- form: brick-red
+  set:
+    colour: brown
+- form: brick rim
+  set:
+    colour: brown
+- form: pink
+  set:
+    colour: pink
+- form: pink colour
+  set:
+    colour: pink
+- form: pink color
+  set:
+    colour: pink
+- form: pale pink
+  set:
+    colour: pink
+- form: deep pink
+  set:
+    colour: pink
+- form: rosy
+  set:
+    colour: pink
+- form: rose colour
+  set:
+    colour: pink
+- form: rose color
+  set:
+    colour: pink
+- form: pink hue
+  set:
+    colour: pink
+- form: salmon
+  set:
+    colour: salmon
+- form: salmon pink
+  set:
+    colour: salmon
+- form: salmon colour
+  set:
+    colour: salmon
+- form: salmon color
+  set:
+    colour: salmon
+- form: orange colour
+  set:
+    colour: orange
+- form: orange color
+  set:
+    colour: orange
+- form: orange hue
+  set:
+    colour: orange
+- form: copper
+  set:
+    colour: orange
+- form: coppery
+  set:
+    colour: orange
+- form: onion skin
+  set:
+    colour: orange
+- form: purple
+  set:
+    colour: purple
+- form: violet hue
+  set:
+    colour: purple
+- form: purple hue
+  set:
+    colour: purple
+- form: purple colour
+  set:
+    colour: purple
+- form: purple color
+  set:
+    colour: purple
+- form: purplish
+  set:
+    colour: purple
+- form: blue-black
+  set:
+    colour: purple
+- form: blue black
+  set:
+    colour: purple
+- form: ruby
+  set:
+    colour: ruby
+- form: ruby red
+  set:
+    colour: ruby
+- form: ruby colour
+  set:
+    colour: ruby
+- form: ruby color
+  set:
+    colour: ruby
+- form: ruby hue
+  set:
+    colour: ruby
+- form: garnet
+  set:
+    colour: garnet
+- form: garnet colour
+  set:
+    colour: garnet
+- form: garnet color
+  set:
+    colour: garnet
+- form: garnet hue
+  set:
+    colour: garnet
+- form: tawny
+  set:
+    colour: tawny
+- form: tawny colour
+  set:
+    colour: tawny
+- form: tawny color
+  set:
+    colour: tawny
+- form: pale ruby
+  set:
+    colour: ruby
+    appearance_intensity: pale
+- form: deep ruby
+  set:
+    colour: ruby
+    appearance_intensity: deep
+- form: medium ruby
+  set:
+    colour: ruby
+    appearance_intensity: medium
+- form: pale garnet
+  set:
+    colour: garnet
+    appearance_intensity: pale
+- form: deep garnet
+  set:
+    colour: garnet
+    appearance_intensity: deep
+- form: deep purple
+  set:
+    colour: purple
+    appearance_intensity: deep
+- form: dark purple
+  set:
+    colour: purple
+    appearance_intensity: deep
+- form: pale purple
+  set:
+    colour: purple
+    appearance_intensity: pale
+- form: pale salmon
+  set:
+    colour: salmon
+    appearance_intensity: pale
+- form: deep amber
+  set:
+    colour: amber
+    appearance_intensity: deep
+- form: pale amber
+  set:
+    colour: amber
+    appearance_intensity: pale
+- form: deep golden
+  set:
+    colour: gold
+    appearance_intensity: deep
+- form: pale golden
+  set:
+    colour: gold
+    appearance_intensity: pale
+- form: medium gold
+  set:
+    colour: gold
+    appearance_intensity: medium
+- form: pale colour
+  set:
+    appearance_intensity: pale
+- form: pale color
+  set:
+    appearance_intensity: pale
+- form: pale in colour
+  set:
+    appearance_intensity: pale
+- form: pale in color
+  set:
+    appearance_intensity: pale
+- form: light colour
+  set:
+    appearance_intensity: pale
+- form: light color
+  set:
+    appearance_intensity: pale
+- form: light in colour
+  set:
+    appearance_intensity: pale
+- form: light in color
+  set:
+    appearance_intensity: pale
+- form: pale hue
+  set:
+    appearance_intensity: pale
+- form: light hue
+  set:
+    appearance_intensity: pale
+- form: deep colour
+  set:
+    appearance_intensity: deep
+- form: deep color
+  set:
+    appearance_intensity: deep
+- form: dark colour
+  set:
+    appearance_intensity: deep
+- form: dark color
+  set:
+    appearance_intensity: deep
+- form: deep hue
+  set:
+    appearance_intensity: deep
+- form: dark hue
+  set:
+    appearance_intensity: deep
+- form: inky
+  set:
+    appearance_intensity: deep
+- form: opaque
+  set:
+    appearance_intensity: deep
+- form: saturated colour
+  set:
+    appearance_intensity: deep
+- form: saturated color
+  set:
+    appearance_intensity: deep
+- form: intense colour
+  set:
+    appearance_intensity: deep
+- form: intense color
+  set:
+    appearance_intensity: deep
+- form: deep red
+  set:
+    appearance_intensity: deep
+- form: dark red
+  set:
+    appearance_intensity: deep
+- form: almost black
+  set:
+    appearance_intensity: deep
+- form: jet black
+  set:
+    appearance_intensity: deep
+- form: black in color
+  set:
+    appearance_intensity: deep
+- form: black in colour
+  set:
+    appearance_intensity: deep
+- form: medium colour
+  set:
+    appearance_intensity: medium
+- form: medium color
+  set:
+    appearance_intensity: medium
+- form: medium intensity colour
+  set:
+    appearance_intensity: medium
+- form: medium intensity color
+  set:
+    appearance_intensity: medium
+- form: hazy
+  set:
+    clarity: hazy
+- form: cloudy
+  set:
+    clarity: hazy
+- form: turbid
+  set:
+    clarity: hazy
+- form: murky
+  set:
+    clarity: hazy
+- form: unfiltered haze
+  set:
+    clarity: hazy
+- form: brilliant
+  set:
+    clarity: clear
+- form: crystal clear
+  set:
+    clarity: clear
+- form: crystal-clear
+  set:
+    clarity: clear
+- form: limpid
+  set:
+    clarity: clear
+- form: corked
+  set:
+    condition: unclean
+- form: cork taint
+  set:
+    condition: unclean
+- form: tca
+  set:
+    condition: unclean
+- form: musty
+  set:
+    condition: unclean
+- form: moldy
+  set:
+    condition: unclean
+- form: mouldy
+  set:
+    condition: unclean
+- form: vinegar
+  set:
+    condition: unclean
+- form: vinegary
+  set:
+    condition: unclean
+- form: volatile acidity
+  set:
+    condition: unclean
+- form: reductive
+  set:
+    condition: unclean
+- form: sulfury
+  set:
+    condition: unclean
+- form: sulphury
+  set:
+    condition: unclean
+- form: brettanomyces
+  set:
+    condition: unclean
+- form: brett
+  set:
+    condition: unclean
+- form: flawed
+  set:
+    condition: unclean
+- form: faulty
+  set:
+    condition: unclean
+- form: spoiled
+  set:
+    condition: unclean
+- form: spoilt
+  set:
+    condition: unclean
+- form: oxidized and flawed
+  set:
+    condition: unclean
+- form: wet cardboard
+  set:
+    condition: unclean
+- form: cardboard
+  set:
+    condition: unclean
+- form: wet dog
+  set:
+    condition: unclean

@@ -19,10 +19,13 @@ rng = np.random.RandomState(SEED)
 
 
 def wset_matrix(vec):
-    A = vec[[c for c in vec if c.startswith("a_")]].values.astype("float32")
-    S = vec[[c for c in vec if c.startswith("s_")]]
-    Sv = ((S.fillna(3) - 3) / 2).values.astype("float32")        # missing -> neutral 0
-    return np.hstack([A, Sv]), list(vec.columns[[c.startswith("a_") for c in vec.columns]]) + list(S.columns)
+    """Aroma descriptor 0/1 + structure scales rescaled to -1..+1 by each scale's own length (missing -> 0)."""
+    from wsetkit import Lexicon
+    L = Lexicon().scales
+    acols = [c for c in vec if c.startswith("a_")]
+    scols = [c for c in vec if c.startswith("s_")]
+    Sv = np.column_stack([((vec[c] - 1) / (len(L[c[2:]]) - 1) - 0.5).mul(2).fillna(0).values for c in scols]).astype("float32")
+    return np.hstack([vec[acols].values.astype("float32"), Sv]), acols + scols
 
 
 def cos_nn(X, k=10):
@@ -73,7 +76,6 @@ def main():
     # ---- probes: embedding -> each WSET dimension (5-fold), per-dimension score
     kf = KFold(5, shuffle=True, random_state=SEED)
     probe = {}
-    dimcols = {"c_" + c[2:].split("__")[0] for c in xcols if c.startswith("a_")}
     clus = sorted(c for c in vec if c.startswith("c_"))
     for name in [m for m in spaces if m != "random"] + ["random"]:
         E = spaces[name]

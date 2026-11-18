@@ -131,11 +131,11 @@ def main():
     nm = pd.read_parquet(ROOT / "outputs/reviews_norm.parquet", columns=["country", "province", "region_1", "vintage"])
     vint = nm.dropna(subset=["vintage"]).merge(pl[["country", "province", "region_1", "loc", "lat"]],
                                                on=["country", "province", "region_1"], how="inner")
-    pairs = vint[["loc", "lat", "vintage"]].drop_duplicates()
+    pairs = vint[["loc", "vintage"]].drop_duplicates()          # ONE row per grid cell x vintage (cells are shared by nearby places)
     for r in pairs.itertuples():
         if not (2000 <= r.vintage <= 2017) or not (CACHE / f"{r.loc}.json").exists():
             continue
-        m = season_metrics(json.load(open(CACHE / f"{r.loc}.json")), r.lat, int(r.vintage))
+        m = season_metrics(json.load(open(CACHE / f"{r.loc}.json")), cell_centre(r.loc)[0], int(r.vintage))
         if m:
             rows.append(dict(loc=r.loc, vintage=int(r.vintage), **m))
     out = pd.DataFrame(rows)
