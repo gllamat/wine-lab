@@ -1,0 +1,8 @@
+.venv/
+cache/
+outputs/
+__pycache__/
+*.parquet
+*.csv
+*.zip
+.DS_Store

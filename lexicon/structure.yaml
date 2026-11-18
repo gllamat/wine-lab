@@ -1,0 +1,72 @@
+# Structure cues -> ordinal level (WSET-style scales), plus negation-aware matching.
+# Scales follow the WSET SAT levels (low / medium(-) / medium / medium(+) / high etc.)
+# encoded as integers: 1=low .. 5=high for 5-point scales; sweetness 1=dry .. 5=luscious.
+# Cue strengths are heuristic assumptions of THIS project; they can be tuned.
+version: 1
+scales:
+  acidity:
+    levels: [low, medium-, medium, medium+, high]
+    cues:
+      1: [flabby, soft acidity, low acidity, low-acid, round acidity, low acid, lacks acidity, lacking acidity, lacking acid, soft, lazy, plush acidity]
+      2: [gentle acidity, mellow acidity, supple acidity, easy acidity, moderate acidity, rounded acidity, balanced acidity soft]
+      3: [balanced acidity, balanced, fresh acidity, good acidity, bright, brightness, freshness, fresh, lively, nice acidity, medium acidity, proper acidity, medium-acidity, integrated acidity, refreshing]
+      4: [crisp, zesty, zippy, vibrant acidity, juicy acidity, mouthwatering, mouth-watering, tangy, lively acidity, vivid acidity, bright acidity, crisp acidity, refreshing acidity, crunchy, snappy, racy, nervy, pert]
+      5: [high acidity, tart, steely acidity, searing, searing acidity, razor, razor-sharp, piercing acidity, mouth-puckering, puckering, sharp, sharp acidity, lemony acidity, lean, tight acidity, firm acidity, citric acidity, acidic, sour, high-acid, tartness, acidity-driven, shrill, biting, cutting acidity, mouth-watering acidity]
+  tannin:
+    levels: [low, medium-, medium, medium+, high]
+    cues:
+      1: [no tannin, low tannin, soft tannin, silky tannin, velvety tannin, supple tannin, smooth tannin, light tannin, gentle tannin, fleshy, easy tannin, tannin low, round tannin, rounded tannin, tame tannin, polished tannin, plush tannin, soft tannins]
+      2: [fine tannin, fine-grained tannin, fine-grain tannin, mellow tannin, melted tannin, integrated tannin, ripe tannin, sweet tannin, moderate tannin, medium-light tannin]
+      3: [medium tannin, firm tannin, structured, structure, balanced tannin, present tannin, dusty tannin, grippy tannin moderate, good tannin, solid tannin, tannic grip moderate, well-integrated tannin, tannin structure]
+      4: [grippy, grip, tannic, chewy, chewy tannin, firm tannin high, powerful tannin, muscular, muscular tannin, strong tannin, ripe tannin firm, assertive tannin, dense tannin, substantial tannin, hefty tannin, sturdy, sturdy tannin, gripping, gripping tannin, big tannin, robust tannin, tannin-driven, vigorous tannin]
+      5: [high tannin, massive tannin, astringent, astringency, harsh tannin, aggressive tannin, drying tannin, rustic tannin, chalky tannin, hard tannin, rugged tannin, brutal tannin, bracing tannin, tooth-coating, mouth-drying, tough tannin, austere, austere tannin, stern, angular, angular tannin, dry tannin, dusty tannic, tight tannin, imposing tannin, formidable tannin, drying]
+  body:
+    levels: [light, medium-, medium, medium+, full]
+    cues:
+      1: [light-bodied, light bodied, light body, delicate, thin, watery, slight, wispy, ethereal, featherweight, lightweight, light, diluted, simple light]
+      2: [medium-light, medium-light body, lithe, lithe body, graceful, elegant light, svelte, easy-drinking, easy drinking, supple body, slender]
+      3: [medium-bodied, medium bodied, medium body, moderate body, mid-weight, midweight, medium weight, medium-weight, balanced body, average weight]
+      4: [rich, round, ample, generous, weighty, plush, full-ish, robust, solid, sturdy body, concentrated, dense, substantial, hearty, opulent, lush]
+      5: [full-bodied, full bodied, full body, heavy, massive, big, bold, powerful, huge, thick, viscous, syrupy, unctuous, brawny, burly, blockbuster, chunky, thick body, extracted, hefty, super-concentrated, very concentrated, heavyweight, heavy-bodied, bruiser, mouth-filling, mouthfilling]
+  alcohol:
+    levels: [low, medium, high]
+    cues:
+      1: [low alcohol, low-alcohol, light alcohol, low in alcohol, lower alcohol, spritz, spritzy, frizzante]
+      2: [moderate alcohol, balanced alcohol, medium alcohol]
+      3: [hot, heat, warming, warm finish, boozy, alcoholic, high alcohol, high-alcohol, spirity, fiery, burning, high octane, high-octane, alcoholic heat, alcohol heat, warm, spirit, spirituous, boozy finish, hot finish, hot alcohol]
+  sweetness:
+    levels: [dry, off-dry, medium-dry, medium-sweet, sweet, luscious]
+    cues:
+      1: [bone dry, bone-dry, dry, bone-dry style, crisp dry, razor dry, tart dry, brut nature, brut, extra brut, extra dry, zero dosage, austere dry, desiccated, sec, secco, trocken, dry style, bone-dry finish]
+      2: [off-dry, off dry, off-dry style, hint of sweetness, touch of sweetness, kiss of sweetness, slightly sweet, lightly sweet, a touch sweet, soft sweetness, demi-sec, semi-dry, halbtrocken, abboccato, semi-sweet, semisweet, medium-dry, medium dry, feinherb]
+      3: [medium-sweet, medium sweet, medium sweetness, semi-sweet style, lieblich, amabile, demi sec]
+      4: [sweet, sweetness, dessert, dessert wine, dessert-style, honeyed sweetness, sweet wine, late harvest, late-harvest, spätlese, auslese, vendange tardive, sauternes, moscato sweet, off-sweet, doux, sweet finish, dolce, passito, vin santo, tokaji, tokay, noble rot, botrytis, botrytised, botrytized, port style, ice wine, icewine, eiswein, sweet style, ripasso sweet, sweet fruit, sweet-fruited, cloying, syrupy sweet, sweet syrup]
+      5: [luscious, lusciously sweet, very sweet, intensely sweet, beerenauslese, trockenbeerenauslese, tba, essence, nectar, nectarous, unctuous sweet, treacle, liquid honey, liquid gold, mega-sweet, super sweet, ultra sweet, lusciously, richly sweet, dense sweetness, syrupy sweetness, super-sweet]
+  finish:
+    levels: [short, medium-, medium, medium+, long]
+    cues:
+      1: [short finish, short, abrupt, clipped, quick finish, fleeting, brief, brief finish, cut short, stops short, disappointing finish, simple finish, ends quickly]
+      2: [shortish, medium-short, a little short, modest finish, modest, brisk finish, quick, fades quickly, fade, fades fast]
+      3: [medium finish, medium-length, medium length, moderate finish, average finish, moderate length, decent finish, decent length, fair finish]
+      4: [lingering, persistent, persistence, extended, good length, long-ish, lengthy, finishing long, finishes long, dwelling, stays, goes on, resonant, echoing, echo, sustained, sustained finish, reverberating, tail]
+      5: [long finish, long, long-lasting, very long finish, endless, never-ending, seemingly endless, interminable, tenacious, extremely long, super long, marathon, forever, goes on forever, lingers, lingering finish, lingers on, lasts, lasts long, lasting finish, lasting, drawn-out]
+  flavour_intensity:
+    levels: [light, medium-, medium, medium+, pronounced]
+    cues:
+      1: [neutral, muted, subdued, restrained, closed, shy, simple, faint, faintly, hint, hints, whisper, whiff, slight, barely, light flavour, light flavor, light flavors, light aromatics, light nose, low intensity, innocuous, bland, plain, hollow, nondescript, dumb, tight, reticent, unexpressive, understated, delicate nose, quiet, quiet nose]
+      2: [subtle, mild, gentle, modest nose, soft nose, discreet, light aromas, moderate aromas, quiet fruit, understated aromas, restrained nose, lightly aromatic, gently aromatic, slightly aromatic, soft aromas, soft aromatics, refined, refined nose, pretty nose, delicate fruit]
+      3: [medium intensity, moderate intensity, moderately aromatic, pleasant, pleasant nose, decent, medium-intensity, moderate, moderately intense, appealing, appealing nose, attractive, attractive nose, agreeable, easy nose, good nose, open, open nose, opens, approachable, clean, clean nose, correct, solid nose, straightforward]
+      4: [expressive, intense, intensity, aromatic, fragrant, vivid, vibrant, vibrant fruit, lifted, lifted nose, concentrated flavor, concentrated flavour, concentrated flavors, perfumed nose, fruit-forward, fruity, forward, fruit forward, ripe, ripe fruit, rich fruit, bold fruit, deep, deeply, deeply flavored, deeply flavoured, expressive nose, big nose, strong nose, loud, abundant, abundance, bursting, bursting with, bursts, flavorful, flavourful, flavor-packed, flavour-packed, pungent nose, seductive, seductive nose, striking, striking nose, bouquet, alluring, enticing, enticing nose, powerful nose, powerful aromas, emphatic, emphatic nose, charismatic, emphatic aromas]
+      5: [pronounced, explosive, powerful aromas dense, immense, huge nose, enormous, massive nose, huge, soaring, soaring aromas, wafts, intoxicating, bombastic, aromatic bomb, overpowering, overwhelming, blast, blasting, jumps from the glass, leaps from the glass, bursts from the glass, thundering, thunderous, concentration, extreme, intensely aromatic, hugely aromatic, outsized, opulent nose, over the top, over-the-top, flamboyant, flamboyant nose, showy, showy nose, extravagant, extravagant nose, exuberant, exuberant nose, riotous, riot of, riot, torrent, torrent of, avalanche, avalanche of, flood of]
+  development:
+    levels: [youthful, developing, fully_developed, tired]
+    cues:
+      1: [youthful, young, primary, fresh fruit, grapey young, fruit-driven, fruit driven, raw, unevolved, nascent, babyish, baby, infant, just bottled, grape-y, purple, purple fruit, jammy young, vibrant young, in its youth, yet to develop, needs time, needs age, needs aging, needs ageing, needs cellaring, cellar, cellaring, ageworthy, age-worthy, built to age, will age, will develop, should develop, will evolve, will mature, tightly wound, backward, closed up, closed in, unready, shut down, needs several years, bottle age needed]
+      2: [developing, evolving, starting to evolve, beginning to develop, beginning to evolve, starting to develop, starting to show age, beginning to show age, hints of development, early development, developing nicely, opening up, becoming complex, gaining complexity, in the early stages, early stages of development, entering its prime, nearing its peak, approaching maturity, nearing maturity]
+      3: [mature, fully mature, fully developed, mellowed, mellow, mellowing, at its peak, peak, at peak, prime, in its prime, drinking at its best, drinking well, ready, ready to drink, evolved, resolved, complex tertiary, secondary notes, tertiary notes, tertiary, aged, maturity, matured, bottle-aged, bottle aged, well-aged, well aged, gracefully aged, aging gracefully, ageing gracefully, mature fruit, well matured, harmonious, harmony, integrated, integrated fruit, integrated oak, resolved tannin, resolved tannins, resolved fruit]
+      4: [tired, past its prime, past peak, past its best, fading, faded, fading fruit, going over, over the hill, oxidized, oxidised, oxidative, dried out, drying out, drying fruit, drying, decline, declining, declined, senescent, senile, falling apart, fraying, frayed, coming apart, losing fruit, losing its fruit, losing its fruit, losing freshness, lost its fruit, lost fruit, lost freshness, lost its freshness, losing its freshness, fruit has faded, fruit has dried, fruit has dried out, fruit is fading, fruit is drying]
+readiness:
+  # regex-style patterns, evaluated deterministically
+  drink_now: ["drink now", "drink it now", "ready now", "ready to drink", "drinking now", "now drink", "drink up", "enjoy now", "enjoy it now", "drink soon", "drink over the next", "should be drunk now", "drink within", "best now", "best drunk now", "best enjoyed now", "best consumed now", "drink this now"]
+  can_age: ["will age", "ageworthy", "age-worthy", "needs time", "cellar", "cellaring", "will improve", "improve with age", "age for", "age until", "should age", "age well", "ages well", "built to age", "needs aging", "needs ageing", "give it time", "give it a few years", "will develop", "will evolve", "will reward", "will benefit", "needs to age", "needs to develop", "too young", "very young", "still young", "still tight", "still closed", "needs a few years", "needs several years", "be patient", "lay down", "lay it down", "can age", "can cellar", "will keep", "long term", "long-term", "aging potential", "ageing potential", "potential for aging", "potential for ageing"]
+  year_range_regex: "(?:drink|best|enjoy|hold|cellar|age|through|until|from|by|between|after|before)\\D{0,20}?((?:19|20)\\d{2})(?:\\s*(?:-|–|—|to|through|until|and)\\s*((?:19|20)\\d{2}|\\d{2}))?"

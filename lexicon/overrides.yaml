@@ -1,0 +1,104 @@
+# Audit-driven corrections (v1 audit of the 20k sample, see git log).
+version: 1
+# Surface forms removed from the main lexicon because they were too generic / mis-scoped.
+drop:
+  - ripe
+  - open
+  - clean
+  - attractive
+  - pleasant
+  - decent
+  - deep
+  - fruity
+  - forward
+  - solid
+  - tight
+  - simple
+  - hint
+  - hints
+  - structure
+  - structured
+  - balanced
+  - warm
+  - warming
+  - spirit
+  - soft
+  - firm
+  - round
+  - smooth
+  - silky
+  - fine
+  - fresh
+  - bright
+  - brightness
+  - lively
+  - good
+  - light
+  - big
+  - rich
+  - moderate
+  - medium
+  - integrated
+  - harmony
+  - harmonious
+  - old
+  - age
+  - ready
+  - peak
+  - prime
+  - fruit forward
+  - ripe fruit
+  - rich fruit
+  - bold fruit
+  - mature fruit
+  - fresh fruit
+  - old wine
+
+# Adjectives that only count when followed (within 2 tokens, same clause) by a head noun.
+# adjective -> level (1..5 on the head noun's scale; interpreted per scale).
+heads:
+  tannin: tannin
+  acidity: acidity
+  acid: acidity
+  finish: finish
+  body: body
+  bodied: body
+  alcohol: alcohol
+  alcohols: alcohol
+bound:
+  soft: 1
+  smooth: 1
+  silky: 1
+  velvety: 1
+  supple: 1
+  round: 1
+  rounded: 1
+  gentle: 1
+  light: 1
+  low: 1
+  mild: 1
+  fine: 2
+  ripe: 2
+  moderate: 3
+  medium: 3
+  firm: 3
+  good: 3
+  balanced: 3
+  integrated: 3
+  fresh: 3
+  bright: 4
+  lively: 4
+  vibrant: 4
+  juicy: 4
+  crisp: 4
+  strong: 4
+  big: 5
+  high: 5
+  bracing: 5
+  sharp: 5
+  tart: 5
+  rich: 4
+  full: 5
+  heavy: 5
+  powerful: 5
+  rugged: 5

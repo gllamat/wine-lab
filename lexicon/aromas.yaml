@@ -1,0 +1,84 @@
+# Aroma/flavour lexicon, organised after the general WSET SAT families.
+# Hand-written for this project (not copied from WSET material).
+# cluster -> descriptor -> list of surface forms (lowercase, singular).
+# Matching is longest-n-gram first on lemmatised text.
+version: 1
+primary:
+  floral:
+    blossom: [blossom, orange blossom, apple blossom, cherry blossom, elderflower, honeysuckle, jasmine, acacia, white flower, white floral]
+    rose: [rose, rose petal, rosewater, rose water]
+    violet: [violet, lavender, iris]
+    floral_generic: [floral, flower, flowery, perfume, perfumed, potpourri, floral note]
+  green_fruit:
+    apple: [apple, green apple, red apple, baked apple, apple skin, apple peel, applesauce]
+    pear: [pear, asian pear, pear skin, poached pear]
+    gooseberry: [gooseberry]
+    grape: [grape, grapey, green grape, white grape]
+    quince: [quince]
+  citrus:
+    lemon: [lemon, lemon zest, lemon peel, lemon curd, lemon juice, meyer lemon, lemony, preserved lemon]
+    lime: [lime, lime zest, lime peel, lime juice, key lime]
+    grapefruit: [grapefruit, pink grapefruit, grapefruit pith, pomelo]
+    orange: [orange, orange peel, orange zest, orange rind, tangerine, mandarin, blood orange, marmalade, orange marmalade, clementine, citrus, citrus zest, citrus peel, citrus fruit, citrusy]
+  stone_fruit:
+    peach: [peach, white peach, yellow peach, peach skin, nectarine, peach pit]
+    apricot: [apricot, dried apricot]
+    plum_white: [greengage, yellow plum]
+  tropical_fruit:
+    banana: [banana]
+    lychee: [lychee]
+    mango: [mango]
+    melon: [melon, honeydew, cantaloupe, rock melon, watermelon]
+    passion_fruit: [passion fruit, passionfruit, guava]
+    pineapple: [pineapple, tropical fruit, tropical, papaya, kiwi, star fruit]
+  red_fruit:
+    redcurrant: [redcurrant, red currant, cranberry, pomegranate]
+    strawberry: [strawberry, wild strawberry, strawberry jam, strawberry preserve]
+    raspberry: [raspberry, red raspberry, raspberry jam]
+    red_cherry: [red cherry, cherry, sour cherry, tart cherry, maraschino cherry, cherry cola, cherry pie, cherry fruit, bing cherry, cherry skin]
+    red_plum: [red plum, plum, plummy, damson]
+    red_fruit_generic: [red fruit, red berry, red-berry, berry, wild berry, red berries, berry fruit, berry fruit]
+  black_fruit:
+    blackcurrant: [blackcurrant, black currant, cassis, crème de cassis, creme de cassis, currant]
+    blackberry: [blackberry, bramble, blackberry jam, boysenberry, marionberry, dark berry]
+    blueberry: [blueberry, blueberry jam, huckleberry]
+    black_cherry: [black cherry, black-cherry]
+    black_plum: [black plum, blackplum, dark plum, prune, sloe]
+    black_fruit_generic: [black fruit, dark fruit, black berry, black berries, mixed berry]
+  herbaceous:
+    green_bell_pepper: [green pepper, bell pepper, green bell pepper, capsicum, pyrazine]
+    grass: [grass, cut grass, grassy, hay, freshly cut grass, green grass]
+    tomato_leaf: [tomato leaf, tomato vine, tomato stem, tomato]
+    asparagus: [asparagus, green bean, snap pea, pea pod, artichoke]
+    blackcurrant_leaf: [blackcurrant leaf, cassis leaf, nettle, boxwood, cat pee]
+    green_generic: [green, vegetal, vegetable, herbaceous, leafy, stalky, stemmy]
+  herbal:
+    eucalyptus: [eucalyptus, mint, minty, menthol, menthol note, spearmint]
+    herb: [herb, herbal, herbs, dried herb, garrigue, thyme, rosemary, sage, basil, oregano, dill, fennel, tarragon, bay leaf, bay, tea, tea leaf, tobacco leaf]
+    fennel_anise: [anise, aniseed, licorice, liquorice, black licorice, star anise]
+  other_primary:
+    mineral_wet: [minerality, mineral, mineral note, wet stone, wet rock, flint, flinty, chalk, chalky, slate, saline, salinity, salt, salty, graphite, crushed rock, crushed stone, stone, stony, steel, steely, gravel, limestone, iodine, seashell, oyster shell, oyster, sea spray, brine]
+    smoke_ash: [smoke, smoky, ash, ashy, charcoal, campfire, burnt, burned, char, charred, tar, tarry, soot, sooty, burnt match, struck match, struck flint, bacon, bacon fat, grilled meat, barbecue]
+    earth: [earth, earthy, soil, dirt, forest floor, mushroom, truffle, wet leaf, wet earth, loam, damp earth, undergrowth, compost, peat]
+    spice_pungent: [black pepper, white pepper, pepper, peppery, spice, spicy, baking spice, clove, cinnamon, nutmeg, ginger, allspice, cardamom, cumin, coriander, juniper, five spice, pepper spice, mulling spice, exotic spice, sweet spice, vanilla spice]
+    honey: [honey, honeyed, beeswax, wax, waxy]
+    candied: [candy, candied, candied fruit, cotton candy, bubblegum, bubble gum, jelly bean, gummy, lollipop, jammy, jam, fruit jam, preserve, compote, fruitcake, fruit cake, marmalade]
+    sweet_confection: [caramel, butterscotch, toffee, toffee note, syrup, maple, maple syrup, molasses, fudge, brown sugar, sugar]
+    coffee_cocoa: [coffee, espresso, mocha, cocoa, cacao, chocolate, dark chocolate, milk chocolate, bittersweet chocolate, cocoa powder, cola]
+    leather_animal: [leather, saddle, animal, gamey, game, meaty, meat, beef, beef jerky, jerky, cured meat, salami, brett, barnyard, sweaty, horse, leathery, venison, smoked meat, blood, bloody, iron, iron note, metallic]
+    nut_almond: [almond, marzipan, hazelnut, walnut, nutty, nut, nuts, praline, cashew, pecan, peanut, pistachio, chestnut]
+    petrol_kerosene: [petrol, kerosene, diesel, gasoline, rubber, plastic, petroleum]
+secondary:
+  lees_malolactic:
+    butter: [butter, buttery, butter note, cream, creamy, creaminess, creamed, lees, lees note, leesy, yeast, yeasty, bread, bread dough, dough, doughy, brioche, biscuit, biscuity, cheese, yogurt, sourdough, croissant, pastry, toast brioche, cookie, shortbread, graham cracker, graham, cracker, whipped cream, custard, lemon curd cream]
+oak:
+  oak:
+    vanilla: [vanilla, vanillin, vanilla bean, vanilla pod, french vanilla]
+    toast: [toast, toasty, toasted, toasted oak, toasted nut, toasted bread, toasted almond, toasted coconut, toast note, toastiness, toasty oak]
+    oak_generic: [oak, oaky, oak note, new oak, french oak, american oak, barrel, barrel note, wood, woody, woodsy, cedar, cedary, cedar box, cigar box, cigar, sawdust, pencil shavings, pencil lead, pencil, lead pencil, sandalwood, resin, resinous, pine, pine needle, coconut, dill oak, sweet oak, oak spice, oak influence, oak treatment, oak aging, oak ageing, oak flavor, oak flavour]
+tertiary:
+  dried_cooked_fruit:
+    dried_fruit: [dried fruit, raisin, raisined, sultana, fig, dried fig, date, dried cherry, dried cranberry, dried strawberry, dried plum, stewed fruit, stewed, cooked fruit, baked fruit, baked, roasted, roasted fruit, overripe, over-ripe, overripe fruit, fruit compote, candied orange, dried peach, dried apple, dried apricot, kirsch, brandy, brandied cherry, port, portlike, port-like, cooked]
+  oxidative_aged:
+    oxidised: [oxidised, oxidized, oxidative, sherry, sherried, madeira, nutty oxidative, walnut oxidised, tawny, rancio, bruised, bruised apple, aldehydic, flor]
+    aged: [aged, maturity, mature, development, developing, evolved, tertiary, tertiary note, secondary, bottle age, bottle aged, age, aging, ageing, petrol aged, autumn leaf, autumnal, forest, potpourri aged, dried flower, dried flowers, dried rose, dried leaf, dried leaves, tobacco, pipe tobacco, cigar aged, old leather, old, old wine, mellow, secondary note, truffle aged]
