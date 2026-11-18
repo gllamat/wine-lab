@@ -1,4 +1,4 @@
-"""Compare Jev (SAT prompt) with the deterministic matcher on the same reviews. No review text used."""
+"""Compare Jev (L4-card prompt, every descriptor) with the deterministic matcher on the same reviews. No review text used."""
 import json, sys
 from pathlib import Path
 import numpy as np, pandas as pd
@@ -7,63 +7,63 @@ from sklearn.metrics import cohen_kappa_score
 sys.path.insert(0, str(Path(__file__).parent))
 from wsetkit import ROOT, Lexicon
 
-J = [json.loads(l) for l in open(ROOT / "outputs/jev_pilot.jsonl")]
-vec = pd.read_parquet(ROOT / "outputs/wset_vectors_20000.parquet").set_index("id")
+J = []
+for f in ("outputs/jev_pilot.jsonl", "outputs/jev_1000.jsonl"):
+    J += [json.loads(l) for l in open(ROOT / f)]
+vec = pd.read_parquet(ROOT / "outputs/wset_vectors_all.parquet").set_index("id")
 nm = pd.read_parquet(ROOT / "outputs/reviews_norm.parquet").set_index("id")
 ids = [j["id"] for j in J]; V = vec.loc[ids]; N = nm.loc[ids]
 lex = Lexicon()
-A = lambda k: np.array([j["answers"][k]["noul"] for j in J])
-S = lambda k: np.array([j["answers"][k]["score"] for j in J])
-C = lambda k: np.array([j["answers"][k]["choice"] for j in J])
-CF = lambda k: np.array([j["answers"][k]["confidence"] for j in J])
-print(f"reviews {len(J)} | model {set(j['model'] for j in J)}\n")
+get = lambda k, f: np.array([j["answers"][k][f] for j in J])
+P = lambda k: get(k, "noul")
+print(f"reviews {len(J)} | model {set(j['model'] for j in J)} | questions per review {len(J[0]['answers'])}\n")
 
 
-def agree_row(name, p, m):
-    jv = p >= 0.5; mv = m == 1
-    tp = int((jv & mv).sum())
-    return dict(field=name, jev=jv.mean(), matcher=mv.mean(), agree=(jv == mv).mean(),
-                kappa=cohen_kappa_score(jv, mv) if jv.any() and mv.any() else np.nan,
-                matcher_recall=tp / max(1, jv.sum()), matcher_precision=tp / max(1, mv.sum()), jev_uncertain=((p > .2) & (p < .8)).mean())
+def kap(jv, mv):
+    return cohen_kappa_score(jv, mv) if jv.any() and mv.any() and not (jv.all() and mv.all()) else np.nan
 
 
+# ---- descriptor level (Jev nose OR palate >=0.5 vs deterministic any scope)
+rows = []
+for cl, d in lex.descriptors:
+    if d.endswith("_generic"): continue
+    pj = np.maximum(P(f"nose__{cl}__{d}"), P(f"palate__{cl}__{d}")) >= 0.5; mv = V[f"a_{cl}__{d}"].values == 1
+    rows.append(dict(cluster=cl, tier=lex.tier[cl], descriptor=d, jev=pj.mean(), det=mv.mean(), both=int((pj & mv).sum()), jev_only=int((pj & ~mv).sum()), det_only=int((~pj & mv).sum()), kappa=kap(pj, mv)))
+dd = pd.DataFrame(rows)
+print("DESCRIPTOR LEVEL (99 SAT descriptors): total mentions found by both / Jev only / deterministic only")
+print(dd.groupby("tier")[["both", "jev_only", "det_only"]].sum().to_string()); print(f"overall: both {dd.both.sum()} | Jev only {dd.jev_only.sum()} | deterministic only {dd.det_only.sum()} | median kappa {dd.kappa.median():.2f}")
+print("most Jev-only descriptors:", dd.sort_values("jev_only", ascending=False).head(8)[["cluster", "descriptor", "jev_only", "both"]].to_string(index=False, header=False).replace("\n", " | "))
+print("most deterministic-only:", dd.sort_values("det_only", ascending=False).head(8)[["cluster", "descriptor", "det_only", "both"]].to_string(index=False, header=False).replace("\n", " | "))
+# ---- cluster level
 rows = []
 for cl, tier in lex.tier.items():
-    pn, pp = A(f"nose__{cl}"), A(f"palate__{cl}"); pa = np.maximum(pn, pp)
-    rows.append(dict(agree_row(f"{cl}", pa, V["c_" + cl].values), tier=tier))
-r = pd.DataFrame(rows).round(2)
-print("AROMA/FLAVOUR CLUSTERS (any scope): Jev max(nose,palate)>=0.5 vs matcher\n", r.to_string(index=False))
-print(f"mean kappa {r.kappa.mean():.2f} | agreement {r.agree.mean():.2f} | matcher recall {r.matcher_recall.mean():.2f} | precision {r.matcher_precision.mean():.2f}")
-print("by tier:\n", r.groupby("tier")[["jev", "matcher", "agree", "kappa"]].mean().round(2).to_string())
-sc = []
-for cl in lex.tier:
-    sc.append(dict(agree_row(f"{cl} [nose]", A(f"nose__{cl}"), V["cn_" + cl].values)))
-    sc.append(dict(agree_row(f"{cl} [palate]", A(f"palate__{cl}"), V["cp_" + cl].values)))
-sc = pd.DataFrame(sc)
-print(f"\nSCOPE: nose-only kappa {sc[sc.field.str.contains('nose')].kappa.mean():.2f} | palate-only kappa {sc[sc.field.str.contains('palate')].kappa.mean():.2f}  (matcher scope = nearest nose/palate cue word in the sentence)")
+    ds = [d for c, d in lex.descriptors if c == cl and not d.endswith("_generic")]
+    pj = np.max([np.maximum(P(f"nose__{cl}__{d}"), P(f"palate__{cl}__{d}")) for d in ds], axis=0) >= 0.5; mv = V["c_" + cl].values == 1
+    rows.append(dict(cluster=cl, tier=tier, jev=pj.mean(), det=mv.mean(), agree=(pj == mv).mean(), kappa=kap(pj, mv)))
+cc = pd.DataFrame(rows); print("\nCLUSTER LEVEL\n", cc.round(2).to_string(index=False)); print(f"mean kappa {cc.kappa.mean():.2f} | agreement {cc.agree.mean():.2f}")
+# ---- scales
 rows = []
-for s in lex.scales:
-    if f"level__{s}" not in J[0]["answers"] or "s_" + s not in V: continue
-    st = A(f"stated__{s}"); sco = S(f"level__{s}") + 1; m = V["s_" + s].values
-    mask = np.ones(len(J), bool)
-    if s == "mousse": mask = (N.colour == "sparkling").values
-    mf = ~np.isnan(m); jv = st >= 0.5; both = mf & jv & mask
-    row = dict(scale=s, levels=len(lex.scales[s]), jev_stated=jv[mask].mean(), matcher_filled=mf[mask].mean(), both=int(both.sum()), jev_only=int((jv & ~mf & mask).sum()), matcher_only=int((~jv & mf & mask).sum()))
+for s in ["sweetness", "acidity", "tannin", "alcohol", "body", "flavour_intensity", "finish", "nose_intensity"]:
+    st = P(f"stated__{s}"); sco = get(f"level__{s}", "score") + 1; m = V["s_" + s].values
+    mf = ~np.isnan(m); jv = st >= .5; both = mf & jv
+    row = dict(scale=s, levels=len(lex.scales[s]), jev_stated=jv.mean(), det_stated=mf.mean(), both=int(both.sum()), jev_only=int((jv & ~mf).sum()), det_only=int((~jv & mf).sum()))
     if both.sum() >= 8:
-        row["spearman"] = spearmanr(sco[both], m[both]).correlation
-        row["exact"] = float((np.rint(sco[both]) == np.rint(m[both])).mean()); row["within1"] = float((np.abs(sco[both] - m[both]) <= 1).mean())
+        row.update(spearman=spearmanr(sco[both], m[both]).correlation, exact=float((np.rint(sco[both]) == np.rint(m[both])).mean()), within1=float((np.abs(sco[both] - m[both]) <= 1).mean()))
     rows.append(row)
-print("\nSTRUCTURE SCALES (Jev stated>=0.5; Jev score+1 vs matcher level where both state it; mousse only on sparkling)\n", pd.DataFrame(rows).round(2).to_string(index=False))
-print("\nAPPEARANCE / CONDITION")
-jc = C("app__colour"); mc = V["cat_colour"].values
-print(f"  colour: Jev states {np.mean(jc != 'not_stated'):.3f} | matcher {pd.notna(mc).mean():.3f} | both {int(((jc != 'not_stated') & pd.notna(mc)).sum())} -> exact agreement {np.mean([a == b for a, b in zip(jc[(jc != 'not_stated') & pd.notna(mc)], mc[(jc != 'not_stated') & pd.notna(mc)])]) if ((jc != 'not_stated') & pd.notna(mc)).any() else float('nan'):.2f}")
-for f, k in (("clarity", "app__clarity"), ("appearance_intensity", "app__intensity")):
-    jj = C(k); mm = V["cat_" + f].values; b = (jj != "not_stated") & pd.notna(mm)
-    print(f"  {f}: Jev states {np.mean(jj != 'not_stated'):.3f} | matcher {pd.notna(mm).mean():.3f} | both {int(b.sum())} -> agreement {np.mean([x == y for x, y in zip(jj[b], mm[b])]) if b.any() else float('nan'):.2f}")
-pc = A("nose__condition"); mcnd = V["cat_condition"].notna().values
-print(f"  condition(unclean): Jev {np.mean(pc >= .5):.3f} | matcher {mcnd.mean():.3f} | agree {np.mean((pc >= .5) == mcnd):.2f}")
-jr = C("readiness"); mr = V["readiness"].fillna("not_stated").values
-print("\nREADINESS: Jev vs matcher outcome (rows=Jev)\n", pd.crosstab(pd.Series(jr, name="jev"), pd.Series(mr, name="matcher")).to_string())
-q = S("quality") ; pts = N.points.values
-print(f"\nQUALITY: Jev quality score vs critic points: Spearman {spearmanr(q, pts).correlation:.2f} | mean Jev score by points band:", pd.Series(q).groupby(V['quality_band'].values).mean().round(2).to_dict())
-r.to_csv(ROOT / "outputs/jev_vs_matcher_clusters.csv", index=False)
+print("\nSCALES\n", pd.DataFrame(rows).round(2).to_string(index=False))
+# ---- L4-only fields
+print("\nTANNIN NATURE / TEXTURE / PETILLANCE / APPEARANCE")
+for name, vals, col in (("tannin nature", ["ripe", "soft", "smooth", "unripe", "green", "coarse", "stalky", "chalky", "fine-grained"], "cat_tannin_nature"), ("texture", ["oily", "creamy", "austere", "luscious"], "cat_texture")):
+    pre = "tnature__" if "tannin" in name else "texture__"
+    jv = np.array([[P(pre + v)[i] >= .5 for v in vals] for i in range(len(J))]); mv = np.array([[v in str(x).split("|") for v in vals] for x in V[col].values])
+    print(f"  {name}: Jev states in {jv.any(axis=1).mean():.3f} of reviews | deterministic {mv.any(axis=1).mean():.3f} | per-value both {int((jv & mv).sum())}, Jev only {int((jv & ~mv).sum())}, det only {int((~jv & mv).sum())}")
+jp, dp = P("palate__petillance") >= .5, V["cat_petillance"].notna().values
+print(f"  petillance: Jev {jp.mean():.3f} | det {dp.mean():.3f} | both {int((jp & dp).sum())}")
+jc = np.array([j["answers"]["app__colour"]["choice"] for j in J]); mc = V["cat_colour"].values
+b = (jc != "not_stated") & pd.notna(mc)
+print(f"  colour: Jev states {np.mean(jc != 'not_stated'):.3f} | det {pd.notna(mc).mean():.3f} | both {int(b.sum())} -> agree {np.mean([x in str(y).split('|') for x, y in zip(jc[b], mc[b])]) if b.any() else float('nan'):.2f}")
+pc = P("nose__condition") >= .5; print(f"  condition(unclean): Jev {pc.mean():.3f} | det {V['cat_condition'].notna().mean():.3f}")
+ja = np.array([j["answers"]["ageing"]["choice"] for j in J]); da = V["bottle_ageing"].fillna("not_stated").values
+print("\nBOTTLE AGEING (rows = Jev)\n", pd.crosstab(pd.Series(ja, name="jev"), pd.Series(da, name="det")).to_string())
+q = get("quality", "score"); print(f"\nQUALITY: Jev score vs critic points Spearman {spearmanr(q, N.points.values).correlation:.2f}")
+dd.to_csv(ROOT / "outputs/jev_vs_det_descriptors.csv", index=False)

@@ -55,6 +55,10 @@ cases = {
     "mousse (sparkling)": d.s_mousse.notna(),
     "ambiguous word, colour-resolved": ev.map(lambda h: any(x[0] == "aroma" and x[7] > 1 for x in h)),
     "readiness: too young (potential)": d.readiness == "not_ready_potential",
+    "tannin nature stated": d.cat_tannin_nature.notna(),
+    "texture / petillance stated": d.cat_texture.notna() | d.cat_petillance.notna(),
+    "bottle ageing: suitable": d.bottle_ageing == "suitable",
+    "bottle ageing: not suitable (implied)": d.bottle_ageing == "not_suitable",
 }
 rng = np.random.RandomState(11)
 chosen = {}

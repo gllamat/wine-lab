@@ -2,7 +2,6 @@
 version: 1
 # Surface forms removed from the main lexicon because they were too generic / mis-scoped.
 drop:
-  - ripe
   - open
   - clean
   - attractive
@@ -13,7 +12,6 @@ drop:
   - forward
   - solid
   - tight
-  - simple
   - hint
   - hints
   - structure
@@ -47,7 +45,6 @@ drop:
   - peak
   - prime
   - fruit forward
-  - ripe fruit
   - rich fruit
   - bold fruit
   - mature fruit

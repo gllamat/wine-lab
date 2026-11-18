@@ -4,7 +4,7 @@ import sys, json, time
 from pathlib import Path
 import numpy as np, pandas as pd
 sys.path.insert(0, str(Path(__file__).parent))
-from wsetkit import Lexicon, ROOT, review_id, quality_band, readiness_outcome
+from wsetkit import Lexicon, ROOT, review_id, quality_band, readiness_outcome, ageing_outcome
 
 N = int(sys.argv[1]) if len(sys.argv) > 1 else 1000
 raw = pd.read_parquet(ROOT.parent / "datasets/wine_reviews_deduped.parquet")
@@ -46,18 +46,18 @@ for i in ids:
     nose, pal, un = tiers(pos, lambda s: s in ("nose", "both")), tiers(pos, lambda s: s in ("palate", "both")), tiers(pos, lambda s: s == "unspecified")
     rows.append({
         "id": i, "variety": m.variety_norm, "country": m.country, "region": m.region_1, "vintage": m.vintage, "points": m.points, "wine colour": m.colour,
-        "APP clarity": cat("clarity"), "APP intensity": cat("appearance_intensity"), "APP colour": cat("colour"),
+        "APP clarity": cat("clarity"), "APP intensity": cat("appearance_intensity"), "APP colour": cat("colour"), "APP other observations": ", ".join(x for x in (cat("appearance_other"), "pétillance" if cat("petillance") else "") if x),
         "NOSE condition": "unclean" if cat("condition") else "", "NOSE intensity": level(pos, "nose_intensity"),
         "NOSE primary": nose["primary"], "NOSE secondary": nose["secondary"], "NOSE tertiary": nose["tertiary"],
-        "NOSE development": level(pos, "development"),
-        "PALATE sweetness": level(pos, "sweetness"), "PALATE acidity": level(pos, "acidity"), "PALATE tannin": level(pos, "tannin"),
-        "PALATE alcohol": level(pos, "alcohol"), "PALATE body": level(pos, "body"), "PALATE mousse": level(pos, "mousse"),
+        "PALATE sweetness": level(pos, "sweetness"), "PALATE acidity": level(pos, "acidity"), "PALATE tannin level": level(pos, "tannin"), "PALATE tannin nature": cat("tannin_nature").replace("|", ", "),
+        "PALATE alcohol": level(pos, "alcohol"), "PALATE body": level(pos, "body"),
         "PALATE flavour intensity": level(pos, "flavour_intensity"),
         "PALATE primary": pal["primary"], "PALATE secondary": pal["secondary"], "PALATE tertiary": pal["tertiary"],
+        "PALATE other: texture": cat("texture").replace("|", ", "), "PALATE other: petillance": "yes" if cat("petillance") else "",
         "PALATE finish": level(pos, "finish"),
         "not attributed (nose/palate unclear) primary": un["primary"], "not attributed secondary": un["secondary"], "not attributed tertiary": un["tertiary"],
         "CONCL quality (proxy from points)": (quality_band(m.points) or "").replace("_", " "),
-        "CONCL readiness": {"drink_now_potential": "can drink now, has potential", "drink_now": "drink now (potential not stated)", "not_ready_potential": "too young, has potential", "too_old": "too old", None: ""}[rd],
+        "CONCL bottle ageing": {"suitable": "suitable for bottle ageing", "not_suitable": "not suitable (implied by 'drink now')", None: ""}[ageing_outcome(fl("drink_now"), fl("can_age"))],
         "evidence (matched words)": "; ".join(sorted({h["surface"] for h in pos})), "negated words (ignored)": "; ".join(sorted({h["surface"] for h in hits if h["neg"]})),
         "review text": text})
 secs = time.perf_counter() - t0
@@ -65,7 +65,7 @@ df = pd.DataFrame(rows)
 df.to_csv(ROOT / "outputs/deterministic_1000.csv", index=False)
 how = pd.DataFrame({"How to read this sheet": [
     "Deterministic keyword mapping (no AI model, no API cost) of reviews NOT used in the Jev pilots.",
-    "Taxonomy: WSET L3 Systematic Approach to Tasting Wine (3W v2.0, 2016): appearance, nose, palate, conclusions.",
+    "Layout and taxonomy follow the WSET Level 4 Systematic Approach to Tasting Wine card (Issue 1.2, 2023): appearance, nose, palate, conclusions.",
     "Blank cell = the review does not state it (not 'medium'). Level names follow the SAT scales.",
     "NOSE/PALATE aroma columns list SAT clusters (primary/secondary/tertiary) with matched descriptors; words not tied to nose or palate are in the 'not attributed' columns.",
     "Quality is a proxy from the critic's points, not a tasting judgement. Readiness uses stated cues only.",

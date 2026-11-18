@@ -1,4 +1,5 @@
-# Structure scales, categorical fields and readiness cues, aligned to WSET L3 SAT (3W v2.0, 2016).
+# Structure scales, categorical fields and readiness cues, aligned to the WSET Level 4 SAT Issue 1.2 (2023) card where it differs from L3 (2016).
+# L3-only fields kept in the data but not shown on the card: development, mousse, 4-way readiness.
 # Level numbers are positions on the SAT scale (1 = first level named). Cue strengths are PROJECT HEURISTICS, not part of the SAT.
 version: 1
 scales:
@@ -308,9 +309,6 @@ scales:
       - light alcohol
       - low in alcohol
       - lower alcohol
-      - spritz
-      - spritzy
-      - frizzante
       2:
       - moderate alcohol
       - balanced alcohol
@@ -557,7 +555,6 @@ scales:
       - restrained
       - closed
       - shy
-      - simple
       - faint
       - faintly
       - hint
@@ -637,8 +634,6 @@ scales:
       - fruity
       - forward
       - fruit forward
-      - ripe
-      - ripe fruit
       - rich fruit
       - bold fruit
       - deep
@@ -1226,16 +1221,16 @@ categorical:
     colour: pink
 - form: salmon
   set:
-    colour: salmon
+    colour: pink-orange
 - form: salmon pink
   set:
-    colour: salmon
+    colour: pink-orange
 - form: salmon colour
   set:
-    colour: salmon
+    colour: pink-orange
 - form: salmon color
   set:
-    colour: salmon
+    colour: pink-orange
 - form: orange colour
   set:
     colour: orange
@@ -1247,13 +1242,13 @@ categorical:
     colour: orange
 - form: copper
   set:
-    colour: orange
+    colour: pink-orange
 - form: coppery
   set:
-    colour: orange
+    colour: pink-orange
 - form: onion skin
   set:
-    colour: orange
+    colour: pink-orange
 - form: purple
   set:
     colour: purple
@@ -1348,7 +1343,7 @@ categorical:
     appearance_intensity: pale
 - form: pale salmon
   set:
-    colour: salmon
+    colour: pink-orange
     appearance_intensity: pale
 - form: deep amber
   set:
@@ -1559,3 +1554,294 @@ categorical:
 - form: wet dog
   set:
     condition: unclean
+- form: pink-orange
+  set:
+    colour: pink-orange
+- form: pink orange
+  set:
+    colour: pink-orange
+- form: ripe tannin
+  set:
+    tannin_nature: ripe
+- form: ripe tannic structure
+  set:
+    tannin_nature: ripe
+- form: soft tannin
+  set:
+    tannin_nature: soft
+- form: soft tannic structure
+  set:
+    tannin_nature: soft
+- form: supple tannin
+  set:
+    tannin_nature: soft
+- form: supple tannic structure
+  set:
+    tannin_nature: soft
+- form: gentle tannin
+  set:
+    tannin_nature: soft
+- form: gentle tannic structure
+  set:
+    tannin_nature: soft
+- form: plush tannin
+  set:
+    tannin_nature: soft
+- form: plush tannic structure
+  set:
+    tannin_nature: soft
+- form: smooth tannin
+  set:
+    tannin_nature: smooth
+- form: smooth tannic structure
+  set:
+    tannin_nature: smooth
+- form: silky tannin
+  set:
+    tannin_nature: smooth
+- form: silky tannic structure
+  set:
+    tannin_nature: smooth
+- form: velvety tannin
+  set:
+    tannin_nature: smooth
+- form: velvety tannic structure
+  set:
+    tannin_nature: smooth
+- form: polished tannin
+  set:
+    tannin_nature: smooth
+- form: polished tannic structure
+  set:
+    tannin_nature: smooth
+- form: round tannin
+  set:
+    tannin_nature: smooth
+- form: round tannic structure
+  set:
+    tannin_nature: smooth
+- form: rounded tannin
+  set:
+    tannin_nature: smooth
+- form: rounded tannic structure
+  set:
+    tannin_nature: smooth
+- form: unripe tannin
+  set:
+    tannin_nature: unripe
+- form: unripe tannic structure
+  set:
+    tannin_nature: unripe
+- form: underripe tannin
+  set:
+    tannin_nature: unripe
+- form: underripe tannic structure
+  set:
+    tannin_nature: unripe
+- form: green tannin
+  set:
+    tannin_nature: green
+- form: green tannic structure
+  set:
+    tannin_nature: green
+- form: coarse tannin
+  set:
+    tannin_nature: coarse
+- form: coarse tannic structure
+  set:
+    tannin_nature: coarse
+- form: rough tannin
+  set:
+    tannin_nature: coarse
+- form: rough tannic structure
+  set:
+    tannin_nature: coarse
+- form: rustic tannin
+  set:
+    tannin_nature: coarse
+- form: rustic tannic structure
+  set:
+    tannin_nature: coarse
+- form: harsh tannin
+  set:
+    tannin_nature: coarse
+- form: harsh tannic structure
+  set:
+    tannin_nature: coarse
+- form: gritty tannin
+  set:
+    tannin_nature: coarse
+- form: gritty tannic structure
+  set:
+    tannin_nature: coarse
+- form: stalky tannin
+  set:
+    tannin_nature: stalky
+- form: stalky tannic structure
+  set:
+    tannin_nature: stalky
+- form: stemmy tannin
+  set:
+    tannin_nature: stalky
+- form: stemmy tannic structure
+  set:
+    tannin_nature: stalky
+- form: chalky tannin
+  set:
+    tannin_nature: chalky
+- form: chalky tannic structure
+  set:
+    tannin_nature: chalky
+- form: dusty tannin
+  set:
+    tannin_nature: chalky
+- form: dusty tannic structure
+  set:
+    tannin_nature: chalky
+- form: fine grained tannin
+  set:
+    tannin_nature: fine-grained
+- form: fine grained tannic structure
+  set:
+    tannin_nature: fine-grained
+- form: fine grain tannin
+  set:
+    tannin_nature: fine-grained
+- form: fine grain tannic structure
+  set:
+    tannin_nature: fine-grained
+- form: fine-grained tannin
+  set:
+    tannin_nature: fine-grained
+- form: fine-grained tannic structure
+  set:
+    tannin_nature: fine-grained
+- form: finely grained tannin
+  set:
+    tannin_nature: fine-grained
+- form: finely grained tannic structure
+  set:
+    tannin_nature: fine-grained
+- form: grainy tannin
+  set:
+    tannin_nature: fine-grained
+- form: grainy tannic structure
+  set:
+    tannin_nature: fine-grained
+- form: oily
+  set:
+    texture: oily
+- form: oily texture
+  set:
+    texture: oily
+- form: oiliness
+  set:
+    texture: oily
+- form: unctuous
+  set:
+    texture: oily
+- form: unctuous texture
+  set:
+    texture: oily
+- form: creamy texture
+  set:
+    texture: creamy
+- form: creamy mouthfeel
+  set:
+    texture: creamy
+- form: creamy palate
+  set:
+    texture: creamy
+- form: creamy mouth
+  set:
+    texture: creamy
+- form: creamy body
+  set:
+    texture: creamy
+- form: creamy finish
+  set:
+    texture: creamy
+- form: austere
+  set:
+    texture: austere
+- form: austerity
+  set:
+    texture: austere
+- form: austere texture
+  set:
+    texture: austere
+- form: luscious texture
+  set:
+    texture: luscious
+- form: luscious mouthfeel
+  set:
+    texture: luscious
+- form: luscious palate
+  set:
+    texture: luscious
+- form: spritz
+  set:
+    petillance: present
+- form: spritzy
+  set:
+    petillance: present
+- form: petillant
+  set:
+    petillance: present
+- form: frizzante
+  set:
+    petillance: present
+- form: slight fizz
+  set:
+    petillance: present
+- form: prickle
+  set:
+    petillance: present
+- form: prickly
+  set:
+    petillance: present
+- form: lightly sparkling
+  set:
+    petillance: present
+- form: semi sparkling
+  set:
+    petillance: present
+- form: tingle
+  set:
+    petillance: present
+- form: tingly
+  set:
+    petillance: present
+- form: legs
+  set:
+    appearance_other: legs/tears
+- form: tears
+  set:
+    appearance_other: legs/tears
+- form: legs and tears
+  set:
+    appearance_other: legs/tears
+- form: deposit
+  set:
+    appearance_other: deposit
+- form: sediment
+  set:
+    appearance_other: deposit
+- form: sedimentary
+  set:
+    appearance_other: deposit
+- form: dregs
+  set:
+    appearance_other: deposit
+- form: bubble
+  set:
+    appearance_other: bubbles
+- form: bead
+  set:
+    appearance_other: bubbles
+- form: perlage
+  set:
+    appearance_other: bubbles
+- form: fizz
+  set:
+    appearance_other: bubbles

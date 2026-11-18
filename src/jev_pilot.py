@@ -1,4 +1,4 @@
-"""Pilot: map reviews to the WSET L3 SAT (3W v2.0, 2016) with TypeSafe Jev (System One); compare with the deterministic matcher.
+"""Pilot: map reviews to the WSET L4 SAT card (Issue 1.2, 2023) with TypeSafe Jev (System One); compare with the deterministic matcher.
 Key: env TYPESAFE_API_KEY or ./.env (never stored/printed). Usage: jev_pilot.py <N> [--model jev-latest]
 One request per review, all SAT fields as typed questions (fan-out). Output: outputs/jev_pilot.jsonl (answers + usage; no review text)."""
 import os, sys, json, time
@@ -11,31 +11,42 @@ import key_status
 
 URL = "https://api.typesafe.ai/v1/systemone"
 PRICE_PER_TOK = 0.042 / 1e6
-TIER_NOTE = {"primary": "primary (grape/fermentation)", "secondary": "secondary (winemaking: yeast, MLF, oak)", "tertiary": "tertiary (maturation)"}
-# ---- SAT L3 scales (level names as in the SAT grid; descriptors are project glosses of the SAT level names)
-SCALES = {
+# ---- Questions follow the WSET Level 4 SAT card (Issue 1.2, Aug 2023): every card line, every Wine-Lexicon descriptor.
+CLUSTER_HEAD = {"floral": "Floral", "green_fruit": "Green fruit", "citrus_fruit": "Citrus fruit", "stone_fruit": "Stone fruit", "tropical_fruit": "Tropical fruit",
+                "red_fruit": "Red fruit", "black_fruit": "Black fruit", "herbaceous": "Herbaceous", "herbal": "Herbal", "spice": "Spice", "fruit_ripeness": "Fruit ripeness",
+                "other": "Other", "yeast": "Yeast (lees, autolysis, flor)", "malolactic": "Malolactic conversion", "oak": "Oak",
+                "tertiary_red": "Tertiary (maturation) aromas of RED wine", "tertiary_white": "Tertiary (maturation) aromas of WHITE wine",
+                "deliberately_oxidised": "Tertiary aromas of DELIBERATELY OXIDISED wines"}
+DESC_NICE = {"biscuit_graham_cracker": "biscuit / graham cracker", "green_bell_pepper": "green bell pepper (capsicum)", "black_white_pepper": "black or white pepper",
+             "dried_herbs": "dried herbs (e.g. thyme, oregano)", "orange_marmalade": "orange marmalade", "simple": "simple (a plain, uncomplicated character)",
+             "wet_stones": "wet stones", "unripe_fruit": "unripe fruit", "ripe_fruit": "ripe fruit", "dried_fruit": "dried fruit", "cooked_fruit": "cooked fruit",
+             "cloves": "cloves", "charred_wood": "charred wood", "bread_dough": "bread dough", "wet_leaves": "wet leaves", "forest_floor": "forest floor",
+             "passion_fruit": "passion fruit", "red_cherry": "red cherry", "red_plum": "red plum", "black_cherry": "black cherry", "black_plum": "black plum"}
+EXTRA_NICE = {("tertiary_red", "dried_fruit"): "dried fruit (e.g. prune, raisin, fig)", ("tertiary_red", "cooked_fruit"): "cooked fruit (e.g. cooked plum, cooked cherry)",
+              ("tertiary_white", "dried_fruit"): "dried fruit (e.g. dried apricot, raisin)"}
+SCALES = {  # card lines with ordered levels (SAT level names)
     "sweetness": ("How sweet is the wine?", ["Dry", "Off-dry", "Medium-dry", "Medium-sweet", "Sweet", "Luscious"]),
     "acidity": ("How high is the acidity?", ["Low", "Medium(-)", "Medium", "Medium(+)", "High"]),
-    "tannin": ("How high are the tannins?", ["Low", "Medium(-)", "Medium", "Medium(+)", "High"]),
+    "tannin": ("How high is the level of tannin?", ["Low", "Medium(-)", "Medium", "Medium(+)", "High"]),
     "alcohol": ("How high is the alcohol?", ["Low", "Medium", "High"]),
     "body": ("How full is the body?", ["Light", "Medium(-)", "Medium", "Medium(+)", "Full"]),
-    "mousse": ("For a sparkling wine: what is the mousse like?", ["Delicate", "Creamy", "Aggressive"]),
     "flavour_intensity": ("How intense are the flavours on the palate?", ["Light", "Medium(-)", "Medium", "Medium(+)", "Pronounced"]),
     "finish": ("How long is the finish?", ["Short", "Medium(-)", "Medium", "Medium(+)", "Long"]),
     "nose_intensity": ("How intense are the aromas on the nose?", ["Light", "Medium(-)", "Medium", "Medium(+)", "Pronounced"]),
-    "development": ("What stage of development does the wine show?", ["Youthful", "Developing", "Fully developed", "Tired / past its best"]),
-    "appearance_intensity": ("How deep is the colour?", ["Pale", "Medium", "Deep"]),
 }
-COLOURS = ["lemon-green", "lemon", "gold", "amber", "brown", "pink", "salmon", "orange", "purple", "ruby", "garnet", "tawny"]
+COLOURS = ["lemon-green", "lemon", "gold", "amber", "brown", "pink", "pink-orange", "orange", "purple", "ruby", "garnet", "tawny"]
+TANNIN_NATURE = ["ripe", "soft", "smooth", "unripe", "green", "coarse", "stalky", "chalky", "fine-grained"]
+TEXTURE = ["oily", "creamy", "austere", "luscious"]
+APP_OTHER = {"legs_tears": "legs or tears", "deposit": "a deposit", "petillance": "pétillance", "bubbles": "bubbles"}
 
 
-def cluster_gloss():
-    a = yaml.safe_load(open(ROOT / "lexicon/aromas.yaml"))
-    out = {}
+def descriptors():
+    a = yaml.safe_load(open(ROOT / "lexicon/aromas.yaml")); out = []
     for tier in ("primary", "secondary", "tertiary"):
-        for cl, descs in a[tier].items():
-            names = [d.replace("_", " ") for d in descs if not d.endswith("_generic")]
-            out[cl] = (tier, cl.replace("_", " "), names)
+        for cl, ds in a[tier].items():
+            for d in ds:
+                if not d.endswith("_generic"):
+                    out.append((cl, d, EXTRA_NICE.get((cl, d), DESC_NICE.get(d, d.replace("_", " ")))))
     return out
 
 
@@ -43,26 +54,31 @@ def build_questions():
     q = {}
     q["app__clarity"] = dict(type="choice", instructions="What does the note say about the clarity of the wine?",
                              criteria=dict(clear="Described as clear or brilliant", hazy="Described as hazy, cloudy or turbid", not_stated="Clarity is not mentioned"))
-    q["app__colour"] = dict(type="choice", instructions="What colour does the note describe?",
-                            criteria={**{c: f"Colour described as {c}" for c in COLOURS}, "not_stated": "No colour is described"})
     q["app__intensity"] = dict(type="choice", instructions="How deep is the colour, according to the note?",
                                criteria=dict(pale="Pale colour", medium="Medium colour depth", deep="Deep, dark or inky colour", not_stated="Colour depth is not mentioned"))
+    q["app__colour"] = dict(type="choice", instructions="What colour does the note describe? (white wines: lemon-green, lemon, gold, amber, brown; rosé: pink, pink-orange, orange; red: purple, ruby, garnet, tawny, brown)",
+                            criteria={**{c: f"Colour described as {c}" for c in COLOURS}, "not_stated": "No colour is described"})
+    for k, what in APP_OTHER.items():
+        q[f"appother__{k}"] = dict(type="noul", instructions=f"Does the note mention {what} when describing the appearance?")
     q["nose__condition"] = dict(type="noul", instructions="Does the note indicate a fault or unclean nose (cork taint, volatile acidity, brettanomyces, reduction, etc.)?")
-    for cl, (tier, name, descs) in cluster_gloss().items():
-        g = f"{name} ({', '.join(descs)}), a {TIER_NOTE[tier]} aroma cluster"
-        q[f"nose__{cl}"] = dict(type="noul", instructions=f"Does the note describe aromas on the NOSE from the cluster: {g}?")
-        q[f"palate__{cl}"] = dict(type="noul", instructions=f"Does the note describe flavours on the PALATE from the cluster: {g}?")
+    for cl, d, nice in descriptors():
+        head = CLUSTER_HEAD[cl]
+        q[f"nose__{cl}__{d}"] = dict(type="noul", instructions=f"Does the note describe {nice} among the aromas on the NOSE? (WSET lexicon cluster: {head})")
+        q[f"palate__{cl}__{d}"] = dict(type="noul", instructions=f"Does the note describe {nice} among the flavours on the PALATE? (WSET lexicon cluster: {head})")
     for s, (what, levels) in SCALES.items():
         q[f"stated__{s}"] = dict(type="noul", instructions=f"Does the note explicitly describe the wine's {s.replace('_', ' ')} (not merely imply it)?")
         q[f"level__{s}"] = dict(type="score", instructions=what, criteria=levels)
+    for n in TANNIN_NATURE:
+        q[f"tnature__{n}"] = dict(type="noul", instructions=f"Does the note describe the NATURE of the tannins as {n}?")
+    for n in TEXTURE:
+        q[f"texture__{n}"] = dict(type="noul", instructions=f"Does the note describe the texture of the wine as {n}?")
+    q["palate__petillance"] = dict(type="noul", instructions="Does the note mention pétillance (a slight prickle or spritz) on the palate of a still wine?")
     q["quality"] = dict(type="score", instructions="Overall, how good is the wine as implied by the note (balance, length, intensity, complexity)?",
                         criteria=["Faulty", "Poor", "Acceptable", "Good", "Very good", "Outstanding"])
-    q["readiness"] = dict(type="choice", instructions="What does the note say about readiness for drinking?", criteria=dict(
-        not_ready_potential="Too young or needs time, but has potential",
-        drink_now_potential="Can drink now but has potential for ageing",
-        drink_now="Drink now; ageing potential not stated or not suitable for ageing",
-        too_old="Too old or past its best",
-        not_stated="Readiness is not mentioned"))
+    q["ageing"] = dict(type="choice", instructions="What does the note say about the wine's suitability for bottle ageing?", criteria=dict(
+        suitable="Suitable for bottle ageing (will improve, has potential, needs time)",
+        not_suitable="Not suitable for bottle ageing (to be drunk now or soon)",
+        not_stated="Suitability for ageing is not mentioned"))
     return q
 
 

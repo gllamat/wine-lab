@@ -23,7 +23,7 @@ d = d[d.geo_level.isin(["region_1", "region_1_alt"])] if (d.geo_level == "region
 print("joined rows", len(d), "locations", d["loc"].nunique(), "vintages", d.vintage.nunique())
 W = ["gdd", "huglin", "t_mean", "diurnal", "days_gt35", "rain_season", "rain_harvest", "frost_budbreak", "radiation"]
 Y = ["points", "s_acidity", "s_body", "s_tannin", "s_sweetness", "c_red_fruit", "c_black_fruit", "c_citrus_fruit", "c_stone_fruit",
-     "c_tropical_fruit", "c_dried_cooked_fruit", "c_oak", "c_herbaceous", "t_tertiary", "r_can_age"]
+     "c_tropical_fruit", "c_fruit_ripeness", "c_oak", "c_herbaceous", "t_tertiary", "r_can_age"]
 d["grp"] = d["loc"] + "|" + d.variety_group.astype(str)
 sz = d.groupby("grp").vintage.transform("nunique")
 dw = d[sz >= 4].copy()                                     # groups with >=4 vintages

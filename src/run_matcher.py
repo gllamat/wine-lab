@@ -3,7 +3,7 @@ import sys, json, collections, hashlib
 from pathlib import Path
 import numpy as np, pandas as pd
 sys.path.insert(0, str(Path(__file__).parent))
-from wsetkit import Lexicon, review_id, quality_band, readiness_outcome, ROOT
+from wsetkit import Lexicon, review_id, quality_band, readiness_outcome, ageing_outcome, ROOT
 
 SRC = ROOT.parent / "datasets/wine_reviews_deduped.parquet"
 OUT = ROOT / "outputs"; OUT.mkdir(exist_ok=True)
@@ -55,11 +55,12 @@ def main():
             row[f"n_{s}"] = len(lv)
         for f in cats:
             vals = [h["f2"] for h in pos if h["kind"] == "cat" and h["f1"] == f]
-            row[f"cat_{f}"] = collections.Counter(vals).most_common(1)[0][0] if vals else None
+            row[f"cat_{f}"] = "|".join(sorted(set(vals))) if vals else None      # multi-valued allowed (e.g. two tannin natures)
         flags = {k: int(any(h["kind"] == "readiness" and h["f1"] == k for h in pos)) for k in ("drink_now", "can_age", "too_old")}
         for k, v in flags.items():
             row[f"r_{k}"] = v
         row["readiness"] = readiness_outcome(**flags)
+        row["bottle_ageing"] = ageing_outcome(flags["drink_now"], flags["can_age"])
         row["r_year_from"] = years[0][0] if years else np.nan
         row["r_year_to"] = (years[0][1] if years and years[0][1] else np.nan)
         row["quality_band"] = quality_band(r.points)

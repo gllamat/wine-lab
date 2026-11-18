@@ -57,3 +57,14 @@ Jev quality score vs critic points: Spearman 0.74.
 - Embedding-mapped terms (68) are ~80% precise on held-out lexicon words and visibly lower by eye (e.g. meld->melon); they are tagged `embed` and excluded from analyses.
 - Appearance/condition/mousse are sparse in reviews (colour 3.8%, fault 0.4%, mousse 0.9% of all reviews).
 - Weather analysis: reanalysis at 0.5 x 0.625 degree cells, associational; n = place x grape x vintage units.
+
+---
+## 5. Moved to the Level 4 card (Issue 1.2, Aug 2023) - 2026-11-18
+Reason: the user supplied the newer L4 card. Differences vs L3 (2016) and what changed:
+- Clusters: 18 (12 primary incl. new "fruit ripeness" and renamed "spice"; 3 secondary; tertiary grouped as red wine / white wine / deliberately oxidised).
+  Descriptor lists changed (e.g. oak lost nutmeg/butterscotch/toast; yeast gained yogurt, acetaldehyde, flor; spice gained cinnamon).
+- New card lines: tannin nature (ripe, soft, smooth, unripe, green, coarse, stalky, chalky, fine-grained); other observations (texture: oily/creamy/austere/luscious; pétillance; appearance: legs/tears, deposit, bubbles); rosé colours pink / pink-orange / orange.
+- Dropped from the card: development, mousse, 4-way readiness (L3-only; still computed in the vectors). Conclusions are now quality + bottle ageing (suitable / not suitable); "drink now" without ageing cues is read as not suitable (implied).
+- Jev prompt: 238 typed questions - every lexicon descriptor asked separately for NOSE and PALATE (the earlier cluster-level prompt could not say "cloves").
+  Redo cost $0.58 for 1,500 reviews (full corpus ~$65). Comparison: descriptor level - both 4,431 mentions, Jev only 2,588, deterministic only 1,033.
+  Jev answers "ripe fruit" for 83% of reviews (question probably too loose); finish/flavour intensity/tannin nature/texture are stated far more often by Jev.

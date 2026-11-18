@@ -275,3 +275,12 @@ def readiness_outcome(drink_now, can_age, too_old):
     if can_age:
         return "not_ready_potential"       # too young / needs time
     return None
+
+
+def ageing_outcome(drink_now, can_age):
+    """L4 card 'Bottle ageing': suitable / not suitable. From stated cues only; 'drink now' without ageing cues is read as NOT suitable (implied)."""
+    if can_age:
+        return "suitable"
+    if drink_now:
+        return "not_suitable"
+    return None
