@@ -35,6 +35,7 @@ textarea,input[type=search]{width:100%;background:var(--panel);color:var(--ink);
 .sw{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:6px 14px;margin-top:8px}
 .btn{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:4px 10px;font:inherit;cursor:pointer}
 tr.clk{cursor:pointer}tr.clk:hover{background:var(--line)}
+#keyBanner{max-width:1200px;margin:6px auto 0;padding:0 16px}#keyBanner .kb{border-radius:8px;padding:8px 12px;font-size:14px;border:1px solid var(--line);background:var(--panel)}#keyBanner .kb.bad{border-color:#d33;background:#d3333318}#keyBanner .kb.soon{border-color:var(--accent2);background:#e0b05022}#keyBanner a{color:var(--accent)}
 .diagram{width:100%;height:auto}.diagram .bx{fill:var(--panel);stroke:var(--line)}.diagram .ar{stroke:var(--muted);fill:none;stroke-width:1.5;marker-end:url(#ar)}
 .diagram .t{fill:var(--ink);font:12.5px system-ui,sans-serif}.diagram .tb{font-weight:600;font-size:13.5px}.diagram .m{fill:var(--muted)}
 .diagram .fa{fill:#59a14f26;stroke:#59a14f}.diagram .fs{fill:#4e79a726;stroke:#4e79a7}.diagram .fr{fill:#f28e2b26;stroke:#f28e2b}.diagram .fn{fill:#8883;stroke:#888}.diagram .fe{fill:#b07aa126;stroke:#b07aa1}
@@ -43,6 +44,7 @@ tr.clk{cursor:pointer}tr.clk:hover{background:var(--line)}
 <body>
 <header><h1>Wine <span>WSET Lab</span></h1><p>Deterministic keyword → WSET-style vectors, embeddings, geography and weather</p>
 <button id="theme" style="margin-left:auto;background:none;border:1px solid var(--line);color:var(--muted);border-radius:6px;padding:3px 8px;cursor:pointer">theme</button></header>
+<div id="keyBanner" style="display:none"></div>
 <nav id="tabs"></nav>
 <main>
 <section id="overview"></section>
@@ -55,7 +57,7 @@ tr.clk{cursor:pointer}tr.clk:hover{background:var(--line)}
 <section id="map">
   <div class="row"><label>Metric <select id="mm"></select></label><label>min reviews <select id="mn"><option>10</option><option>30</option><option>100</option></select></label></div>
   <div class="panel"><div id="mapPlot" class="plot"></div></div>
-  <p class="note">Marker size = review count. Climate layers are 2000–2017 averages from ERA5 reanalysis at the region's geocoded centre (coarse proxy for vineyards).</p>
+  <p class="note">Marker size = review count. Climate layers are 2000–2017 averages from NASA POWER (MERRA-2) reanalysis at the region's geocoded centre (coarse proxy for vineyards).</p>
 </section>
 <section id="weather">
   <div class="row"><label>View <select id="wv"><option value="rho_within">Within place × grape (vintage effect)</option><option value="rho_across">Across places (confounded)</option></select></label></div>
@@ -115,7 +117,7 @@ tr.clk{cursor:pointer}tr.clk:hover{background:var(--line)}
 <section id="about"><div class="panel">
 <h3>Method</h3><p>Reviews are normalised and matched against a hand-written WSET-style lexicon (aromas, structure cues, readiness). Unmatched frequent words are mapped to descriptors with MiniLM/BERT embeddings, with a negative class and a leave-one-out calibrated threshold. Everything is deterministic: pinned model revisions, fixed seeds, CPU.</p>
 <h3>Limits</h3><ul><li>Reviews rarely mention appearance, alcohol or sweetness levels; those fields are sparse.</li><li>Cue levels are heuristic assumptions, not validated against WSET-qualified tasters.</li><li>Weather is grid-scale reanalysis at region centroids.</li></ul>
-<h3>Data &amp; licences</h3><p>Review corpus: public Wine Enthusiast reviews (Kaggle, reportedly CC BY-NC-SA); only aggregates are shown here, no review text. Weather: Open-Meteo (CC BY 4.0, non-commercial tier). Geocoding: © OpenStreetMap contributors.</p>
+<h3>Data &amp; licences</h3><p>Review corpus: public Wine Enthusiast reviews (Kaggle, reportedly CC BY-NC-SA); only aggregates are shown here, no review text. Weather: NASA POWER (MERRA-2 reanalysis, 0.5°×0.625° grid; NASA open data). Geocoding: © OpenStreetMap contributors.</p>
 <p class="note" id="built"></p></div></section>
 </main>
 <script>
@@ -255,7 +257,14 @@ async function missingTab(){ MS=await load("missing"); if(!MS)return missing("mi
     const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([h],{type:"text/csv"})); a.download="missing_locations.csv"; a.click()}; drawMiss(); }
 async function about(){ const m=await load("meta"); if(m)$("built").textContent="Data built "+m.built+" · sample "+m.sample; }
 $("theme").onclick=()=>{const r=document.documentElement; r.dataset.theme=(r.dataset.theme==="dark"||(!r.dataset.theme&&matchMedia("(prefers-color-scheme:dark)").matches))?"light":"dark"; Object.keys(shown).forEach(k=>shown[k]=0); show(location.hash.slice(1)||"overview")};
-tabs(); show((location.hash||"#overview").slice(1));
+async function keyBanner(){ const k=await load("key_status"); if(!k)return; const el=$("keyBanner"); const fmt=x=>x?new Date(x).toLocaleString():"never";
+  const left=k.expires_on?Math.ceil((new Date(k.expires_on+"T23:59:59")-Date.now())/864e5):null; let cls="",msg="";
+  if(k.status==="invalid_or_expired"||k.status==="payment_or_quota"||k.status==="missing"){ cls="bad";
+    msg=`<b>Jev API key stopped working</b> (${k.message}). Failing since ${fmt(k.failing_since)}; last worked ${fmt(k.last_ok_at)}. <a href="${k.renew_url}" target="_blank" rel="noopener">Get a new key</a>, put it in <code>.env</code> as <code>TYPESAFE_API_KEY</code>, then run <code>src/key_status.py</code>.`; }
+  else if(left!==null&&left<=7){ cls="soon"; msg=`<b>Jev API key expires ${left<=0?"today or has expired":"in "+left+" day"+(left===1?"":"s")}</b> (${k.expires_on}). <a href="${k.renew_url}" target="_blank" rel="noopener">Get a new key</a> before then.`; }
+  else { msg=`<span class="note">Jev API key: ${k.status==="ok"||k.status==="rate_limited"?"working":k.status} · last checked ${fmt(k.checked_at)}${left!==null?" · expires "+k.expires_on:" · expiry date not set (TYPESAFE_KEY_EXPIRES in .env)"}</span>`; }
+  el.innerHTML=`<div class="kb ${cls}">${msg}</div>`; el.style.display="block"; }
+tabs(); show((location.hash||"#overview").slice(1)); keyBanner();
 </script>
 </body>
 </html>

@@ -7,6 +7,7 @@ from pathlib import Path
 import pandas as pd, requests
 sys.path.insert(0, str(Path(__file__).parent))
 from wsetkit import ROOT, Lexicon, review_id
+import key_status
 
 URL = "https://api.typesafe.ai/v1/systemone"
 PRICE_PER_TOK = 0.042 / 1e6
@@ -59,11 +60,14 @@ def call(session, key, model, text, retries=4):
             return r.json()
         if r.status_code in (429, 500, 502, 503):
             time.sleep(2 * (a + 1)); continue
+        if r.status_code in (401, 402, 403):
+            key_status.run()            # record the failure time for the dashboard reminder
         return {"error": r.status_code, "body": r.text[:300]}
     return {"error": "retries_exhausted"}
 
 
 def main():
+    key_status.load_env()
     key = os.environ.get("TYPESAFE_API_KEY")
     if not key:
         sys.exit("set TYPESAFE_API_KEY in the environment")

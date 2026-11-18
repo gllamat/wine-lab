@@ -165,5 +165,7 @@ if pg.exists():
 jw = O / f"joint_weather_{n}{vsuf}.csv"
 if jw.exists():
     dump("weather.json", json.loads(pd.read_csv(jw).round(4).replace({np.nan: None}).to_json(orient="records")))
+import key_status
+key_status.run()            # refresh Jev API key health for the dashboard reminder
 dump("meta.json", dict(built=pd.Timestamp.now(tz="UTC").isoformat(timespec="seconds"), sample=n,
                        note="Aggregates and coordinates only. No review text is published."))
