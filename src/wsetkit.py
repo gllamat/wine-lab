@@ -220,7 +220,9 @@ class Lexicon:
                 if head is not None:
                     neg = any(toks[k] in NEG for k in range(max(0, i - NEG_WINDOW), i)
                               if not any(t in BOUNDARY for t in toks[k:i]))
-                    emit("structure", self.heads[toks[head]], self.bound[toks[i]],
+                    f1 = self.heads[toks[head]]
+                    lvl = (self.bound[toks[i]] - 1) * len(self.scales[f1]) // 5 + 1     # generic 1-5 -> this scale's own length
+                    emit("structure", f1, lvl,
                          toks[i] + " " + toks[head] if direct else toks[i] + " … " + toks[head], neg,
                          "bound" if direct else "bound-x", i)
                     if direct:

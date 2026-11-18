@@ -38,6 +38,7 @@
       }
       this.bound = new Map(Object.entries(lex.bound));
       this.heads = new Map(Object.entries(lex.heads));
+      this.scales = lex.scales;
       this.yearRe = lex.year_re;
       this.maxlen = 0;
       for (const k of this.entries.keys()) this.maxlen = Math.max(this.maxlen, k.split(" ").length);
@@ -116,7 +117,8 @@
             for (let k = Math.max(0, i - NEG_WINDOW); k < i; k++) {
               if (NEG.has(toks[k]) && !toks.slice(k, i).some(t => BOUNDARY.has(t))) { neg = true; break; }
             }
-            emit("structure", this.heads.get(toks[head]), this.bound.get(toks[i]),
+            const f1b = this.heads.get(toks[head]), lvlb = Math.floor((this.bound.get(toks[i]) - 1) * this.scales[f1b].length / 5) + 1;
+            emit("structure", f1b, lvlb,
               direct ? toks[i] + " " + toks[head] : toks[i] + " … " + toks[head], neg, direct ? "bound" : "bound-x", i, i, direct ? head + 1 : i + 1);
             if (direct) { for (let j = i; j <= head; j++) covered[j] = true; i = head + 1; }
             else { covered[i] = true; i += 1; }
