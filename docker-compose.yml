@@ -1,0 +1,23 @@
+# Data is mounted, never baked into the image (the corpus is large and review text is not for redistribution).
+x-lab: &lab
+  build: { context: ., target: core }
+  working_dir: /app
+  env_file: [{ path: .env, required: false }]
+  volumes:
+    - ../datasets:/data/datasets:ro
+    - ./outputs:/app/outputs
+    - ./cache:/app/cache
+    - ./dashboard/data:/app/dashboard/data
+    - ./experiments:/app/experiments
+services:
+  lab:                       # docker compose run --rm lab python src/run_matcher.py 20000
+    <<: *lab
+  embed:
+    <<: *lab
+    build: { context: ., target: embed }
+  dashboard:                 # http://localhost:8765
+    image: public.ecr.aws/docker/library/python:3.11-slim
+    working_dir: /site
+    volumes: ["./dashboard:/site:ro"]
+    command: python -m http.server 8765
+    ports: ["8765:8765"]

@@ -1,0 +1,10 @@
+name: "Hidden regional trend (unobserved confounder)"
+note: "Adds a latent place-specific trend (e.g. a region warming while its critics' tastes drift) that affects both the weather anomaly and the scores. No set of observed variables can block it: the effect is NOT identified, and the honest route is a sensitivity analysis."
+add_nodes:
+  regional_trend: {kind: latent, label: "Hidden regional trend"}
+add_edges:
+  - {from: regional_trend, to: weather_anomaly}
+  - {from: regional_trend, to: points}
+  - {from: regional_trend, to: note_sat}
+remove_edges: [[quality, selection], [price, selection]]
+conditioned: [selection]

@@ -1,0 +1,3 @@
+# causal / fixed-effects stack (src/causal_estimate.py). pyfixest was approved but is not needed yet: statsmodels covers the cluster-robust fixed-effects designs.
+statsmodels==0.14.4
+patsy==1.0.1

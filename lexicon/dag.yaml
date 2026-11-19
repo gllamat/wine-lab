@@ -1,0 +1,170 @@
+# DRAFT causal DAG for review. Nothing here is estimated yet. Edit freely; the code will read this file.
+# Purpose: say what we believe causes what, so that estimates (e.g. effect of a warmer season on a tasting note) adjust for the right
+# variables and not for the wrong ones (mediators, colliders).
+#
+# kind:  observed     in the corpus now
+#        derived      we compute it from data we already have (weather, climate normals)
+#        new_data     measurable but we do not have it yet; see "data_plan" at the bottom
+#        latent       real, not measurable with any dataset we can get (kept in the graph so its paths are visible)
+#        selection    the process that decides which wines are in the corpus (conditioning on it opens collider paths)
+# strength (edges): strong = physical/definitional; medium = well established in viticulture or in the data; speculative = hypothesis
+
+nodes:
+  # --- geography and time
+  place:            {kind: observed, label: "Place (region_1 / province / country)", columns: [country, province, region_1], note: "75% of reviews only have region-level coordinates"}
+  year:             {kind: observed, label: "Vintage year", columns: [vintage], note: "known for 68.5% of reviews; also carries global shocks (warming trend, market, critic drift)"}
+  site_climate:     {kind: derived,  label: "Site climate (long-run normals)", from: "NASA POWER 2000-2017 normals now; WorldClim/CHELSA 1 km later"}
+  weather_anomaly:  {kind: derived,  label: "Season weather anomaly (warmth, rain, diurnal, heat days, frost, harvest rain)", from: "NASA POWER daily, vs the cell's own climate"}
+  elevation_slope:  {kind: new_data, label: "Elevation, slope, aspect", data_plan: elevation}
+  soil:             {kind: new_data, label: "Soil (clay, sand, pH, organic carbon, coarse fragments)", data_plan: soil, note: "otherwise latent; place fixed effects absorb it when constant"}
+  # --- grape and producer
+  grape:            {kind: observed, label: "Grape variety", columns: [variety_norm, variety_group]}
+  grape_ripening:   {kind: new_data, label: "Grape ripening epoch / genetics", data_plan: grape_traits, note: "moderates how weather acts on the grape (early vs late varieties)"}
+  producer:         {kind: observed, label: "Producer (winery)", columns: [winery], note: "19,174 wineries; 87% of reviews from a winery with >=5 reviews"}
+  cuvee:            {kind: observed, label: "Cuvee / vineyard designation", columns: [designation], note: "70% filled; proxy for single-vineyard/reserve tiers; NOT yet used"}
+  producer_traits:  {kind: new_data, label: "Producer practices (organic/biodynamic, size, ownership)", data_plan: producer_traits}
+  # --- the vine and the wine (mostly unobserved)
+  viticulture:      {kind: latent,   label: "Viticulture and harvest decisions (yield, canopy, irrigation, harvest date)", partial_data: harvest_ripeness}
+  ripeness_chem:    {kind: latent,   label: "Grape ripeness and chemistry (sugar/Brix, acidity, pH, phenolics)", partial_data: harvest_ripeness}
+  winemaking:       {kind: latent,   label: "Winemaking style (oak, extraction, malolactic, alcohol)"}
+  quality:          {kind: latent,   label: "Wine quality (balance, length, complexity)"}
+  bottle_age:       {kind: new_data, label: "Bottle age at tasting", data_plan: review_date, note: "needs the review date; vintage alone is not enough"}
+  # --- market and measurement
+  price:            {kind: observed, label: "Price", columns: [price], note: "92% filled"}
+  taster:           {kind: observed, label: "Taster / critic", columns: [taster_name], note: "56% filled; 19 tasters; each covers certain regions"}
+  review_date:      {kind: new_data, label: "Review date", data_plan: review_date}
+  selection:        {kind: selection, label: "Selection into the corpus (which wines get reviewed)"}
+  points:           {kind: observed, label: "Critic points", columns: [points]}
+  note_sat:         {kind: derived,  label: "Tasting note as WSET vector (what we measure)", from: "deterministic matcher"}
+  note_embedding:   {kind: derived,  label: "Tasting note embedding", from: "MiniLM"}
+
+edges:
+  # geography -> climate -> weather
+  - {from: place,            to: site_climate,    strength: strong,      why: "climate normals are a function of location"}
+  - {from: place,            to: elevation_slope, strength: strong,      why: "terrain is a function of location"}
+  - {from: place,            to: soil,            strength: strong,      why: "soil is a function of location"}
+  - {from: place,            to: weather_anomaly, strength: strong,      why: "the anomaly is defined against the place's own normals, but each place has its own weather"}
+  - {from: year,             to: weather_anomaly, strength: strong,      why: "a given year's weather; shared large-scale patterns (e.g. Europe 2003)"}
+  - {from: elevation_slope,  to: site_climate,    strength: strong,      why: "altitude cools, aspect warms"}
+  # who grows what, where
+  - {from: place,            to: grape,           strength: strong,      why: "appellations restrict and traditions select grapes"}
+  - {from: place,            to: producer,        strength: strong,      why: "a winery sits in a place"}
+  - {from: site_climate,     to: grape,           strength: medium,      why: "grapes are chosen to ripen at the site"}
+  - {from: grape,            to: grape_ripening,  strength: strong,      why: "ripening epoch is a property of the variety"}
+  - {from: producer,         to: producer_traits, strength: strong,      why: "traits belong to the producer"}
+  - {from: producer,         to: cuvee,           strength: strong,      why: "a producer makes its cuvees"}
+  # weather acts on the grape (the effect we want)
+  - {from: weather_anomaly,  to: viticulture,     strength: strong,      why: "growers pick earlier in hot years, thin or irrigate (mediator: do NOT adjust)"}
+  - {from: weather_anomaly,  to: ripeness_chem,   strength: strong,      why: "heat and sun raise sugar, lower acidity; rain dilutes"}
+  - {from: grape_ripening,   to: ripeness_chem,   strength: medium,      why: "late varieties are more exposed to autumn rain, early ones to heat"}
+  - {from: soil,             to: ripeness_chem,   strength: medium,      why: "water holding, vigour"}
+  - {from: elevation_slope,  to: ripeness_chem,   strength: medium,      why: "local cooling, sun exposure"}
+  - {from: site_climate,     to: ripeness_chem,   strength: strong,      why: "normal conditions set typical ripeness"}
+  - {from: viticulture,      to: ripeness_chem,   strength: strong,      why: "yield, canopy, harvest date set ripeness"}
+  - {from: producer,         to: viticulture,     strength: strong,      why: "each producer has habits and standards"}
+  - {from: producer_traits,  to: viticulture,     strength: medium,      why: "organic/biodynamic practices, size"}
+  # making the wine
+  - {from: producer,         to: winemaking,      strength: strong,      why: "house style (oak, extraction)"}
+  - {from: grape,            to: winemaking,      strength: medium,      why: "variety-typical practices (oak on Chardonnay, etc.)"}
+  - {from: ripeness_chem,    to: winemaking,      strength: strong,      why: "more sugar means more alcohol; acidity adjustments"}
+  - {from: ripeness_chem,    to: quality,         strength: strong,      why: "balance, concentration"}
+  - {from: winemaking,       to: quality,         strength: strong,      why: "execution"}
+  - {from: producer,         to: quality,         strength: medium,      why: "skill and resources"}
+  # price, review and measurement
+  - {from: quality,          to: price,           strength: medium,      why: "better wines can charge more"}
+  - {from: producer,         to: price,           strength: strong,      why: "brand and tier"}
+  - {from: cuvee,            to: price,           strength: medium,      why: "reserve and single-vineyard tiers cost more"}
+  - {from: year,             to: bottle_age,      strength: strong,      why: "older vintages are older at tasting"}
+  - {from: review_date,      to: bottle_age,      strength: strong,      why: "age at tasting = review date minus vintage"}
+  - {from: year,             to: review_date,     strength: medium,      why: "wines are reviewed on release, soon after the vintage"}
+  - {from: bottle_age,       to: note_sat,        strength: strong,      why: "tertiary notes, development, tannin softening"}
+  - {from: ripeness_chem,    to: note_sat,        strength: strong,      why: "fruit ripeness, acidity, sweetness, body, alcohol in the glass"}
+  - {from: winemaking,       to: note_sat,        strength: strong,      why: "oak, yeast, malolactic notes"}
+  - {from: grape,            to: note_sat,        strength: strong,      why: "varietal aroma"}
+  - {from: place,            to: note_sat,        strength: medium,      why: "any terroir effect not carried by the variables above (minerality, soil)"}
+  - {from: soil,             to: note_sat,        strength: speculative, why: "soil is said to show in the glass (minerality); weak evidence"}
+  - {from: quality,          to: points,          strength: strong,      why: "the critic scores what they taste"}
+  - {from: price,            to: points,          strength: speculative, why: "price may bias the critic"}
+  - {from: taster,           to: points,          strength: strong,      why: "scoring habits differ"}
+  - {from: taster,           to: note_sat,        strength: strong,      why: "vocabulary and note length differ by writer"}
+  - {from: place,            to: taster,          strength: strong,      why: "each critic covers certain regions"}
+  - {from: year,             to: taster,          strength: medium,      why: "critic assignments change over time"}
+  - {from: note_sat,         to: note_embedding,  strength: medium,      why: "both are readings of the same text"}
+  # selection (collider: conditioning on being in the corpus can create spurious links)
+  - {from: price,            to: selection,       strength: medium,      why: "importers and distribution decide what is submitted"}
+  - {from: producer,         to: selection,       strength: medium,      why: "producers choose to submit"}
+  - {from: place,            to: selection,       strength: medium,      why: "regional coverage differs"}
+  - {from: quality,          to: selection,       strength: speculative, why: "better wines may be submitted more"}
+
+estimands:
+  E1:
+    question: "What does a warmer (or wetter) growing season do to the tasting note and points of the same wine group?"
+    treatment: weather_anomaly
+    outcomes: [note_sat, points]
+    adjust_for: [place, grape, year]          # place x grape and year fixed effects; variant with producer fixed effects. Checked with networkx: {place, year} is already sufficient, grape is optional (it only sharpens precision)
+    never_adjust_for: [viticulture, ripeness_chem, winemaking, quality, price, points, selection]   # mediators and colliders
+    robustness: [negative_control_next_year_weather, negative_control_post_harvest_weather, e_value, drop_one_country, drop_one_taster]
+  E2:
+    question: "Controlled contrast: same place, different grape (or same grape, different place)."
+    treatment: grape
+    outcomes: [note_sat]
+    adjust_for: [place, producer, year]
+    note: "not a total effect; variance shares from the Terroir tab are not causal effects"
+  E3:
+    question: "How much of E1 runs through ripeness (mediation)?"
+    treatment: weather_anomaly
+    mediator: ripeness_chem
+    outcomes: [note_sat]
+    requires: [harvest_ripeness]
+    note: "only identifiable where Brix/harvest data exist (e.g. California crush reports); needs sequential ignorability, a strong assumption"
+
+predicted_dependences:        # positive controls: the graph says these ARE linked, so a test that finds nothing would also challenge the graph
+  - "weather_anomaly -> points  (through ripeness and quality)"
+  - "weather_anomaly -> price   (through quality; weak)"
+
+testable_implications:       # conditional independences the graph asserts; each becomes a pass/fail test (partial correlation / permutation)
+  - "weather_anomaly _||_ producer | place, year"
+  - "weather_anomaly _||_ taster | place, year"
+  - "weather_anomaly(next year) _||_ note_sat | place, grape, year"          # negative control
+  - "taster _||_ grape | place, year"
+
+data_plan:                   # how to get the new_data variables, in priority order. Region polygons first: they raise the quality of everything else.
+  appellation_polygons:
+    unlocks: [place precision, elevation, soil, weather]
+    sources: ["US AVA boundaries (UC Davis AVA project / TTB, GeoJSON)", "France INAO AOC areas (data.gouv.fr, open licence)", "OpenStreetMap via Nominatim polygon_geojson (all countries, uneven)", "Italy/Spain/Portugal/Australia/NZ/Chile GI shapefiles from national bodies"]
+    effort: "medium: ~1 week for the top 8 countries (>90% of reviews)"
+    risk: "boundary quality varies; some regions only as admin areas"
+  elevation:
+    sources: ["Copernicus GLO-30 DEM or SRTM tiles (free)", "OpenTopoData public API for a small first pass"]
+    method: "mean/min/max elevation, slope and aspect over each region polygon"
+    effort: low
+  soil:
+    sources: ["SoilGrids 2.0 (ISRIC), 250 m, free REST/WCS"]
+    method: "sample <=30 points per polygon, take median clay/sand/silt/pH/organic carbon/coarse fragments, 0-30 cm"
+    effort: medium
+    risk: "250 m soil is coarse for vineyards; treat as a regional descriptor"
+  climate:
+    sources: ["WorldClim 2.1 bioclim and CHELSA 1 km normals (free)", "ERA5-Land daily, 0.1 degrees (Copernicus CDS, free account)"]
+    method: "replace/complement NASA POWER 0.5x0.625 degrees; add phenology-window metrics (flowering heat, veraison temperature, harvest rain)"
+    effort: "medium; ERA5-Land download is the slow part"
+  harvest_ripeness:
+    sources: ["USDA NASS California Grape Crush Report (district x variety x year: tons, Brix, price)", "Wine Australia National Vintage Report", "NZ Winegrowers vintage reports", "Oregon OWRI and Washington growers' vintage reports", "France Agreste / CIVC / BIVB harvest dates and yields", "Chile SAG, Argentina INV"]
+    method: "region-year Brix, yield, harvest start; California first (largest share of reviews, best data)"
+    effort: "medium-high: formats differ by country"
+    unlocks: "E3 mediation; also validates the weather index (does heat predict Brix?)"
+  grape_traits:
+    sources: ["VIVC (Vitis International Variety Catalogue)", "Wikidata grape properties", "INRAE Pl@ntGrape"]
+    method: "ripening epoch, colour, parentage for the ~50 grape groups"
+    effort: low
+  producer_traits:
+    sources: ["Wikidata", "organic/biodynamic certifier lists (Demeter, Ecocert, national registers)", "keywords in the description and the designation field"]
+    effort: "medium; coverage will be partial; start with keyword flags"
+  review_date:
+    finding: "CHECKED: the datasets carry no per-review date. The Kaggle winemag data were scraped from WineEnthusiast in June 2017 (v1) and re-scraped in November 2017 (v2, added titles); licence CC BY-NC-SA 4.0. So every review is dated at most November 2017."
+    bound_we_can_use: "bottle age at tasting <= 2017 - vintage (an upper bound); most wines are reviewed within 0-2 years of release, so for recent vintages the bound is tight. Use it as a covariate or in sensitivity analysis, never as the exact age."
+    sources: ["not in any dataset we hold", "winemag.com pages show a publication date but scraping is subject to the site's terms"]
+    effort: "exact dates are blocked on a terms decision; the upper bound is free"
+    unlocks: "a bounded bottle-age covariate now; exact age only if dates are obtained"
+  vintage_charts:
+    sources: ["public vintage rating tables (Wine Spectator, Decanter and others)"]
+    use: "external validation only (does the weather index track published vintage quality?); copyright means we would enter a small hand-checked table, not scrape"

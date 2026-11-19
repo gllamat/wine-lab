@@ -10,3 +10,7 @@ dashboard/data/examples.json
 .env
 dashboard/data/key_status.json
 outputs/key_status_history.jsonl
+dashboard/data/blind_examples.json
+outputs/guess_*.pkl
+!experiments/**/*.parquet
+experiments/**/round_*/items.parquet

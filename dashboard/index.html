@@ -6,6 +6,8 @@
 <title>Wine WSET Lab</title>
 <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js"></script>
 <script src="matcher.js"></script>
+<script src="guess.js"></script>
+<script src="causal.js"></script>
 <style>
 :root{--bg:#fbf9f6;--panel:#fff;--ink:#241b1f;--muted:#6f6469;--line:#e6dfe2;--accent:#7b1e3a;--accent2:#c08a2d}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#17120f;--panel:#201a17;--ink:#f1e9e4;--muted:#a99c96;--line:#362d29;--accent:#d97a96;--accent2:#e0b050}}
@@ -90,15 +92,69 @@ tr.clk{cursor:pointer}tr.clk:hover{background:var(--line)}
   <div class="row"><label>Taste space <select id="ts"><option value="raw">WSET profile</option><option value="net">WSET, net of grape (terroir only)</option><option value="emb">Text embedding (20k sample)</option></select></label>
     <label>Projection <select id="tp"><option value="pca">PCA (axes have meaning)</option><option value="umap">UMAP (neighbourhoods)</option></select></label>
     <label>Dimensions <select id="td"><option value="2">2D</option><option value="3">3D (PCA)</option></select></label>
-    <label>Colour <select id="tc"><option value="taste">taste position</option><option value="country">country</option><option value="pts">critic points</option></select></label><button id="tclr">clear selection</button></div>
+    <label>Colour <select id="tc"><option value="taste">taste position</option><option value="country">country</option><option value="pts">critic points</option><option value="attr">an attribute…</option></select> <select id="tat" style="display:none"></select></label><label><input type="checkbox" id="tlab"> label big regions</label><label><input type="checkbox" id="tsh"> shape: ● red-majority ◆ white-majority</label><button id="tclr">clear selection</button></div>
+  <div class="row" id="tPresets"><span class="note">Compare:</span></div>
   <div class="grid2"><div class="panel"><b>Where</b> <span class="note">drag a box or click places</span><div id="tMap" class="plot s" style="height:460px"></div></div>
     <div class="panel"><b>How they taste</b> <span class="note" id="tAx"></span><div id="tProj" class="plot s" style="height:460px"></div></div></div>
+  <div class="panel" style="margin-top:12px"><div id="tKey"></div></div>
   <div class="panel" style="margin-top:12px"><div id="tSel" class="note">Select places on the map or in the taste plot to compare them.</div></div>
   <div class="grid2" style="margin-top:12px"><div class="panel"><b>Do nearby places taste alike?</b><div id="decayPlot" class="plot s"></div><p class="note" id="tDecayTxt"></p></div>
     <div class="panel"><b>How to read this</b><p class="note">Each dot is a wine region with ≥40 notes, its profile averaged (shrunk toward the global mean when few notes). Colour is the dot's position in taste space, so the same colour on the map and in the plot means similar taste. "Net of grape" removes each grape's average first, so what is left is place, not variety. PCA axes can be read (listed above the plot); UMAP only preserves who is near whom.</p></div></div>
   <details style="margin-top:12px"><summary class="note">Advanced: raw correlation grid (all weather metrics × all outcomes)</summary>
     <div class="row"><label>View <select id="wv"><option value="rho_within">Within place × grape (vintage effect)</option><option value="rho_across">Across places (confounded)</option></select></label></div><div id="weatherPlot" class="plot"></div></details>
   <p class="note warn">Associational, not causal. Notes are written by critics, so vocabulary reflects them too; 75% of reviews have only region-level coordinates; weather is a 0.5°×0.625° reanalysis grid (not the vineyard); within a place, seasons are compared with that place's own 2000–2017 climate. Curves and CIs come from a bootstrap over place×grape groups, so they respect that notes from one place are not independent.</p>
+</section>
+<section id="guess">
+  <div class="panel"><b>Guess the wine from the description</b> <span class="note">— a deterministic statistical model (no AI text generation): the note is read by the WSET matcher, and models trained on 169k reviews turn that vector into guesses with probabilities. Runs entirely in your browser; only the description is used, nothing else.</span></div>
+  <h3 class="th">1 · Describe a wine</h3>
+  <div class="row"><label>Try an archetype <select id="gex" style="max-width:360px"></select></label><span class="note">(written by us, not taken from reviews)</span></div>
+  <textarea id="gtext" rows="4" style="width:100%;box-sizing:border-box;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:inherit" placeholder="Describe the wine in your own words: colour, aromas, structure, how it finishes, even 'drink 2022–2030'."></textarea>
+  <div id="gmatch" class="note" style="margin:6px 0"></div>
+  <div class="grid2" style="margin-top:8px">
+    <div class="panel"><b>Grape</b><div id="gGrape" class="plot s" style="height:300px"></div><p class="note" id="gGroup"></p></div>
+    <div class="panel"><b>Place</b><div id="gPlace" class="plot s" style="height:300px"></div></div>
+    <div class="panel"><b>Where on the map</b> <span class="note" id="gPoint"></span><div id="gMap" class="plot s" style="height:300px"></div></div>
+    <div class="panel"><b>Producer</b> <span class="note">(style and region match among wineries with ≥20 notes)</span><div id="gProd"></div><b style="display:block;margin-top:12px">Vintage, price, critic points</b><div id="gNum"></div></div>
+  </div>
+  <div class="panel" style="margin-top:12px"><b>Why this grape?</b> <span class="note">descriptors in your note that pushed towards the top guess</span><div id="gWhy"></div></div>
+  <h3 class="th">2 · Example guesses</h3>
+  <div id="gExamples"></div>
+  <h3 class="th">3 · Blind-tasting rounds</h3>
+  <div id="gRounds"></div>
+  <p class="note warn">What is guessed from: the SAT vector (aromas, structure, readiness cues, year hints) and the note length — never the wine's label, region, colour or price. Probabilities are calibrated on held-out data. Vintage and price are guesses with 80% intervals; producer is a long shot, so look at the probabilities, not only the top name. Trained on Wine Enthusiast reviews (CC BY-NC-SA 4.0), so it reflects how those critics write.</p>
+</section>
+<section id="causal">
+  <div class="panel"><b>Causal lab</b> <span class="note">— what a graph of cause and effect lets you conclude from data, with a short course on do-calculus and a workbench to test different graphs. The question running through it: <i>what does a warmer growing season do to a wine?</i></span></div>
+
+  <h3 class="th">1 · Seeing is not doing</h3>
+  <div class="panel"><p>Data shows what happens <b>when we see</b> a warm season: P(note | weather = warm). A cause asks what happens <b>when we make it warm</b>: P(note | <b>do</b>(weather = warm)). They differ whenever something else drives both, for example <b>place</b>: warm regions have a different style of wine for reasons unrelated to this year's weather. The <b>do</b>-operator means "cut every arrow going into the variable and set it by hand". Do-calculus is the set of rules that says when a quantity with <b>do</b> can be rewritten using only what we can observe.</p>
+  <p class="note">Below, the real data on the same question (+100 growing-degree days) with different "controls". Same wines, same weather; only the adjustment changes.</p>
+  <div class="row"><label>Outcome <select id="cgo"></select></label><label>Graph used to judge each choice <select id="cgd"></select></label></div>
+  <div id="cgPlot" class="plot s" style="height:420px"></div><p class="note" id="cgTxt"></p></div>
+
+  <h3 class="th">2 · Three building blocks: chain, fork, collider</h3>
+  <div class="panel"><p class="note">Every path in a graph is made of these. Tick the box to <b>condition</b> on the middle variable (look at wines with that value fixed). Then ask: are the two ends still linked through this path?</p><div id="cBlocks" class="grid2"></div></div>
+
+  <h3 class="th">3 · Workbench: draw a graph, ask a question</h3>
+  <div class="row"><label>Graph <select id="cwg"></select></label><label>Treatment <select id="cwx"></select></label><label>Outcome <select id="cwy"></select></label><label><input type="checkbox" id="cwc" checked> we only see wines that were reviewed (condition on selection)</label><button id="cwa">apply edits below</button></div>
+  <div class="panel"><div id="cwSvg" style="overflow:auto"></div><p class="note" id="cwNote"></p></div>
+  <div class="grid2" style="margin-top:12px">
+    <div class="panel"><b>Can the effect be computed from data?</b><div id="cwId"></div>
+      <b style="display:block;margin-top:10px">Test your own adjustment set</b><div id="cwSet" style="max-height:180px;overflow:auto"></div><div id="cwSetRes"></div></div>
+    <div class="panel"><b>Paths from treatment to outcome</b> <span class="note" id="cwPn"></span><div id="cwPaths" style="max-height:330px;overflow:auto"></div></div>
+  </div>
+  <details style="margin-top:12px"><summary class="note">Edit the graph (JSON: nodes with kind observed / derived / latent / selection / new_data, and edges)</summary><textarea id="cwj" rows="10" style="width:100%;box-sizing:border-box;font:12px ui-monospace,monospace;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink)"></textarea><p class="note" id="cwErr"></p></details>
+
+  <h3 class="th">4 · The rules, one at a time</h3>
+  <div class="panel"><p><b>Back-door criterion.</b> To estimate the effect of X on Y, find a set Z of observed variables that (a) contains no descendant of X and (b) blocks every path that starts with an arrow <i>into</i> X. Then P(y | do(x)) = Σ<sub>z</sub> P(y | x, z) P(z).</p>
+    <p><b>Front-door criterion.</b> If X affects Y only through a mediator M that we can measure, and nothing confounds X→M or M→Y beyond X, the effect is identified even if X and Y share a hidden cause.</p>
+    <p><b>The three rules of do-calculus</b> (Pearl) say when we can drop an observation, swap an action for an observation, or drop an action, by testing d-separation in a modified graph:</p>
+    <ul style="margin:6px 0 6px 18px"><li><b>Rule 1</b> (ignore an observation): P(y | do(x), z, w) = P(y | do(x), w) if Y ⟂ Z | X, W in the graph with arrows <i>into</i> X removed.</li>
+    <li><b>Rule 2</b> (action = observation): P(y | do(x), do(z), w) = P(y | do(x), z, w) if Y ⟂ Z | X, W with arrows into X and <i>out of</i> Z removed.</li>
+    <li><b>Rule 3</b> (ignore an action): P(y | do(x), do(z), w) = P(y | do(x), w) if Y ⟂ Z | X, W with arrows into X and into Z(W) removed, where Z(W) = the Z that are not ancestors of W.</li></ul>
+    <div class="row"><label>Y <select id="cry"></select></label><label>do(X) <select id="crx"></select></label><label>Z <select id="crz"></select></label><label>W (observed) <select id="crw" multiple size="3" style="min-width:160px"></select></label></div>
+    <div id="crOut"></div></div>
+  <p class="note warn">The graph is our assumption, not a finding: the data cannot prove it. What the workbench shows is what follows <i>if</i> the graph is right, and which tests (placebos, independences) could show it is wrong. Estimates in section 1 use 85,752 reviews with region-level coordinates; weather is a 0.5°×0.625° grid; critic points are a mix of the wine and the critic.</p>
 </section>
 <section id="compare"><div class="grid2">
   <div class="panel"><b>RSA (Spearman) vs WSET vectors</b><div id="rsaPlot" class="plot s"></div></div>
@@ -157,7 +213,7 @@ tr.clk{cursor:pointer}tr.clk:hover{background:var(--line)}
 <p class="note" id="built"></p></div></section>
 </main>
 <script>
-const $=id=>document.getElementById(id), TABS=[["overview","Overview"],["spaces","Vector spaces"],["map","Map"],["terroir","Terroir"],["compare","Compare"],["examples","Examples"],["mappings","Mappings"],["method","Method"],["missing","Missing"],["about","About"]];
+const $=id=>document.getElementById(id), TABS=[["overview","Overview"],["spaces","Vector spaces"],["map","Map"],["terroir","Terroir"],["guess","Guess"],["causal","Causal"],["compare","Compare"],["examples","Examples"],["mappings","Mappings"],["method","Method"],["missing","Missing"],["about","About"]];
 const cache={}; async function load(n){ if(cache[n]!==undefined) return cache[n]; try{const r=await fetch("data/"+n+".json"); cache[n]=r.ok?await r.json():null;}catch(e){cache[n]=null} return cache[n]; }
 const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const lay=(x={})=>Object.assign({paper_bgcolor:"rgba(0,0,0,0)",plot_bgcolor:"rgba(0,0,0,0)",font:{color:css("--ink")},margin:{l:50,r:10,t:30,b:40}},x);
@@ -169,7 +225,7 @@ function tabs(){ $("tabs").innerHTML=TABS.map(([k,l])=>`<button data-t="${k}">${
 const shown={};
 async function show(t){ document.querySelectorAll("section").forEach(s=>s.classList.toggle("on",s.id===t));
   document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.t===t)); location.hash=t;
-  if(!shown[t]){shown[t]=1; await ({overview,spaces,map,terroir,compare,examples,mappings,method,missing:missingTab,about}[t])();} else if(t==="spaces")drawSpace(); else if(t==="map")drawMap(); else if(t==="terroir")terroirRedraw(); }
+  if(!shown[t]){shown[t]=1; await ({overview,spaces,map,terroir,guess,causal,compare,examples,mappings,method,missing:missingTab,about}[t])();} else if(t==="spaces")drawSpace(); else if(t==="map")drawMap(); else if(t==="terroir")terroirRedraw(); }
 async function overview(){ const o=await load("overview"); if(!o)return missing("overview");
   const c=o.coverage, cards=[[o.n_reviews.toLocaleString(),"reviews"],[o.n_countries,"countries"],[o.n_regions.toLocaleString(),"regions"],[o.n_varieties,"grape labels"],[pct(o.vintage_coverage),"with vintage"],[pct(c.aroma_cluster),"with ≥1 aroma cluster"]];
   $("overview").innerHTML=`<div class="cards">${cards.map(([a,b])=>`<div class="card"><b>${a}</b><small>${b}</small></div>`).join("")}</div>
@@ -212,10 +268,10 @@ function drawWeather(){ if(!WX)return; const v=$("wv").value, W=[...new Set(WX.m
   const z=Y.map(y=>W.map(w=>{const r=WX.find(r=>r.weather===w&&r.outcome===y); return r?r[v]:null}));
   Plotly.react("weatherPlot",[{type:"heatmap",x:W,y:Y,z,zmin:-.3,zmax:.3,colorscale:"RdBu",reversescale:true,text:z.map(r=>r.map(x=>x==null?"":x.toFixed(2))),texttemplate:"%{text}",colorbar:{title:"Spearman ρ"}}],lay({margin:{l:130,r:10,t:10,b:60}}),{responsive:true}); }
 /* ---------- Terroir tab ---------- */
-let T=null; const TS={sel:new Set(),view:null};
+let T=null; const TS={sel:new Set(),view:null,focus:null,grp:null}, TA={v:{}};
 const eff=(a,v)=>v==null?"–":T.meta.rates.includes(a)?(v>=0?"+":"")+(v*100).toFixed(1)+" pp":(v>=0?"+":"")+v.toFixed(2)+(a==="points"?" pts":"");
 const aLab=a=>T.meta.attrs[a]+(T.meta.rates.includes(a)?" (share of notes)":"");
-async function terroir(){ T=await load("terroir"); if(!T){ $("terroir").innerHTML='<p class="note">Run src/terroir.py to generate data/terroir.json.</p>'; return; }
+async function terroir(){ T=await load("terroir"); TA.v=await load("place_attrs")||{}; if(!T){ $("terroir").innerHTML='<p class="note">Run src/terroir.py to generate data/terroir.json.</p>'; return; }
   const A=Object.keys(T.meta.attrs), cs=T.curves.ALL.z_gdd, v=Object.fromEntries(T.variance.wset.map(r=>[r.factor,r.adj])), dn=T.decay.net_of_grape.bins[0];
   const cards=[[eff("points",cs.points.slope),"critic points per +1 SD warmer season (same place)"],[eff("s_acidity",cs.s_acidity.slope),"acidity cue (1–5 scale) per +1 SD warmer season"],
     [(100*dn[3]).toFixed(0)+"%","taste distance of regions <25 km apart, vs the average pair (net of grape)"],[(100*v["Place × grape"]).toFixed(1)+"%","of a note's WSET profile explained by place × grape"]];
@@ -226,7 +282,8 @@ async function terroir(){ T=await load("terroir"); if(!T){ $("terroir").innerHTM
   const exName=e=>`${e.place} — ${e.grape} (${e.reviews} notes, ${e.vint.length} vintages)`;
   const fillEx=()=>{ const q=$("tvq").value.toLowerCase(); T._ex=T.explorer.map((e,i)=>[e,i]).filter(([e])=>!q||(e.place+" "+e.grape).toLowerCase().includes(q)); $("tvs").innerHTML=T._ex.slice(0,200).map(([e,i])=>`<option value="${i}">${esc(exName(e))}</option>`).join(""); drawVint(); };
   $("tva").innerHTML=T.explorer_attrs.map(a=>`<option value="${a}">${esc(T.meta.attrs[a])}</option>`).join(""); $("tvq").oninput=fillEx; $("tvs").onchange=$("tva").onchange=drawVint; fillEx();
-  ["ts","tp","td","tc"].forEach(i=>$(i).onchange=()=>drawTaste()); $("tclr").onclick=()=>{TS.sel=new Set(); paintSel()};
+  $("tat").innerHTML=TATTR.map(a=>`<option value="${a[0]}">${esc(a[1])}</option>`).join(""); ["ts","tp","td","tc","tat","tlab","tsh"].forEach(i=>$(i).onchange=()=>drawTaste()); $("tclr").onclick=()=>{TS.sel=new Set(); TS.focus=null; TS.grp=null; paintSel()};
+  $("tPresets").innerHTML+=PRESETS.map((p,i)=>`<button data-pre="${i}">${esc(p[0])}</button>`).join(""); document.querySelectorAll("[data-pre]").forEach(b=>b.onclick=()=>tastePreset(+b.dataset.pre));
   terroirRedraw(); weather(); }
 function terroirRedraw(){ if(!T)return; drawVar(); drawCurve(); drawForest(); drawVint(); drawTaste(); drawDecay(); }
 function drawVar(){ const W=T.variance.wset, E=Object.fromEntries(T.variance.embedding.map(r=>[r.factor,r.adj])), f=W.map(r=>r.factor);
@@ -262,38 +319,207 @@ function drawVint(){ const i=+$("tvs").value; const e=T.explorer[i]; if(!e){ Plo
   const cs=Object.entries(e.contrast).sort((p,q)=>Math.abs(q[1][0])-Math.abs(p[1][0]));
   $("tContH").textContent=`Warm years (${e.warm}) vs cool years (${e.cool}) · ${e.place.split(" · ")[0]}, ${e.grape}`;
   $("tCont").innerHTML=cs.length?`<table><tr><th>attribute</th><th>warm − cool</th><th>90% CI</th></tr>`+cs.map(([a,[d,lo,hi]])=>{const sig=lo>0||hi<0; return `<tr style="${sig?"":"opacity:.55"}"><td>${sig?"● ":""}${esc(T.meta.attrs[a])}</td><td>${eff(a,d)}</td><td class="note">${eff(a,lo)} … ${eff(a,hi)}</td></tr>`}).join("")+`</table><p class="note">Warm = season ≥0.4 SD above this place's norm, cool = ≤−0.4 SD. Few vintages → wide intervals.</p>`:'<p class="note">Fewer than 2 warm and 2 cool vintages with enough notes for a contrast.</p>'; }
+const TATTR=[["pts","critic points"],["acidity","acidity cue (1–5)"],["body","body cue (1–5)"],["tannin","tannin cue (1–5)"],["oak","oak (share of notes)"],["citrus","citrus fruit"],["tropical","tropical fruit"],["red_fruit","red fruit"],["black_fruit","black fruit"],["cooked","cooked fruit"],["tertiary","tertiary notes"],["price","median price $"],["red_share","red-wine share"]];
+const OLDW=["France","Italy","Spain","Portugal","Germany","Austria","Greece","Hungary","Romania","Switzerland"], NEWW=["US","Australia","New Zealand","Chile","Argentina","South Africa","Canada","Uruguay","Brazil"];
+const PRESETS=[["Burgundy vs Napa Valley",p=>p.province==="Burgundy",p=>p.name.startsWith("Napa Valley")],["Old World vs New World",p=>OLDW.includes(p.country),p=>NEWW.includes(p.country)],["Loire Valley vs Marlborough",p=>p.province==="Loire Valley",p=>p.name.startsWith("Marlborough")]];
 function tasteView(){ const sp=$("ts").value; let pj=$("tp").value, dm=+$("td").value; const byName=new Map(T.places.map((p,i)=>[p.name,i]));
   if(dm===3&&pj==="umap") pj="pca";
   if(sp==="emb"){ const E=T.space.emb; if(!E) return null; const idx=[],xy=[],col=[]; E.names.forEach((n,k)=>{ if(byName.has(n)){ idx.push(byName.get(n)); xy.push((pj==="pca"?E.pca2:E.umap2)[k]); col.push((pj==="pca"?E.col_pca:E.col_umap)[k]); } }); return {idx,xy,col,axes:null,dm:2,pj}; }
   const S=sp==="raw"?T.space.raw:T.space.net; dm=pj==="umap"?2:dm; return {idx:T.places.map((_,i)=>i),xy:dm===3?S.pca3:(pj==="pca"?S.pca2:S.umap2),col:pj==="pca"?S.col_pca:S.col_umap,axes:pj==="pca"?S.axes:null,dm,pj}; }
 const CPAL=["#4e79a7","#f28e2b","#59a14f","#e15759","#b07aa1","#76b7b2","#edc948","#9c755f","#ff9da7","#bab0ac","#86bc86","#d37295"];
-function drawTaste(){ const V=tasteView(); if(!V){ $("tSel").textContent="Embedding space unavailable."; return; } TS.view=V; const P=T.places, cm=$("tc").value;
-  const cty=[...new Set(P.map(p=>p.country))].sort(), colors=V.idx.map((pi,k)=>cm==="taste"?V.col[k]:cm==="country"?CPAL[cty.indexOf(P[pi].country)%CPAL.length]:P[pi].pts);
-  const marker=(sz)=>Object.assign({size:V.idx.map(pi=>sz+3*Math.log10(P[pi].n)),opacity:1},cm==="pts"?{color:colors,colorscale:"Turbo",showscale:false,line:{width:.5,color:"#0007"}}:{color:colors,line:{width:.5,color:"#0007"}});
-  const text=V.idx.map(pi=>{const p=P[pi]; return `<b>${esc(p.name)}</b><br>${p.n} notes · ${p.pts} pts<br>${esc(p.grapes)}<br><i>distinct: ${p.more.slice(0,3).map(x=>x[0]).join(", ")}</i>`});
-  Plotly.react("tMap",[{type:"scattergeo",mode:"markers",lat:V.idx.map(pi=>P[pi].lat),lon:V.idx.map(pi=>P[pi].lon),customdata:V.idx,text,hoverinfo:"text",marker:marker(5)}],
+const attrOf=(p,a)=>a==="pts"?p.pts:((TA.v||{})[p.name]||{})[a];
+function colourKey(V,cm){ const el=$("tKey"); if(cm!=="taste"){ el.innerHTML=cm==="attr"?`<span class="note">Colour = ${esc(TATTR.find(a=>a[0]===$("tat").value)[1])} (bar on the map).</span>`:cm==="country"?'<span class="note">Colour = country.</span>':'<span class="note">Colour = average critic points.</span>'; return; }
+  let s='<svg viewBox="0 0 200 110" width="200" height="110" style="float:left;margin-right:12px"><g transform="translate(55,55)">'; for(let a=0;a<360;a+=10) for(const [r0,r1,rr] of [[0,26,.3],[26,50,.9]]){ const t0=a*Math.PI/180,t1=(a+10)*Math.PI/180; s+=`<path d="M${r0*Math.cos(t0)} ${-r0*Math.sin(t0)}L${r1*Math.cos(t0)} ${-r1*Math.sin(t0)}A${r1} ${r1} 0 0 0 ${r1*Math.cos(t1)} ${-r1*Math.sin(t1)}L${r0*Math.cos(t1)} ${-r0*Math.sin(t1)}Z" fill="hsl(${a+5} ${(0.35+0.55*rr)*100}% ${(0.62-0.18*rr)*100}%)"/>`; }
+  s+='</g><text x="115" y="30" font-size="11" fill="'+css("--muted")+'">hue = direction</text><text x="115" y="46" font-size="11" fill="'+css("--muted")+'">from the centre</text><text x="115" y="70" font-size="11" fill="'+css("--muted")+'">strength =</text><text x="115" y="86" font-size="11" fill="'+css("--muted")+'">distance out</text></svg>';
+  el.innerHTML=s+`<span class="note"><b>Colour key.</b> A dot's colour is where it sits in the taste plot: the same colour on the map and in the plot means similar taste, and neighbouring colours mean neighbouring tastes. ${V.pj==="pca"&&V.axes?`Left–right (${(100*V.axes[0].ev).toFixed(0)}% of the variation): ${esc(V.axes[0].neg.slice(0,3).join(", "))} ⟷ ${esc(V.axes[0].pos.slice(0,3).join(", "))}. Up–down: ${esc(V.axes[1].neg.slice(0,3).join(", "))} ⟷ ${esc(V.axes[1].pos.slice(0,3).join(", "))}.`:V.pj==="umap"?"UMAP keeps neighbours together but its axes mean nothing.":""}</span><div style="clear:both"></div>`; }
+function drawTaste(){ const V=tasteView(); if(!V){ $("tSel").textContent="Embedding space unavailable."; return; } TS.view=V; const P=T.places, cm=$("tc").value; $("tat").style.display=cm==="attr"?"":"none"; const at=$("tat").value||"pts";
+  const cty=[...new Set(P.map(p=>p.country))].sort(), av=V.idx.map(pi=>attrOf(P[pi],at)), okv=av.filter(v=>v!=null).sort((a,b)=>a-b), lo=okv.length?okv[Math.floor(okv.length*.03)]:0, hi=okv.length?okv[Math.floor(okv.length*.97)]:1;
+  const colors=V.idx.map((pi,k)=>cm==="taste"?V.col[k]:cm==="country"?CPAL[cty.indexOf(P[pi].country)%CPAL.length]:cm==="attr"?av[k]:P[pi].pts); TS.base=colors.slice();
+  const sym=V.idx.map(pi=>$("tsh").checked?(((TA.v||{})[P[pi].name]||{}).red_share>=.5?"circle":"diamond"):"circle");
+  const marker=(sz,bar)=>Object.assign({size:V.idx.map(pi=>sz+3*Math.log10(P[pi].n)),opacity:1,symbol:sym},(cm==="pts"||cm==="attr")?{color:colors,colorscale:cm==="attr"?"Viridis":"Turbo",cmin:cm==="attr"?lo:undefined,cmax:cm==="attr"?hi:undefined,showscale:!!bar,colorbar:bar?{title:{text:cm==="attr"?TATTR.find(a=>a[0]===at)[1]:"points",font:{size:11}},thickness:10,len:.6}:undefined,line:{width:.5,color:"#0007"}}:{color:colors,line:{width:.5,color:"#0007"}});
+  const text=V.idx.map(pi=>{const p=P[pi], a=cm==="attr"?`<br>${TATTR.find(x=>x[0]===at)[1]}: ${attrOf(p,at)==null?"–":attrOf(p,at)}`:""; return `<b>${esc(p.name)}</b><br>${p.n} notes · ${p.pts} pts${a}<br>${esc(p.grapes)}<br><i>distinct: ${p.more.slice(0,3).map(x=>x[0]).join(", ")}</i>`});
+  const ring={hoverinfo:"skip",showlegend:false,marker:{size:24,color:"rgba(0,0,0,0)",line:{width:3,color:"#fff"}}}, twin={type:"scattergeo",mode:"lines",lat:[],lon:[],hoverinfo:"skip",line:{color:"#e15759",width:1.6},showlegend:false};
+  Plotly.react("tMap",[{type:"scattergeo",mode:"markers",lat:V.idx.map(pi=>P[pi].lat),lon:V.idx.map(pi=>P[pi].lon),customdata:V.idx,text,hoverinfo:"text",marker:marker(5,true),showlegend:false},Object.assign({type:"scattergeo",mode:"markers",lat:[],lon:[]},ring),twin],
     lay({dragmode:"select",margin:{l:0,r:0,t:0,b:0},geo:{projection:{type:"natural earth"},showland:true,landcolor:css("--panel"),showocean:true,oceancolor:css("--bg"),showcountries:true,countrycolor:css("--line"),bgcolor:"rgba(0,0,0,0)"}}),{responsive:true,displaylogo:false});
-  const ax=V.axes; $("tAx").innerHTML=ax&&V.pj==="pca"?`· x: ${ax[0].neg.slice(0,2).join(", ")} ← → ${ax[0].pos.slice(0,2).join(", ")} (${(100*ax[0].ev).toFixed(0)}%) · y: ${ax[1].neg.slice(0,2).join(", ")} ← → ${ax[1].pos.slice(0,2).join(", ")}`:(V.pj==="umap"?"· UMAP: only neighbourhoods are meaningful":"");
-  const lo={margin:{l:10,r:10,t:10,b:10}};
-  if(V.dm===3) Plotly.react("tProj",[{type:"scatter3d",mode:"markers",x:V.xy.map(r=>r[0]),y:V.xy.map(r=>r[1]),z:V.xy.map(r=>r[2]),customdata:V.idx,text,hoverinfo:"text",marker:Object.assign({},marker(3),{line:{width:0}})}],lay(Object.assign(lo,{scene:{xaxis:{showticklabels:false,title:"PC1"},yaxis:{showticklabels:false,title:"PC2"},zaxis:{showticklabels:false,title:"PC3"}}})),{responsive:true,displaylogo:false});
-  else Plotly.react("tProj",[{type:"scatter",mode:"markers",x:V.xy.map(r=>r[0]),y:V.xy.map(r=>r[1]),customdata:V.idx,text,hoverinfo:"text",marker:marker(6)}],lay(Object.assign(lo,{dragmode:"select",xaxis:{showticklabels:false,zeroline:false,showgrid:false},yaxis:{showticklabels:false,zeroline:false,showgrid:false}})),{responsive:true,displaylogo:false});
-  ["tMap","tProj"].forEach(id=>{ const el=$(id); el.removeAllListeners&&["plotly_selected","plotly_deselect","plotly_click"].forEach(ev=>el.removeAllListeners(ev));
-    el.on("plotly_selected",ev=>{ if(!ev||!ev.points||!ev.points.length) return; TS.sel=new Set(ev.points.map(p=>p.customdata)); paintSel(); });
-    el.on("plotly_deselect",()=>{TS.sel=new Set(); paintSel()});
-    el.on("plotly_click",ev=>{ const c=ev.points[0].customdata; TS.sel.has(c)?TS.sel.delete(c):TS.sel.add(c); paintSel(); }); });
+  const ax=V.axes, lo2={margin:{l:10,r:10,t:10,b:10}}; $("tAx").innerHTML=V.pj==="umap"?"· UMAP: only neighbourhoods are meaningful":"";
+  const big=[...V.idx.keys()].sort((a,b)=>P[V.idx[b]].n-P[V.idx[a]].n).slice(0,$("tlab").checked?18:0), ann=[];
+  if(V.dm===2&&V.pj==="pca"&&ax){ const f=(x,y,t,xa,ya)=>({xref:"paper",yref:"paper",x,y,text:t,showarrow:false,xanchor:xa,yanchor:ya,font:{size:11,color:css("--muted")}}); ann.push(f(0,.5,"◀ "+ax[0].neg.slice(0,2).join(", "),"left","middle"),f(1,.5,ax[0].pos.slice(0,2).join(", ")+" ▶","right","middle"),f(.5,1,"▲ "+ax[1].pos.slice(0,2).join(", "),"center","top"),f(.5,0,"▼ "+ax[1].neg.slice(0,2).join(", "),"center","bottom")); }
+  const lab={type:"scatter",mode:"text",x:big.map(k=>V.xy[k][0]),y:big.map(k=>V.xy[k][1]),text:big.map(k=>P[V.idx[k]].name.split(" · ")[0]),textposition:"top center",textfont:{size:10,color:css("--ink")},hoverinfo:"skip",showlegend:false};
+  if(V.dm===3) Plotly.react("tProj",[{type:"scatter3d",mode:"markers",x:V.xy.map(r=>r[0]),y:V.xy.map(r=>r[1]),z:V.xy.map(r=>r[2]),customdata:V.idx,text,hoverinfo:"text",marker:Object.assign({},marker(3,false),{line:{width:0}}),showlegend:false},Object.assign({type:"scatter3d",mode:"markers",x:[],y:[],z:[]},ring)],lay(Object.assign(lo2,{scene:{xaxis:{showticklabels:false,title:"PC1"},yaxis:{showticklabels:false,title:"PC2"},zaxis:{showticklabels:false,title:"PC3"}}})),{responsive:true,displaylogo:false});
+  else Plotly.react("tProj",[{type:"scatter",mode:"markers",x:V.xy.map(r=>r[0]),y:V.xy.map(r=>r[1]),customdata:V.idx,text,hoverinfo:"text",marker:marker(6,false),showlegend:false},Object.assign({type:"scatter",mode:"markers",x:[],y:[]},ring),lab],lay(Object.assign(lo2,{dragmode:"select",annotations:ann,xaxis:{showticklabels:false,zeroline:false,showgrid:false},yaxis:{showticklabels:false,zeroline:false,showgrid:false}})),{responsive:true,displaylogo:false});
+  colourKey(V,cm);
+  const pos=(id,c)=>{ const k=V.idx.indexOf(c), p=P[c]; return id==="tMap"?{lat:[p.lat],lon:[p.lon]}:(V.dm===3?{x:[V.xy[k][0]],y:[V.xy[k][1]],z:[V.xy[k][2]]}:{x:[V.xy[k][0]],y:[V.xy[k][1]]}); };
+  ["tMap","tProj"].forEach(id=>{ const el=$(id), other=id==="tMap"?"tProj":"tMap"; el.removeAllListeners&&["plotly_selected","plotly_deselect","plotly_click","plotly_hover","plotly_unhover"].forEach(ev=>el.removeAllListeners(ev));
+    el.on("plotly_selected",ev=>{ if(!ev||!ev.points||!ev.points.length) return; TS.focus=null; TS.grp=null; TS.sel=new Set(ev.points.map(p=>p.customdata)); paintSel(); });
+    el.on("plotly_deselect",()=>{TS.sel=new Set(); TS.focus=null; TS.grp=null; paintSel()});
+    el.on("plotly_hover",ev=>{ const c=ev.points[0].customdata; if(c==null||c===undefined) return; try{ Plotly.restyle(other,Object.fromEntries(Object.entries(pos(other,c)).map(([k,v])=>[k,[v]])),[1]); }catch(e){} });
+    el.on("plotly_unhover",()=>{ try{ Plotly.restyle(other,{x:[[]],y:[[]],lat:[[]],lon:[[]],z:[[]]},[1]); }catch(e){} });
+    el.on("plotly_click",ev=>{ const c=ev.points[0].customdata; if(c==null) return; twinsOf(c); }); });
   paintSel(); }
-function paintSel(){ const V=TS.view; if(!V) return; const has=TS.sel.size>0, op=V.idx.map(pi=>!has||TS.sel.has(pi)?1:.12);
-  ["tMap","tProj"].forEach(id=>{ try{Plotly.restyle(id,{"marker.opacity":[op],selectedpoints:[null]},[0])}catch(e){} });
-  const P=T.places, S=[...TS.sel].filter(i=>V.idx.includes(i)).map(i=>P[i]);
-  if(!S.length){ $("tSel").textContent="Select places on the map or in the taste plot (drag a box or click) to compare them: the selection is highlighted in both views."; return; }
-  const N=S.reduce((a,p)=>a+p.n,0), gr={}, ds={}; S.forEach(p=>{ p.grapes.split(", ").forEach(t=>{const m=t.match(/^(.*) \((\d+)\)$/); if(m) gr[m[1]]=(gr[m[1]]||0)+ +m[2]}); p.more.forEach(([n,v])=>{ds[n]=(ds[n]||[0,0]); ds[n][0]+=v*p.n; ds[n][1]+=p.n}); });
-  const tg=Object.entries(gr).sort((a,b)=>b[1]-a[1]).slice(0,6).map(([g,n])=>`${esc(g)} (${n})`).join(", "), dv=Object.entries(ds).map(([n,[s,w]])=>[n,s/N,w]).filter(r=>r[2]>=N*.08);
-  const up=dv.filter(r=>r[1]>0).sort((a,b)=>b[1]-a[1]).slice(0,6).map(r=>r[0]).join(", "), dn=dv.filter(r=>r[1]<0).sort((a,b)=>a[1]-b[1]).slice(0,4).map(r=>r[0]).join(", ");
-  const cts=[...new Set(S.map(p=>p.country))]; $("tSel").innerHTML=`<b>${S.length} places</b> (${cts.slice(0,6).join(", ")}${cts.length>6?"…":""}) · ${N.toLocaleString()} notes · avg ${(S.reduce((a,p)=>a+p.pts*p.n,0)/N).toFixed(1)} pts<br>Main grapes: ${tg}<br>Distinctive in these places (net of grape, vs all places): <b>more</b> ${up||"–"}${dn?` · <b>less</b> ${dn}`:""}${S.length<=6?"<br>"+S.map(p=>`<span class="note">${esc(p.name)}: ${esc(p.more.slice(0,4).map(x=>x[0]).join(", "))}</span>`).join("<br>"):""}`; }
+function twinsOf(c){ const V=TS.view, P=T.places, k=V.idx.indexOf(c); if(k<0) return; const d=V.idx.map((pi,j)=>[j===k?1e9:V.xy[j].reduce((s,v,i)=>s+(v-V.xy[k][i])**2,0),pi]).sort((a,b)=>a[0]-b[0]).slice(0,8).map(a=>a[1]);
+  TS.focus={c,twins:d}; TS.grp=null; TS.sel=new Set([c,...d]); paintSel(); }
+function groupSummary(S){ const N=S.reduce((a,p)=>a+p.n,0), gr={}, ds={}; S.forEach(p=>{ p.grapes.split(", ").forEach(t=>{const m=t.match(/^(.*) \((\d+)\)$/); if(m) gr[m[1]]=(gr[m[1]]||0)+ +m[2]}); p.more.forEach(([n,v])=>{ds[n]=(ds[n]||[0,0]); ds[n][0]+=v*p.n; ds[n][1]+=p.n}); });
+  const dv=Object.entries(ds).map(([n,[s,w]])=>[n,s/N,w]).filter(r=>r[2]>=N*.08); return {N,places:S.length,pts:S.reduce((a,p)=>a+p.pts*p.n,0)/N,grapes:Object.entries(gr).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([g,n])=>`${esc(g)} (${n})`).join(", "),up:dv.filter(r=>r[1]>0).sort((a,b)=>b[1]-a[1]).slice(0,6).map(r=>r[0]).join(", "),dn:dv.filter(r=>r[1]<0).sort((a,b)=>a[1]-b[1]).slice(0,4).map(r=>r[0]).join(", "),cty:[...new Set(S.map(p=>p.country))]}; }
+function paintSel(){ const V=TS.view; if(!V) return; const P=T.places, has=TS.sel.size>0, op=V.idx.map(pi=>!has||TS.sel.has(pi)?1:.12);
+  const cols=TS.grp?TS.base.map((c,k)=>TS.grp.has(V.idx[k])?(TS.grp.get(V.idx[k])===0?"#4e79a7":"#e15759"):c):TS.base, num=typeof TS.base[0]==="number", upd={"marker.opacity":[op],selectedpoints:[null]}; if(!num||TS.grp) upd["marker.color"]=[cols];
+  ["tMap","tProj"].forEach(id=>{ try{Plotly.restyle(id,upd,[0])}catch(e){} });
+  const f=TS.focus, lines={lat:[[]],lon:[[]]}; if(f){ const a=P[f.c]; f.twins.forEach(t=>{ lines.lat[0].push(a.lat,P[t].lat,null); lines.lon[0].push(a.lon,P[t].lon,null); }); } try{ Plotly.restyle("tMap",lines,[2]); }catch(e){}
+  const S=[...TS.sel].filter(i=>V.idx.includes(i)).map(i=>P[i]);
+  if(!S.length){ $("tSel").innerHTML="Select places on the map or in the taste plot (drag a box), <b>click one place to see its taste twins</b>, or try a comparison below: the selection is highlighted in both views."; return; }
+  if(TS.grp){ const A=[...TS.grp].filter(([,g])=>g===0).map(([i])=>P[i]), B=[...TS.grp].filter(([,g])=>g===1).map(([i])=>P[i]), a=groupSummary(A), b=groupSummary(B), cen=L=>[L.reduce((s,p)=>s+p.lat,0)/L.length,L.reduce((s,p)=>s+p.lon,0)/L.length], ca=cen(A), cb=cen(B), km=WsetGuess.haversine(ca[0],ca[1],cb[0],cb[1]);
+    const col=(g,s,c)=>`<div><b style="color:${c}">${esc(g)}</b>: ${s.places} places, ${s.N.toLocaleString()} notes, avg ${s.pts.toFixed(1)} pts<br>Main grapes: ${s.grapes}<br>Distinctive (net of grape): <b>more</b> ${s.up||"–"}${s.dn?` · <b>less</b> ${s.dn}`:""}</div>`;
+    $("tSel").innerHTML=`<div class="grid2">${col(TS.gnames[0],a,"#4e79a7")}${col(TS.gnames[1],b,"#e15759")}</div><p class="note">The two groups' centres are about ${Math.round(km).toLocaleString()} km apart on the map. The taste plot shows how far apart they are in taste.</p>`; return; }
+  const s=groupSummary(S); let h=f?`<b>Taste twins of ${esc(P[f.c].name)}</b> (nearest in this plot): `+f.twins.map(t=>`${esc(P[t].name)} <span class="note">${Math.round(WsetGuess.haversine(P[f.c].lat,P[f.c].lon,P[t].lat,P[t].lon)).toLocaleString()} km</span>`).join(" · ")+"<br>":"";
+  $("tSel").innerHTML=h+`<b>${s.places} places</b> (${s.cty.slice(0,6).join(", ")}${s.cty.length>6?"…":""}) · ${s.N.toLocaleString()} notes · avg ${s.pts.toFixed(1)} pts<br>Main grapes: ${s.grapes}<br>Distinctive in these places (net of grape, vs all places): <b>more</b> ${s.up||"–"}${s.dn?` · <b>less</b> ${s.dn}`:""}${S.length<=6&&!f?"<br>"+S.map(p=>`<span class="note">${esc(p.name)}: ${esc(p.more.slice(0,4).map(x=>x[0]).join(", "))}</span>`).join("<br>"):""}`; }
+function tastePreset(i){ const [name,fa,fb]=PRESETS[i], P=T.places, V=TS.view; if(!V) return; const A=V.idx.filter(k=>fa(P[k])), B=V.idx.filter(k=>fb(P[k])); if(!A.length||!B.length){ $("tSel").textContent="This comparison needs places not present in the current space."; return; }
+  TS.focus=null; TS.grp=new Map([...A.map(k=>[k,0]),...B.map(k=>[k,1])]); TS.gnames=name.split(" vs "); TS.sel=new Set([...A,...B]); paintSel(); }
 function drawDecay(){ const D=T.decay, ln=(k,name,col)=>{const b=D[k].bins, x=b.map(r=>r[1]>=20000?"> 3,200":`${r[0]}–${r[1]}`); return [{x,y:b.map(r=>r[5]),type:"scatter",mode:"lines",line:{width:0},hoverinfo:"skip",showlegend:false},{x,y:b.map(r=>r[4]),type:"scatter",mode:"lines",fill:"tonexty",fillcolor:col+"22",line:{width:0},hoverinfo:"skip",showlegend:false},
     {x,y:b.map(r=>r[3]),type:"scatter",mode:"lines+markers",name,line:{color:col,width:3},marker:{size:7},text:b.map(r=>`${r[2].toLocaleString()} place pairs`),hoverinfo:"text+y"}]};
   Plotly.react("decayPlot",[...ln("raw","WSET profile",PAL[0]),...ln("net_of_grape","net of grape",PAL[1])],lay({xaxis:{title:"Distance between two regions (km)"},yaxis:{title:"Taste distance (1 = average pair)",rangemode:"tozero"},legend:{orientation:"h",y:-0.3},margin:{l:60,r:10,t:10,b:70},shapes:[{type:"line",xref:"paper",x0:0,x1:1,y0:1,y1:1,line:{color:css("--muted"),dash:"dot"}}]}),{displayModeBar:false});
   const n=D.net_of_grape, r=D.raw; $("tDecayTxt").innerHTML=`Regions under 25 km apart taste about <b>${(100*n.bins[0][3]).toFixed(0)}%</b> as different as an average pair (net of grape; ${(100*r.bins[0][3]).toFixed(0)}% raw), rising to about 100% beyond a few hundred km. Over distances under 1,600 km the rank correlation is ρ = ${n.rho_lt1600} (net of grape) / ${r.rho_lt1600} (raw); permutation (Mantel) test over all pairs: p = ${r.p} raw, ${n.p} net. Band = interquartile range.`; }
+/* ---------- Guess tab ---------- */
+let GM=null; const GMT={};
+const ARCH=[
+["Sauvignon Blanc style (cool climate)","Pale lemon-green. Intense aromas of gooseberry, cut grass, passion fruit and a hint of asparagus. Dry, with high acidity and light body. Pronounced grapefruit and lime flavours and a long, zesty finish. Drink young."],
+["Cabernet Sauvignon style (Bordeaux-like)","Deep purple. Blackcurrant, cedar, graphite and a touch of green pepper, with vanilla and cloves from new oak. Dry, high tannins, medium(+) acidity, full body and a long finish. Will age for fifteen years or more."],
+["Pinot Noir style (Burgundy-like)","Pale ruby. Red cherry, raspberry and violets with forest floor and mushroom notes. Fine-grained tannins, high acidity, medium body, medium(+) finish."],
+["Oaked Chardonnay style","Medium lemon. Toasty brioche, butter, ripe peach and vanilla from oak. Dry, medium(+) acidity, full body and a creamy texture. Drink now."],
+["Riesling style (off-dry, cool)","Pale lemon. Lime, green apple, honeysuckle and a note of petrol. Off-dry, high acidity, low alcohol, light body, wet stones on the long finish."],
+["Sangiovese / Nebbiolo style (Italy)","Garnet with an orange rim. Sour cherry, dried herbs, leather and tar. High acidity and grippy, chalky tannins, medium body. Drink 2022-2035."],
+["Syrah / Shiraz style (warm)","Deep ruby. Ripe blackberry, plum, black pepper and smoked meat. Full body, firm tannins, high alcohol, medium acidity and a long finish."],
+["Gewürztraminer style","Pale gold. Lychee, rose petal and ginger. Off-dry, low acidity, high alcohol, medium(+) body and an oily texture."],
+["Zinfandel style (California)","Deep ruby. Raspberry jam, stewed prune, liquorice and vanilla. Very ripe, soft tannins, high alcohol and full body."],
+["Provence rosé style","Pale pink. Strawberry, watermelon and a hint of herbs. Dry, crisp acidity, light body and a short finish."],
+["Traditional-method sparkling style","Pale lemon. Green apple, lemon zest, brioche and toasted bread from lees ageing. High acidity, fine persistent mousse, medium body."],
+["Rioja / Tempranillo style","Garnet. Dried cherries, tobacco, leather and cedar. Fine-grained tannins, medium(+) acidity, savoury finish. Drink now."]];
+const cls3=c=>{ const [a,b,r]=c.split("|"); return r?`${r} · ${b}, ${a}`:b?`${b}, ${a} (province)`:`${a} (country)`; };
+async function guess(){ if(!LEX) LEX=await load("lexicon"); GM=await load("guess_model"); if(!LEX||!GM){ $("guess").innerHTML='<p class="note">Run src/export_guess.py to generate data/guess_model.json.</p>'; return; }
+  GMT.m=new WsetMatcher.Matcher(LEX,{embed:false});
+  $("gex").innerHTML='<option value="">—</option>'+ARCH.map((a,i)=>`<option value="${i}">${esc(a[0])}</option>`).join(""); $("gex").onchange=()=>{ if($("gex").value!==""){ $("gtext").value=ARCH[+$("gex").value][1]; runGuess(); } };
+  let tm=null; $("gtext").oninput=()=>{ clearTimeout(tm); tm=setTimeout(runGuess,250); }; $("gtext").value=ARCH[2][1]; $("gex").value="2";
+  runGuess(); guessExamples(); guessRounds(); }
+function circlePts(lat,lon,km){ const R=6371, d=km/R, la=lat*Math.PI/180, lo=lon*Math.PI/180, P=[]; for(let b=0;b<=360;b+=10){ const t=b*Math.PI/180, la2=Math.asin(Math.sin(la)*Math.cos(d)+Math.cos(la)*Math.sin(d)*Math.cos(t)), lo2=lo+Math.atan2(Math.sin(t)*Math.sin(d)*Math.cos(la),Math.cos(d)-Math.sin(la)*Math.sin(la2)); P.push([la2*180/Math.PI,((lo2*180/Math.PI+540)%360)-180]); } return P; }
+function guessWhy(x,Pv){ const n=GM.mu.length, z=Array.from(x,(v,i)=>(v-GM.mu[i])/GM.sd[i]), W=GM.variety.W, top=Pv.indexOf(Math.max(...Pv)), names=GM.spec.names;
+  const mean=new Array(n).fill(0); W.forEach((w,k)=>{ for(let i=0;i<n;i++) mean[i]+=Pv[k]*w[i]; });
+  return {cls:GM.variety.classes[top], items:z.map((v,i)=>[names[i],v*(W[top][i]-mean[i])]).filter(a=>a[1]>0.03).sort((a,b)=>b[1]-a[1]).slice(0,8)}; }
+const featLab=n=>n.replace(/^a_/,"").replace(/__/,": ").replace(/^s_/,"").replace(/^cat_/,"").replace(/_/g," ");
+function runGuess(){ const text=$("gtext").value; if(!text.trim()){ ["gGrape","gPlace","gMap"].forEach(i=>Plotly.purge(i)); $("gProd").innerHTML=""; $("gNum").innerHTML=""; $("gWhy").innerHTML=""; $("gmatch").textContent="Type or pick a description."; return; }
+  const r=GMT.m.match(text,null), x=WsetGuess.featurize(r,GM.spec,WsetMatcher.resolveRipeness), o=WsetGuess.predict(GM,x);
+  const used=[...new Set(r.hits.filter(h=>!h.neg).map(h=>label(h.kind,h.f1,h.f2)))].slice(0,18);
+  $("gmatch").innerHTML=`Read ${used.length} cues: ${used.map(u=>`<span class="di">${esc(fmt(u))}</span>`).join(" ")||"none (the guess falls back to base rates)"}`;
+  const tv=WsetGuess.top(o.Pv,GM.variety.classes,8).map(([c,p])=>[c==="__other__"?"other / rarer grapes":c,p]);
+  Plotly.react("gGrape",[{type:"bar",orientation:"h",x:tv.map(a=>a[1]*100),y:tv.map(a=>a[0]),marker:{color:PAL[2]},text:tv.map(a=>(a[1]*100).toFixed(0)+"%"),textposition:"outside",hoverinfo:"skip"}],lay({xaxis:{title:"probability %",range:[0,Math.min(100,Math.max(...tv.map(a=>a[1]*100))*1.25)]},yaxis:{autorange:"reversed"},margin:{l:150,r:20,t:10,b:40}}),{displayModeBar:false});
+  $("gGroup").innerHTML="Grape family: "+WsetGuess.top(o.Pg,GM.variety.groups,3).map(([c,p])=>`<b>${esc(c)}</b> ${(p*100).toFixed(0)}%`).join(" · ");
+  const tp=WsetGuess.top(o.Pp,GM.place.classes,8);
+  Plotly.react("gPlace",[{type:"bar",orientation:"h",x:tp.map(a=>a[1]*100),y:tp.map(a=>cls3(a[0])),marker:{color:PAL[0]},text:tp.map(a=>(a[1]*100).toFixed(0)+"%"),textposition:"outside",hoverinfo:"skip"}],lay({xaxis:{title:"probability %",range:[0,Math.min(100,Math.max(...tp.map(a=>a[1]*100))*1.25)]},yaxis:{autorange:"reversed"},margin:{l:230,r:20,t:10,b:40}}),{displayModeBar:false});
+  const pt=WsetGuess.placePoint(GM,o.Pp), big=WsetGuess.top(o.Pp,GM.place.classes,25).map(([c,p])=>[c,p,GM.place.xy[GM.place.classes.indexOf(c)]]).filter(a=>a[2][0]!==null);
+  const c80=circlePts(pt[0],pt[1],Math.max(30,pt[3])), c50=circlePts(pt[0],pt[1],Math.max(15,pt[2]));
+  $("gPoint").textContent=`best point ±${Math.round(pt[2])} km (50%), ±${Math.round(pt[3])} km (80%)`;
+  Plotly.react("gMap",[{type:"scattergeo",mode:"lines",lat:c80.map(a=>a[0]),lon:c80.map(a=>a[1]),line:{color:PAL[1],width:1,dash:"dot"},hoverinfo:"skip"},{type:"scattergeo",mode:"lines",lat:c50.map(a=>a[0]),lon:c50.map(a=>a[1]),line:{color:PAL[1],width:2},hoverinfo:"skip"},
+    {type:"scattergeo",mode:"markers",lat:big.map(a=>a[2][0]),lon:big.map(a=>a[2][1]),text:big.map(a=>`${cls3(a[0])}: ${(a[1]*100).toFixed(1)}%`),hoverinfo:"text",marker:{size:big.map(a=>6+Math.sqrt(a[1])*60),color:PAL[0],opacity:.55,line:{width:.5,color:"#0008"}}},
+    {type:"scattergeo",mode:"markers",lat:[pt[0]],lon:[pt[1]],hoverinfo:"skip",marker:{symbol:"star",size:13,color:PAL[3],line:{width:1,color:"#fff"}}}],
+    lay({showlegend:false,margin:{l:0,r:0,t:0,b:0},geo:{projection:{type:"natural earth"},fitbounds:"locations",showland:true,landcolor:css("--panel"),showocean:true,oceancolor:css("--bg"),showcountries:true,countrycolor:css("--line"),bgcolor:"rgba(0,0,0,0)"}}),{displayModeBar:false});
+  const tw=WsetGuess.top(o.Pw,GM.producer.wineries,5), oth=GM.producer.p_other, rest=Math.max(0,1-oth-tw.reduce((a,b)=>a+b[1],0));
+  $("gProd").innerHTML="<table>"+tw.map(([w,p])=>`<tr><td>${esc(w)}</td><td>${(p*100).toFixed(1)}%</td></tr>`).join("")+`<tr class="note"><td>any other winery</td><td>${((oth+rest)*100).toFixed(0)}%</td></tr></table>`;
+  const v=o.vintage, pr=o.price.map(Math.exp), pn=o.points;
+  const rr=(lab,lo,med,hi,mn,mx,lg,f)=>{ const s=v=>lg?(Math.log(v)-Math.log(mn))/(Math.log(mx)-Math.log(mn)):(v-mn)/(mx-mn), pc=v=>Math.max(0,Math.min(100,100*s(v)));
+    return `<div style="display:grid;grid-template-columns:90px 1fr 190px;gap:8px;align-items:center;margin:8px 0"><span>${lab}</span><div style="position:relative;height:16px;background:var(--line);border-radius:8px"><div style="position:absolute;left:${pc(lo)}%;width:${Math.max(1,pc(hi)-pc(lo))}%;height:16px;background:${PAL[2]}66;border-radius:8px"></div><div style="position:absolute;left:calc(${pc(med)}% - 6px);top:2px;width:12px;height:12px;border-radius:50%;background:${PAL[2]};border:2px solid var(--panel)"></div></div><span class="note"><b style="color:var(--ink)">${f(med)}</b> (80%: ${f(lo)}–${f(hi)})</span></div>`; };
+  $("gNum").innerHTML=rr("Vintage",v[0],v[1],v[2],1995,2018,false,x=>Math.round(x))+rr("Price",pr[0],pr[1],pr[2],5,500,true,x=>"$"+Math.round(x))+rr("Critic points",pn[0],pn[1],pn[2],80,100,false,x=>x.toFixed(0))+'<p class="note">Bars show the scale 1995–2018, $5–$500 (log), 80–100 points.</p>';
+  const w=guessWhy(x,o.Pv); $("gWhy").innerHTML=`Top guess: <b>${esc(w.cls==="__other__"?"a rarer grape":w.cls)}</b> `+(w.items.length?w.items.map(a=>`<span class="di">${esc(featLab(a[0]))} +${a[1].toFixed(2)}</span>`).join(" "):'<span class="note">(no single cue stands out: the guess leans on base rates)</span>'); }
+
+async function guessExamples(){ const el=$("gExamples"), ex=await load("blind_examples");
+  const arch=ARCH.map(([name,text])=>{ const r=GMT.m.match(text,null), o=WsetGuess.predict(GM,WsetGuess.featurize(r,GM.spec,WsetMatcher.resolveRipeness)), g=WsetGuess.top(o.Pv,GM.variety.classes,3), p=WsetGuess.top(o.Pp,GM.place.classes,2), v=o.vintage, pr=o.price.map(Math.exp);
+    return `<tr><td>${esc(name)}</td><td>${g.map(([c,q])=>`${esc(c==="__other__"?"other":c)} ${(q*100).toFixed(0)}%`).join(", ")}</td><td>${p.map(([c,q])=>`${esc(cls3(c))} ${(q*100).toFixed(0)}%`).join("<br>")}</td><td>${Math.round(v[1])}</td><td>$${Math.round(pr[1])}</td></tr>`; }).join("");
+  let h=`<div class="panel"><b>The twelve archetypes, as the model reads them</b><div style="overflow:auto"><table><tr><th>description (by us)</th><th>grape guess</th><th>place guess</th><th>vintage</th><th>price</th></tr>${arch}</table></div></div>`;
+  if(!ex||!ex.length){ el.innerHTML=h+'<p class="note">Revealed example notes appear here after a blind round (<code>python src/blind.py run</code>). They contain review text, so they stay on your machine and are not part of the public build.</p>'; return; }
+  GMT.ex=ex; GMT.shown=8; el.innerHTML=h+`<div class="row" style="margin-top:12px"><b>Revealed notes from blind rounds</b><label>Show <select id="gexf"><option value="all">all</option><option value="right">grape guessed right (top-1)</option><option value="wrong">grape guessed wrong</option></select></label><span class="note" id="gexc"></span></div><div id="gexl" class="grid2"></div><button id="gexm" style="margin-top:10px">more</button>`;
+  $("gexf").onchange=()=>{GMT.shown=8; drawGEx()}; $("gexm").onclick=()=>{GMT.shown+=8; drawGEx()}; drawGEx(); }
+function drawGEx(){ const f=$("gexf").value, E=GMT.ex.filter(e=>f==="all"||(f==="right")===(e.guess.variety[0][0]===e.truth.variety)); $("gexc").textContent=` ${E.length} of ${GMT.ex.length}`;
+  const iv=(t,r,fmt)=>t==null?"–":`${fmt(t)} ${t>=r[0]&&t<=r[2]?"✓ inside":"✗ outside"} ${fmt(r[0])}–${fmt(r[2])}`;
+  $("gexl").innerHTML=E.slice(0,GMT.shown).map(e=>{ const t=e.truth, g=e.guess, gv=g.variety.slice(0,3), pl=g.place.slice(0,3), pw=g.producer.slice(0,3), tripleOk=c=>{const [a,b,r]=c.split("|"); return a===t.country&&b===t.province&&(r||"")===(t.region||"")}, provOk=c=>{const [a,b]=c.split("|"); return a===t.country&&b===t.province};
+    return `<div class="panel"><div class="note" style="max-height:110px;overflow:auto">${esc(e.text)}</div><table style="margin-top:8px">
+    <tr><td>Grape</td><td><b>${esc(t.variety)}</b></td><td>${gv.map(([c,p])=>`<span style="${c===t.variety?"color:var(--accent);font-weight:600":""}">${esc(c==="__other__"?"other":c)} ${(p*100).toFixed(0)}%</span>`).join(" · ")}</td></tr>
+    <tr><td>Place</td><td><b>${esc([t.region,t.province,t.country].filter(Boolean).join(", "))}</b></td><td>${pl.map(([c,p])=>`<span style="${tripleOk(c)?"color:var(--accent);font-weight:600":provOk(c)?"color:var(--accent2)":""}">${esc(cls3(c))} ${(p*100).toFixed(0)}%</span>`).join("<br>")}</td></tr>
+    <tr><td>Producer</td><td><b>${esc(t.winery)}</b></td><td>${pw.map(([c,p])=>`<span style="${c===t.winery?"color:var(--accent);font-weight:600":""}">${esc(c)} ${(p*100).toFixed(1)}%</span>`).join("<br>")}</td></tr>
+    <tr><td>Vintage</td><td><b>${t.vintage??"–"}</b></td><td>${iv(t.vintage,g.vintage,x=>Math.round(x))}</td></tr>
+    <tr><td>Price</td><td><b>${t.price==null?"–":"$"+t.price}</b></td><td>${iv(t.price,g.price,x=>"$"+Math.round(x))}</td></tr>
+    <tr><td>Points</td><td><b>${t.points}</b></td><td>${iv(t.points,g.points,x=>Math.round(x))}</td></tr></table>
+    <p class="note">Why ${esc(g.variety[0][0]==="__other__"?"a rarer grape":g.variety[0][0])}: ${e.why.length?e.why.map(a=>esc(featLab(a[0]))).join(", "):"base rates"}</p></div>`; }).join(""); $("gexm").style.display=E.length>GMT.shown?"":"none"; }
+async function guessRounds(){ const R=await load("blind_rounds"), el=$("gRounds");
+  if(!R||!R.length){ el.innerHTML='<div class="panel"><p class="note">No blind round has been run yet. <code>python src/blind.py run</code> samples 500 notes never tested before, trains the models without them, guesses, reveals, scores and records the round (see <code>experiments/blind_tasting/</code>).</p></div>'; return; }
+  const cols=[["variety_top1","grape top-1","p"],["variety_top3","grape top-3","p"],["country_top1","country","p"],["province_top1","province","p"],["place_top3","region top-3","p"],["km_median","km error (median)","k"],["winery_top5_in_set","producer top-5*","p"],["vintage_mae","vintage MAE (y)","f"],["vintage_skill","vintage skill","f"],["price_skill","price skill","f"],["vintage_cover80","vintage 80% cover","p"],["price_cover80","price 80% cover","p"]];
+  const fm=(v,k)=>v==null?"–":k==="p"?(100*v).toFixed(1)+"%":k==="k"?Math.round(v)+" km":v.toFixed(2);
+  const table=(key,title)=>{ const Q=R.filter(r=>r[key]); if(!Q.length) return ""; const N=Q.reduce((a,r)=>a+r.n,0), pooled=Object.fromEntries(cols.map(([c])=>[c,Q.reduce((a,r)=>a+(r[key][c]??0)*r.n,0)/N]));
+    return `<div class="panel" style="overflow:auto;margin-bottom:12px"><b>${title}</b><table><tr><th>round</th><th>notes</th><th>trained on</th>${cols.map(c=>`<th>${c[1]}</th>`).join("")}</tr>${Q.map(r=>`<tr><td>${r.round}</td><td>${r.n}</td><td>${r.pool.toLocaleString()}</td>${cols.map(([c,,k])=>`<td>${fm(r[key][c],k)}</td>`).join("")}</tr>`).join("")}<tr><td><b>pooled</b></td><td>${N}</td><td></td>${cols.map(([c,,k])=>`<td><b>${fm(pooled[c],k)}</b></td>`).join("")}</tr></table></div>`; };
+  el.innerHTML=table("scores","Lite model (SAT features only; the one that runs in your browser)")+table("scores_full","Full model (SAT + text embedding)")+'<p class="note">*among wineries with ≥20 notes. With 500 notes a hit rate carries about ±2–4 points of sampling noise. Each round\'s 500 notes are excluded from training, then added to the ledger and to the next round\'s training data.</p><div id="gRoundPlot" class="plot s"></div>';
+  const tr=[]; [["scores","lite"],["scores_full","full"]].forEach(([k,lab],j)=>{ const Q=R.filter(r=>r[k]); if(Q.length) [["variety_top1","grape top-1"],["country_top1","country top-1"],["place_top3","region top-3"],["vintage_cover80","vintage 80% interval coverage"]].forEach(([c,n],i)=>tr.push({type:"scatter",mode:"lines+markers",name:`${n} (${lab})`,x:Q.map(r=>"round "+r.round),y:Q.map(r=>100*r[k][c]),line:{color:PAL[i],dash:j?"dot":"solid"}})); });
+  Plotly.react("gRoundPlot",tr,lay({yaxis:{title:"%",range:[0,100]},legend:{orientation:"h",y:-0.3}}),{displayModeBar:false}); }
+/* ---------- Causal tab ---------- */
+let CD=null, CZ=null; const CW={};
+const nice=n=>String(n).replace(/_/g," ");
+const KCOL={observed:["#4e79a7","#4e79a722"],derived:["#4e79a7","#4e79a722"],latent:["#888780","#88878014"],new_data:["#ba7517","#ef9f2722"],selection:["#7f77dd","#7f77dd22"],new_data_acquired:["#4e79a7","#4e79a722"]};
+const arrowStr=(g,p)=>p.map((n,i)=>i===0?nice(n):(g.ch[p[i-1]].has(n)?" → ":" ← ")+nice(n)).join("");
+async function causal(){ CD=await load("dags"); CZ=await load("causal"); if(!CD){ $("causal").innerHTML='<p class="note">Run src/causal.py export and src/causal_estimate.py.</p>'; return; }
+  $("cwg").innerHTML=CD.map(d=>`<option value="${d.id}">${esc(d.name)}</option>`).join(""); $("cgd").innerHTML=$("cwg").innerHTML;
+  if(CZ){ $("cgo").innerHTML=Object.entries(CZ.outcomes).map(([k,v])=>`<option value="${k}">${esc(v)}</option>`).join(""); $("cgo").onchange=$("cgd").onchange=drawGallery; drawGallery(); } else $("cgPlot").innerHTML='<p class="note">Run src/causal_estimate.py to generate the gallery.</p>';
+  drawBlocks(); $("cwg").onchange=()=>cwLoad($("cwg").value); ["cwx","cwy","cwc"].forEach(i=>$(i).onchange=cwRender); $("cwa").onclick=cwApply; ["cry","crx","crz","crw"].forEach(i=>$(i).onchange=drawRules);
+  cwLoad("no_selection_on_outcome"); $("cwg").value="no_selection_on_outcome"; }
+function drawGallery(){ const o=$("cgo").value, did=$("cgd").value, S=CZ.specs.filter(s=>s.rows[o]);
+  const col=s=>{ if(!s.valid||!Object.keys(s.valid).length) return "#9aa5b1"; return s.valid[did]&&s.valid[did][0]?"#3b9d5b":"#d1495b"; };
+  const y=S.map(s=>`${s.id} ${s.label}`);
+  Plotly.react("cgPlot",[{type:"scatter",mode:"markers",x:S.map(s=>s.rows[o][0]),y,error_x:{type:"data",symmetric:false,array:S.map(s=>s.rows[o][2]-s.rows[o][0]),arrayminus:S.map(s=>s.rows[o][0]-s.rows[o][1]),color:css("--muted")},
+    marker:{size:10,color:S.map(col),symbol:S.map(s=>s.id==="S9"||s.id==="S11"?"diamond":"circle")},text:S.map(s=>`${s.label}<br>${s.rows[o][0]} (90% ${s.rows[o][1]} … ${s.rows[o][2]}), n=${s.rows[o][3].toLocaleString()}<br>${s.valid&&s.valid[did]?(s.valid[did][0]?"valid: ":"not valid: ")+s.valid[did][1]:"placebo"}`),hoverinfo:"text"}],
+    lay({xaxis:{title:`change in ${CZ.outcomes[o]} per ${CZ.treatment}`,zeroline:true,zerolinecolor:css("--muted")},yaxis:{autorange:"reversed",tickfont:{size:11}},margin:{l:330,r:10,t:10,b:50},showlegend:false}),{displayModeBar:false});
+  const v=S.filter(s=>s.valid&&s.valid[did]&&s.valid[did][0]), pl=S.filter(s=>(s.id==="S9"||s.id==="S11")), fail=pl.filter(s=>s.rows[o][1]>0||s.rows[o][2]<0);
+  const dn=CD.find(d=>d.id===did).name;
+  $("cgTxt").innerHTML=`<span style="color:#3b9d5b">●</span> adjustment valid under the graph “${esc(dn)}” · <span style="color:#d1495b">●</span> not valid (missing a confounder, or adjusting for something downstream) · <span style="color:#9aa5b1">◆</span> placebo (next year's weather: should be about zero).<br>`+
+    (v.length?`Valid designs give ${v.map(s=>s.rows[o][0]).join(", ")}. `:`<b>Under this graph no listed design is valid</b> (the reason is in the hover text). `)+
+    (pl.length?(fail.length?`<b>Placebo check fails</b> for this outcome (${fail.map(s=>s.rows[o][0]+" ["+s.rows[o][1]+", "+s.rows[o][2]+"]").join("; ")}): next year's weather appears to “cause” this year's wine, so something other than the weather still moves with it, and the estimate should not be read as causal.`:`<b>Placebo check passes</b>: next year's weather has no detectable effect (${pl.map(s=>s.rows[o][0]).join(", ")}), which supports reading the valid estimates as causal.`):""); }
+function drawBlocks(){ const B=[["Chain","A → B → C",{A:[30,40],B:[130,40],C:[230,40]},[["A","B"],["B","C"]],"B","weather → ripeness → note: conditioning on ripeness blocks the very effect you want. Do not adjust for a mediator."],
+  ["Fork","A ← B → C",{B:[130,20],A:[40,70],C:[220,70]},[["B","A"],["B","C"]],"B","place → grape and place → note: A and C look related only because of B. Adjusting for place removes this confounding. Do adjust."],
+  ["Collider","A → B ← C",{A:[40,20],C:[220,20],B:[130,70]},[["A","B"],["C","B"]],"B","quality → reviewed ← producer: reviewed wines are picked by both. Conditioning on “was reviewed” links quality and producer that were unrelated. Do not adjust."]];
+  $("cBlocks").innerHTML=B.map((b,i)=>`<div class="panel"><b>${b[0]}</b> <span class="note">${b[1]}</span><svg viewBox="0 0 260 100" width="100%" style="max-height:110px"><defs><marker id="ar${i}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5"/></marker></defs>${b[3].map(([f,t])=>{const p=b[2][f],q=b[2][t],dx=q[0]-p[0],dy=q[1]-p[1],L=Math.hypot(dx,dy);return `<line x1="${p[0]+dx/L*16}" y1="${p[1]+dy/L*16}" x2="${q[0]-dx/L*18}" y2="${q[1]-dy/L*18}" stroke="${css("--muted")}" stroke-width="1.5" marker-end="url(#ar${i})"/>`}).join("")}${Object.entries(b[2]).map(([n,p])=>`<circle cx="${p[0]}" cy="${p[1]}" r="15" fill="${n==="B"?"#f28e2b33":"#4e79a733"}" stroke="${n==="B"?"#f28e2b":"#4e79a7"}"/><text x="${p[0]}" y="${p[1]+4}" text-anchor="middle" font-size="13" fill="${css("--ink")}">${n}</text>`).join("")}</svg>
+    <label><input type="checkbox" data-b="${i}"> condition on B</label><div id="cb${i}" style="margin-top:6px"></div><p class="note">${b[5]}</p></div>`).join("");
+  const upd=i=>{ const b=B[i], g=new WsetCausal.DAG(Object.fromEntries(Object.keys(b[2]).map(n=>[n,{kind:"observed"}])),b[3]), on=document.querySelector(`[data-b="${i}"]`).checked, ind=g.dsep(["A"],["C"],on?["B"]:[]);
+    $("cb"+i).innerHTML=`A and C are <b style="color:${ind?"#3a7ca5":"#d1495b"}">${ind?"independent (path blocked)":"associated (path open)"}</b> ${on?"given B":"without conditioning"}`; };
+  B.forEach((_,i)=>{ document.querySelector(`[data-b="${i}"]`).onchange=()=>upd(i); upd(i); }); }
+function cwLoad(id){ const d=CD.find(x=>x.id===id); CW.cur=d; $("cwj").value=JSON.stringify({nodes:d.nodes,edges:d.edges,conditioned:d.conditioned},null,1); $("cwNote").textContent=d.note; cwBuild(d.nodes,d.edges,d.conditioned,true); }
+function cwApply(){ try{ const j=JSON.parse($("cwj").value); if(!j.nodes||!j.edges) throw new Error("need nodes and edges"); Object.entries(j.nodes).forEach(([k,v])=>{ if(!v.kind) v.kind="observed"; }); j.edges.forEach(e=>{ if(!(e[0] in j.nodes)||!(e[1] in j.nodes)) throw new Error(`edge ${e[0]} → ${e[1]} uses an unknown node`); }); $("cwErr").textContent=""; $("cwNote").textContent="Your edited graph."; cwBuild(j.nodes,j.edges,j.conditioned||[],false); }catch(e){ $("cwErr").innerHTML=`<span style="color:#d1495b">${esc(e.message)}</span>`; } }
+function cwBuild(nodes,edges,cond,keep){ CW.g=new WsetCausal.DAG(nodes,edges); CW.cond=cond||[]; const ids=Object.keys(nodes).sort(), op=sel=>ids.map(n=>`<option value="${n}"${n===sel?" selected":""}>${nice(n)}</option>`).join("");
+  const px=$("cwx").value&&nodes[$("cwx").value]?$("cwx").value:(nodes.weather_anomaly?"weather_anomaly":ids[0]), py=$("cwy").value&&nodes[$("cwy").value]?$("cwy").value:(nodes.note_sat?"note_sat":ids[1]);
+  $("cwx").innerHTML=op(px); $("cwy").innerHTML=op(py); const rs=sel=>ids.map(n=>`<option value="${n}"${n===sel?" selected":""}>${nice(n)}</option>`).join(""); $("cry").innerHTML=rs(py); $("crx").innerHTML=rs(px);
+  $("crz").innerHTML=rs(nodes.ripeness_chem?"ripeness_chem":ids[2]); $("crw").innerHTML=ids.map(n=>`<option value="${n}">${nice(n)}</option>`).join(""); CW.Z=new Set(); cwRender(); drawRules(); }
+function cwLayout(g){ const lv=g.layers(), by={}; Object.keys(g.nodes).forEach(n=>(by[lv[n]]=by[lv[n]]||[]).push(n)); const L=Object.keys(by).map(Number).sort((a,b)=>a-b), pos={};
+  by[L[0]].sort(); by[L[0]].forEach((n,i)=>pos[n]=i);
+  for(let pass=0;pass<4;pass++) for(const l of L.slice(1)){ by[l].sort((a,b)=>{ const m=n=>{ const ps=[...g.par[n]].filter(p=>pos[p]!==undefined); return ps.length?ps.reduce((s,p)=>s+pos[p],0)/ps.length:99; }; return m(a)-m(b)||a.localeCompare(b); }); by[l].forEach((n,i)=>pos[n]=i); }
+  const maxc=Math.max(...L.map(l=>by[l].length)); return {lv,by,L,pos,maxc}; }
+function cwSvg(g,x,y,Z,cond){ const {lv,by,L,maxc}=cwLayout(g), W=160, H=30, gx=44, gy=10, pos={}; L.forEach(l=>by[l].forEach((n,i)=>pos[n]=[20+l*(W+gx),20+i*(H+gy)+(maxc-by[l].length)*(H+gy)/2]));
+  const wd=40+L.length*(W+gx), ht=40+maxc*(H+gy), mid=n=>[pos[n][0],pos[n][1]+H/2];
+  let s=`<svg viewBox="0 0 ${wd} ${ht}" width="${Math.max(wd,700)}" style="max-width:none"><defs><marker id="cwa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M1 1L9 5L1 9" fill="none" stroke="context-stroke" stroke-width="1.6"/></marker></defs>`;
+  for(const [a,b] of g.edges){ const p=[pos[a][0]+W,pos[a][1]+H/2], q=[pos[b][0],pos[b][1]+H/2], dx=(q[0]-p[0])/2; s+=`<path d="M${p[0]} ${p[1]} C${p[0]+dx} ${p[1]},${q[0]-dx} ${q[1]},${q[0]-2} ${q[1]}" fill="none" stroke="${css("--muted")}" stroke-opacity=".45" stroke-width="1" marker-end="url(#cwa)"/>`; }
+  for(const n of Object.keys(g.nodes)){ const k=g.nodes[n].kind||"observed", [st,fi]=KCOL[k]||KCOL.observed, isX=n===x, isY=n===y, inZ=Z.has(n), inC=cond.includes(n);
+    s+=`<g><rect x="${pos[n][0]}" y="${pos[n][1]}" width="${W}" height="${H}" rx="6" fill="${isX?"#d85a3044":isY?"#3b9d5b44":fi}" stroke="${isX?"#d85a30":isY?"#3b9d5b":inZ?"#4e79a7":inC?"#7f77dd":st}" stroke-width="${isX||isY||inZ||inC?2.5:1}" ${k==="latent"?'stroke-dasharray="4 3"':""}/><text x="${pos[n][0]+W/2}" y="${pos[n][1]+H/2+4}" text-anchor="middle" font-size="11" fill="${css("--ink")}">${esc(nice(n)).slice(0,26)}${inZ?" ✓":""}${inC?" ◉":""}</text></g>`; }
+  return s+"</svg>"; }
+function cwRender(){ const g=CW.g, x=$("cwx").value, y=$("cwy").value, cond=$("cwc").checked?CW.cond.filter(c=>c in g.nodes):[]; if(!x||!y||x===y){ return; }
+  const Z=CW.Z; $("cwSvg").innerHTML=cwSvg(g,x,y,Z,cond);
+  const id=g.identify(x,y,cond), dx=g.desc([x]), badc=cond.filter(c=>dx.has(c));
+  let h=""; if(id.backdoor.length) h+=`<p><b style="color:#3b9d5b">Identified by the back-door criterion.</b> Adjust for any one of:</p>`+id.backdoor.map((s,i)=>`<button data-bd="${i}">{ ${s.map(nice).join(", ")||"nothing"} }</button>`).join(" ");
+  if(id.frontdoor.length) h+=`<p><b style="color:#3b9d5b">Identified by the front-door criterion</b> through: ${id.frontdoor.map(s=>"{ "+s.map(nice).join(", ")+" }").join(" or ")}</p>`;
+  if(!id.identified){ const lat=Object.keys(g.nodes).filter(n=>g.nodes[n].kind==="latent"&&g.paths(x,y,8,800).some(p=>g.par[p[0]].has(p[1])&&p.includes(n)&&g.pathStatus(p,[...cond]).open));
+    h+=`<p><b style="color:#d1495b">Not identified</b> with the observed variables. `+(badc.length?`You condition on <b>${badc.map(nice).join(", ")}</b>, which is downstream of the treatment (descendant of ${nice(x)}). Conditioning on a descendant of the cause distorts it; ask whether that variable can really depend on the treatment (untick the box, or remove the arrow that makes it so). `:"")+(lat.length?`An open back-door path runs through unobserved <b>${lat.map(nice).join(", ")}</b>: no adjustment can block it, so the honest route is a sensitivity analysis or a design (placebo tests, new data).`:"")+`</p>`; }
+  $("cwId").innerHTML=h; document.querySelectorAll("[data-bd]").forEach(b=>b.onclick=()=>{ CW.Z=new Set(id.backdoor[+b.dataset.bd]); cwRender(); });
+  const cand=g.adjustable(x,cond).sort(); $("cwSet").innerHTML=cand.map(n=>`<label style="display:inline-block;margin:2px 10px 2px 0"><input type="checkbox" data-z="${n}" ${Z.has(n)?"checked":""}> ${nice(n)}${dx.has(n)?" <span class='note'>(downstream)</span>":""}</label>`).join("");
+  document.querySelectorAll("[data-z]").forEach(c=>c.onchange=()=>{ c.checked?Z.add(c.dataset.z):Z.delete(c.dataset.z); cwRender(); });
+  const [ok,why]=g.backdoorValid(x,y,[...Z],cond); $("cwSetRes").innerHTML=`<p>Adjusting for { ${[...Z].map(nice).join(", ")||"nothing"} }: <b style="color:${ok?"#3b9d5b":"#d1495b"}">${ok?"valid":"not valid"}</b> — ${esc(why)}.</p>`;
+  const P=g.paths(x,y,9,3000).map(p=>g.pathStatus(p,[...Z,...cond])), bd=P.filter(p=>p.kind==="backdoor"), op=bd.filter(p=>p.open);
+  $("cwPn").textContent=`${P.length} paths: ${P.filter(p=>p.kind==="causal").length} causal, ${bd.length} back-door (${op.length} open), ${P.length-P.filter(p=>p.kind==="causal").length-bd.length} other`;
+  const show=[...P.filter(p=>p.kind==="backdoor"&&p.open),...P.filter(p=>p.kind==="causal"),...P.filter(p=>p.kind==="backdoor"&&!p.open)].slice(0,40);
+  $("cwPaths").innerHTML="<table>"+show.map(p=>`<tr><td style="white-space:nowrap;color:${p.kind==="causal"?"#d85a30":p.open?"#d1495b":"#3b9d5b"}">${p.kind==="causal"?"causal":p.open?"back-door OPEN":"back-door closed"}</td><td class="note">${esc(arrowStr(g,p.path))}${p.blockers.length&&p.kind!=="causal"?`<br><i>${esc(p.blockers[0])}</i>`:""}</td></tr>`).join("")+"</table>"; }
+function drawRules(){ const g=CW.g; if(!g) return; const y=$("cry").value, x=$("crx").value, z=$("crz").value, W=[...$("crw").selectedOptions].map(o=>o.value); if([y,x,z].some(v=>!v)||new Set([y,x,z]).size<3){ $("crOut").innerHTML='<p class="note">Pick three different variables for Y, X and Z.</p>'; return; }
+  const w=W.filter(v=>![y,x,z].includes(v)), ws=w.length?", "+w.map(nice).join(", "):"", R=[[1,g.rule1([y],[x],[z],w),`P(${nice(y)} | do(${nice(x)}), ${nice(z)}${ws}) = P(${nice(y)} | do(${nice(x)})${ws})`,`${nice(y)} ⟂ ${nice(z)} | ${nice(x)}${ws} after removing arrows into ${nice(x)}`],
+    [2,g.rule2([y],[x],[z],w),`P(${nice(y)} | do(${nice(x)}), do(${nice(z)})${ws}) = P(${nice(y)} | do(${nice(x)}), ${nice(z)}${ws})`,`${nice(y)} ⟂ ${nice(z)} | ${nice(x)}${ws} after removing arrows into ${nice(x)} and out of ${nice(z)}`],
+    [3,g.rule3([y],[x],[z],w),`P(${nice(y)} | do(${nice(x)}), do(${nice(z)})${ws}) = P(${nice(y)} | do(${nice(x)})${ws})`,`${nice(y)} ⟂ ${nice(z)} | ${nice(x)}${ws} after removing arrows into ${nice(x)} and into Z(W)`]];
+  $("crOut").innerHTML="<table>"+R.map(([n,ok,eq,test])=>`<tr><td><b>Rule ${n}</b></td><td style="color:${ok?"#3b9d5b":"#d1495b"};white-space:nowrap">${ok?"applies":"does not apply"}</td><td class="note">${esc(eq)}<br><i>test: ${esc(test)}</i></td></tr>`).join("")+"</table>"; }
 async function compare(){ const c=await load("compare"); if(!c)return missing("compare");
   const bar=(id,obj,xt)=>{const k=Object.keys(obj); Plotly.newPlot(id,[{type:"bar",x:k,y:k.map(i=>obj[i]),marker:{color:k.map((_,i)=>PAL[i%PAL.length])}}],lay({yaxis:{title:xt}}),{displayModeBar:false})};
   bar("rsaPlot",c.rsa,"Spearman ρ"); bar("knnPlot",c["knn_overlap@10"],"overlap");

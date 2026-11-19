@@ -1,0 +1,12 @@
+name: "After the new data are acquired"
+note: "The variables in the data plan (soil, terrain, grape ripening epoch, producer traits, review date and so bottle age) are observed. More adjustment sets become available and the mediation route opens when ripeness (Brix) is measured."
+add_nodes:
+  soil: {kind: observed, label: "Soil"}
+  elevation_slope: {kind: observed, label: "Elevation, slope, aspect"}
+  grape_ripening: {kind: observed, label: "Grape ripening epoch"}
+  producer_traits: {kind: observed, label: "Producer practices"}
+  review_date: {kind: observed, label: "Review date"}
+  bottle_age: {kind: observed, label: "Bottle age at tasting"}
+  ripeness_chem: {kind: observed, label: "Ripeness and chemistry (Brix, acidity)"}
+remove_edges: [[quality, selection], [price, selection]]
+conditioned: [selection]

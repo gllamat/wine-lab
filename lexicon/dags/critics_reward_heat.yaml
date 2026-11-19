@@ -1,0 +1,6 @@
+name: "Critics reward warm vintages directly"
+note: "Adds a direct arrow from season weather to critic points (critics like ripe, warm-year wines regardless of what is in the glass). The total effect on points is still identified, but it now mixes the wine's quality with the critics' taste."
+add_edges:
+  - {from: weather_anomaly, to: points}
+remove_edges: [[quality, selection], [price, selection]]
+conditioned: [selection]

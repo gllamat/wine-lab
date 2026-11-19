@@ -1,0 +1,12 @@
+.venv
+cache
+outputs
+__pycache__
+*.parquet
+*.csv
+*.zip
+.env
+.git
+dashboard/data/examples.json
+dashboard/data/key_status.json
+reports/*.html

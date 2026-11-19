@@ -1,4 +1,4 @@
-"""Apply the deterministic SAT matcher. Usage: run_matcher.py [N|all] [--extra path.json]"""
+"""Apply the deterministic SAT matcher. Usage: run_matcher.py [N|all] [--extra path.json] [--nocolour]"""
 import sys, json, collections, hashlib
 from pathlib import Path
 import numpy as np, pandas as pd
@@ -23,6 +23,8 @@ def main():
     df["id"] = df.description.map(review_id)
     df = df.drop_duplicates("id").sort_values("id").reset_index(drop=True)
     colour = pd.read_parquet(OUT / "reviews_norm.parquet", columns=["id", "colour"]).set_index("id").colour
+    if "--nocolour" in sys.argv:      # description-only features (the guess model must not see the wine-colour label)
+        colour = colour.iloc[0:0]
     if n != "all":
         df["_h"] = df.id.map(lambda x: hashlib.md5(("seed42" + x).encode()).hexdigest())
         df = df.sort_values("_h").head(int(n)).sort_values("id").drop(columns="_h").reset_index(drop=True)
@@ -86,7 +88,7 @@ def main():
                 prev = None
     vec = pd.DataFrame(rows)
     tag = "all" if n == "all" else n
-    suffix = "_extra" if extra else ""
+    suffix = ("_extra" if extra else "") + ("_nocolour" if "--nocolour" in sys.argv else "")
     vec.to_parquet(OUT / f"wset_vectors_{tag}{suffix}.parquet", index=False)
     pd.DataFrame(unmatched.most_common(5000), columns=["term", "count"]).to_csv(OUT / f"unmatched_unigrams_{tag}{suffix}.csv", index=False)
     pd.DataFrame(bigr.most_common(3000), columns=["term", "count"]).to_csv(OUT / f"unmatched_bigrams_{tag}{suffix}.csv", index=False)

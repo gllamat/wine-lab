@@ -1,0 +1,4 @@
+name: "Selection does not depend on quality or price"
+note: "Same as the base graph, but wines are chosen for review only by producer and place (things decided before the vintage). Then being in the corpus is not caused by the weather."
+remove_edges: [[quality, selection], [price, selection]]
+conditioned: [selection]
