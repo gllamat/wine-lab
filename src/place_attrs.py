@@ -11,5 +11,11 @@ d["cooked"] = (d.fruit_ripeness == "cooked_fruit").astype(float); d["red"] = (d.
 g = d.groupby("name"); n = g.size(); keep = n[n >= 40].index
 A = pd.DataFrame(dict(acidity=g.s_acidity.mean(), body=g.s_body.mean(), tannin=g.s_tannin.mean(), oak=g.c_oak.mean(), citrus=g.c_citrus_fruit.mean(), tropical=g.c_tropical_fruit.mean(),
                       red_fruit=g.c_red_fruit.mean(), black_fruit=g.c_black_fruit.mean(), cooked=g.cooked.mean(), tertiary=g.t_tertiary.mean(), price=g.price.median(), red_share=g.red.mean())).loc[keep]
+from places import load_places
+from weather import loc_key
+cl = pd.read_parquet(ROOT / "outputs/climate_all_seasons.parquet").groupby("loc").agg(gdd=("gdd", "mean"), rain=("rain_season", "mean"), diurnal=("diurnal", "mean"))
+pl = load_places().dropna(subset=["lat"]); pl = pl[pl.region_1.notna()]; pl["name"] = pl.region_1.astype(str) + " · " + pl.province.astype(str) + ", " + pl.country.astype(str)
+pl["loc"] = [loc_key(a, b) for a, b in zip(pl.lat, pl.lon)]; pl = pl.drop_duplicates("name").set_index("name")
+A = A.join(pl["loc"]).join(cl, on="loc").drop(columns="loc")
 out = {k: {c: (None if pd.isna(v) else round(float(v), 3)) for c, v in row.items()} for k, row in A.iterrows()}
 json.dump(out, open(ROOT / "dashboard/data/place_attrs.json", "w"), separators=(",", ":")); print("places", len(out))

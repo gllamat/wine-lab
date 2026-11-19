@@ -57,13 +57,15 @@ tr.clk{cursor:pointer}tr.clk:hover{background:var(--line)}
 .diagram .t{fill:var(--ink);font:12.5px system-ui,sans-serif}.diagram .tb{font-weight:600;font-size:13.5px}.diagram .m{fill:var(--muted)}
 .diagram .fa{fill:#59a14f26;stroke:#59a14f}.diagram .fs{fill:#4e79a726;stroke:#4e79a7}.diagram .fr{fill:#f28e2b26;stroke:#f28e2b}.diagram .fn{fill:#8883;stroke:#888}.diagram .fe{fill:#b07aa126;stroke:#b07aa1}
 </style>
+<link rel="stylesheet" href="site.css">
 </head>
 <body>
-<header><h1>Wine <span>WSET Lab</span></h1><p>Deterministic keyword → WSET-style vectors, embeddings, geography and weather</p>
-<button id="theme" style="margin-left:auto;background:none;border:1px solid var(--line);color:var(--muted);border-radius:6px;padding:3px 8px;cursor:pointer">theme</button></header>
+<header><h1>Wine <span>Lab</span></h1><p>What 169,000 tasting notes can tell us about wine, and how data science does it</p><div class="modes" role="group" aria-label="Audience"><button data-m="wine" class="on">Wine lover</button><button data-m="ds">Data science</button></div><button id="theme" style="background:none;border:1px solid var(--line);color:var(--muted);border-radius:6px;padding:3px 8px;cursor:pointer">theme</button></header>
 <div id="keyBanner" style="display:none"></div>
 <nav id="tabs"></nav>
 <main>
+<div id="pagehead"></div>
+<section id="home"></section>
 <section id="overview"></section>
 <section id="spaces">
   <div class="row"><label>Space <select id="sp"></select></label><label>Method <select id="md"><option>umap</option><option>pca</option></select></label>
@@ -71,28 +73,28 @@ tr.clk{cursor:pointer}tr.clk:hover{background:var(--line)}
   <div class="panel"><div id="spacePlot" class="plot"></div></div>
   <p class="note">8,000-review sample. WSET space = aroma descriptors + structure cues (missing cues neutral). Embeddings are mean-pooled; hover shows metadata only.</p>
 </section>
-<section id="map">
-  <div class="row"><label>Metric <select id="mm"></select></label><label>min reviews <select id="mn"><option>10</option><option>30</option><option>100</option></select></label></div>
-  <div class="panel"><div id="mapPlot" class="plot"></div></div>
-  <p class="note">Marker size = review count. Climate layers are 2000–2017 averages from NASA POWER (MERRA-2) reanalysis at the region's geocoded centre (coarse proxy for vineyards).</p>
-</section>
 <section id="terroir">
-  <div class="panel"><b>Terroir lab</b> <span class="note">— how place, grape, producer, vintage and weather show up in tasting notes (127,185 reviews with region-level coordinates; weather 2000–2017). Four questions, in order.</span>
-    <div class="cards" id="tKeys" style="margin:12px 0 0"></div></div>
-  <h3 class="th">1 · What explains the glass?</h3>
+  <div class="cards" id="tKeys"></div>
+  <h3 class="th">What shapes a wine's flavour?</h3>
   <div class="panel"><div id="varPlot" class="plot s"></div><p class="note" id="tVarTxt"></p></div>
-  <h3 class="th">2 · What does a warmer or wetter season do?</h3>
+  <h3 class="th">A warmer or wetter season: what changes?</h3>
   <div class="row"><label>Grape <select id="tg"></select></label><label>Season <select id="tx"><option value="z_gdd">warmth (growing-degree days)</option><option value="z_rain_season">rainfall</option></select></label>
     <label>Compare <select id="tm"><option value="year">same place, different years</option><option value="site">different places (cool vs warm sites)</option></select></label><label>Show <select id="ta"></select></label></div>
   <div class="grid2"><div class="panel"><div id="curvePlot" class="plot s"></div><p class="note" id="tCurveTxt"></p></div>
     <div class="panel"><b id="tForestH">All attributes, per +1 SD season</b><div id="tForest" style="max-height:330px;overflow:auto"></div></div></div>
-  <h3 class="th">3 · Vintage explorer</h3>
+  <h3 class="th">Vintage explorer</h3>
   <div class="row"><label>Find <input id="tvq" type="search" placeholder="napa, cabernet, rioja…"></label><label>Wine <select id="tvs" style="max-width:420px"></select></label><label>Show <select id="tva"></select></label></div>
   <div class="grid2"><div class="panel"><div id="vintPlot" class="plot s"></div></div><div class="panel"><b id="tContH">Warm years vs cool years</b><div id="tCont"></div></div></div>
-  <h3 class="th">4 · Taste map: geography ⇄ taste</h3>
-  <div class="row"><label>Taste space <select id="ts"><option value="raw">WSET profile</option><option value="net">WSET, net of grape (terroir only)</option><option value="emb">Text embedding (20k sample)</option></select></label>
-    <label>Projection <select id="tp"><option value="pca">PCA (axes have meaning)</option><option value="umap">UMAP (neighbourhoods)</option></select></label>
-    <label>Dimensions <select id="td"><option value="2">2D</option><option value="3">3D (PCA)</option></select></label>
+  <details class="ds" style="margin-top:12px"><summary class="note">Advanced: raw correlation grid (all weather metrics × all outcomes)</summary>
+    <div class="row"><label>View <select id="wv"><option value="rho_within">Within place × grape (vintage effect)</option><option value="rho_across">Across places (confounded)</option></select></label></div><div id="weatherPlot" class="plot"></div></details>
+  <p class="note warn">Associational, not causal. Notes are written by critics, so vocabulary reflects them too; 75% of reviews have only region-level coordinates; weather is a 0.5°×0.625° reanalysis grid (not the vineyard); within a place, seasons are compared with that place's own 2000–2017 climate. Curves and CIs come from a bootstrap over place×grape groups, so they respect that notes from one place are not independent.</p>
+</section>
+<section id="tastemap">
+  <div class="cards" id="tmKeys"></div>
+  <h3 class="th">The taste map: geography and taste side by side</h3>
+  <div class="row"><label>Taste space <select id="ts"><option value="raw">Taste: aromas and structure</option><option value="net">Place character: taste with the grape removed</option><option value="emb">Wording of the notes (20k sample)</option></select></label>
+    <label class="ds">Projection <select id="tp"><option value="pca">PCA (axes have meaning)</option><option value="umap">UMAP (neighbourhoods)</option></select></label>
+    <label class="ds">Dimensions <select id="td"><option value="2">2D</option><option value="3">3D (PCA)</option></select></label>
     <label>Colour <select id="tc"><option value="taste">taste position</option><option value="country">country</option><option value="pts">critic points</option><option value="attr">an attribute…</option></select> <select id="tat" style="display:none"></select></label><label><input type="checkbox" id="tlab"> label big regions</label><label><input type="checkbox" id="tsh"> shape: ● red-majority ◆ white-majority</label><button id="tclr">clear selection</button></div>
   <div class="row" id="tPresets"><span class="note">Compare:</span></div>
   <div class="grid2"><div class="panel"><b>Where</b> <span class="note">drag a box or click places</span><div id="tMap" class="plot s" style="height:460px"></div></div>
@@ -100,14 +102,11 @@ tr.clk{cursor:pointer}tr.clk:hover{background:var(--line)}
   <div class="panel" style="margin-top:12px"><div id="tKey"></div></div>
   <div class="panel" style="margin-top:12px"><div id="tSel" class="note">Select places on the map or in the taste plot to compare them.</div></div>
   <div class="grid2" style="margin-top:12px"><div class="panel"><b>Do nearby places taste alike?</b><div id="decayPlot" class="plot s"></div><p class="note" id="tDecayTxt"></p></div>
-    <div class="panel"><b>How to read this</b><p class="note">Each dot is a wine region with ≥40 notes, its profile averaged (shrunk toward the global mean when few notes). Colour is the dot's position in taste space, so the same colour on the map and in the plot means similar taste. "Net of grape" removes each grape's average first, so what is left is place, not variety. PCA axes can be read (listed above the plot); UMAP only preserves who is near whom.</p></div></div>
-  <details style="margin-top:12px"><summary class="note">Advanced: raw correlation grid (all weather metrics × all outcomes)</summary>
-    <div class="row"><label>View <select id="wv"><option value="rho_within">Within place × grape (vintage effect)</option><option value="rho_across">Across places (confounded)</option></select></label></div><div id="weatherPlot" class="plot"></div></details>
-  <p class="note warn">Associational, not causal. Notes are written by critics, so vocabulary reflects them too; 75% of reviews have only region-level coordinates; weather is a 0.5°×0.625° reanalysis grid (not the vineyard); within a place, seasons are compared with that place's own 2000–2017 climate. Curves and CIs come from a bootstrap over place×grape groups, so they respect that notes from one place are not independent.</p>
+    <div class="panel"><b>How to read this</b><p class="note">Each dot is a wine region with at least 40 notes. Its colour is its position in the taste plot: the same colour on the map and in the plot means similar taste, and neighbouring colours mean neighbouring tastes. “Place character” removes each grape's average first, so what is left is the region, not the variety. <span class="ds">Axes: PCA axes can be read (listed above the plot) while UMAP only preserves who is near whom. A region's profile is the average of its notes, shrunk toward the global mean when it has few.</span></p></div></div>
+  <p class="note warn">Regions with at least 40 notes (346). Taste comes from critics' notes, so it reflects how they write as well as what is in the glass; 75% of reviews have only region-level coordinates.</p>
 </section>
 <section id="guess">
-  <div class="panel"><b>Guess the wine from the description</b> <span class="note">— a deterministic statistical model (no AI text generation): the note is read by the WSET matcher, and models trained on 169k reviews turn that vector into guesses with probabilities. Runs entirely in your browser; only the description is used, nothing else.</span></div>
-  <h3 class="th">1 · Describe a wine</h3>
+    <h3 class="th">Describe a wine</h3>
   <div class="row"><label>Try an archetype <select id="gex" style="max-width:360px"></select></label><span class="note">(written by us, not taken from reviews)</span></div>
   <textarea id="gtext" rows="4" style="width:100%;box-sizing:border-box;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:inherit" placeholder="Describe the wine in your own words: colour, aromas, structure, how it finishes, even 'drink 2022–2030'."></textarea>
   <div id="gmatch" class="note" style="margin:6px 0"></div>
@@ -118,15 +117,14 @@ tr.clk{cursor:pointer}tr.clk:hover{background:var(--line)}
     <div class="panel"><b>Producer</b> <span class="note">(style and region match among wineries with ≥20 notes)</span><div id="gProd"></div><b style="display:block;margin-top:12px">Vintage, price, critic points</b><div id="gNum"></div></div>
   </div>
   <div class="panel" style="margin-top:12px"><b>Why this grape?</b> <span class="note">descriptors in your note that pushed towards the top guess</span><div id="gWhy"></div></div>
-  <h3 class="th">2 · Example guesses</h3>
+  <h3 class="th">Examples</h3>
   <div id="gExamples"></div>
-  <h3 class="th">3 · Blind-tasting rounds</h3>
-  <div id="gRounds"></div>
+  <div class="ds"><h3 class="th">Blind-tasting rounds</h3>
+  <div id="gRounds"></div></div>
   <p class="note warn">What is guessed from: the SAT vector (aromas, structure, readiness cues, year hints) and the note length — never the wine's label, region, colour or price. Probabilities are calibrated on held-out data. Vintage and price are guesses with 80% intervals; producer is a long shot, so look at the probabilities, not only the top name. Trained on Wine Enthusiast reviews (CC BY-NC-SA 4.0), so it reflects how those critics write.</p>
 </section>
 <section id="causal">
-  <div class="panel"><b>Causal lab</b> <span class="note">— what a graph of cause and effect lets you conclude from data, with a short course on do-calculus and a workbench to test different graphs. The question running through it: <i>what does a warmer growing season do to a wine?</i></span></div>
-
+  
   <h3 class="th">1 · Seeing is not doing</h3>
   <div class="panel"><p>Data shows what happens <b>when we see</b> a warm season: P(note | weather = warm). A cause asks what happens <b>when we make it warm</b>: P(note | <b>do</b>(weather = warm)). They differ whenever something else drives both, for example <b>place</b>: warm regions have a different style of wine for reasons unrelated to this year's weather. The <b>do</b>-operator means "cut every arrow going into the variable and set it by hand". Do-calculus is the set of rules that says when a quantity with <b>do</b> can be rewritten using only what we can observe.</p>
   <p class="note">Below, the real data on the same question (+100 growing-degree days) with different "controls". Same wines, same weather; only the adjustment changes.</p>
@@ -158,15 +156,14 @@ tr.clk{cursor:pointer}tr.clk:hover{background:var(--line)}
   <p class="note warn">The graph is our assumption, not a finding: the data cannot prove it. What the workbench shows is what follows <i>if</i> the graph is right, and which tests (placebos, independences) could show it is wrong. Estimates in section 1 use 85,752 reviews with region-level coordinates; weather is a 0.5°×0.625° grid; critic points are a mix of the wine and the critic.</p>
 </section>
 <section id="recommend">
-  <div class="panel"><b>Recommender lab</b> <span class="note">— “if you like this wine, you'll like …”. A hands-on tour of how recommenders work, using 25,000 wines. We have <b>critics' reviews, not consumers' ratings</b>, so every technique here is <b>content-based</b>: it compares what the wines are like. (Section 6 shows what changes when you do have users.) Pick a wine, then climb the ladder of techniques and watch how the answers change.</span></div>
-
-  <h3 class="th">1 · Pick a wine you like</h3>
+  
+  <h3 class="th">Pick a wine you like</h3>
   <div class="row"><label>Search <input id="rsq" type="search" placeholder="producer, grape, region… e.g. chablis" style="min-width:260px"></label><button id="rsr">surprise me</button><span class="note" id="rsn"></span></div>
   <select id="rsl" size="6" style="width:100%;margin-bottom:8px"></select>
   <details><summary class="note">…or describe a wine in words (uses only the WSET cues; the text-embedding techniques need a wine from the list)</summary><textarea id="rst" rows="3" style="width:100%;box-sizing:border-box;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:inherit" placeholder="e.g. Pale lemon. Lime, green apple and wet stones, high acidity, light body, dry."></textarea></details>
   <div class="panel" id="rsq0" style="margin-top:8px"></div>
 
-  <h3 class="th">2 · The technique ladder</h3>
+  <h3 class="th">How the choice is made: a ladder of techniques</h3>
   <div class="row" id="rtech"></div>
   <div class="row"><label>How many <select id="rk"><option>5</option><option selected>10</option><option>15</option></select></label>
     <label id="rala">Mix: WSET ◀ <input type="range" id="ral" min="0" max="100" value="50" style="width:110px"> ▶ text</label>
@@ -180,32 +177,34 @@ tr.clk{cursor:pointer}tr.clk:hover{background:var(--line)}
   </div>
   <div class="panel" style="margin-top:12px"><b>How different are the techniques, for this wine?</b> <span class="note">Overlap of their top lists (1 = identical, 0 = nothing in common)</span><div id="rjac" style="overflow:auto"></div></div>
 
-  <h3 class="th">3 · Your taste profile (learn from thumbs)</h3>
+  <h3 class="th">Your taste profile (learn from thumbs)</h3>
   <div class="panel"><p class="note">Press 👍 or 👎 on any recommendation above. The profile is the <b>average of what you liked minus half the average of what you disliked</b> (Rocchio's method, from 1971): a point in taste space that is “you”. The recommendations below are the wines nearest to that point.</p>
     <div class="row"><b>Liked:</b> <span id="rpl"></span></div><div class="row"><b>Disliked:</b> <span id="rpd"></span></div><div id="rpr"></div></div>
 
-  <h3 class="th">4 · “More like this, but …” (critiquing)</h3>
+  <h3 class="th">“More like this, but …” (steer the search)</h3>
   <div class="panel"><p class="note">Instead of rating, you steer: change the wine's description along a dimension and look again. We move the wine's vector in WSET space (e.g. +1.5 spread-units of acidity) and search from the new point. Moves accumulate; reset to start over.</p>
     <div class="row" id="rcb"></div><div id="rcm" class="note"></div><div id="rcr"></div></div>
 
-  <h3 class="th">5 · How good are they? (offline evaluation)</h3>
+  <div class="ds">
+  <h3 class="th">How good are they? (offline evaluation)</h3>
   <div class="panel"><p class="note">Without users we cannot measure “did they like it”. We measure proxies on 3,000 random wines × 10 recommendations: does the list share the grape, country, province? how far apart are the scores? and how <b>varied</b> and how <b>spread over the catalogue</b> are the lists? No technique wins everything.</p>
     <div class="grid2"><div id="rev1" class="plot s"></div><div id="rev2" class="plot s"></div></div><div id="rev3" style="overflow:auto"></div><div id="rev4" class="note"></div></div>
 
-  <h3 class="th">6 · And with users? Collaborative filtering in miniature</h3>
+  <h3 class="th">And with users? Collaborative filtering in miniature</h3>
   <div class="panel"><p class="note">Collaborative filtering ignores what a wine <i>is</i> and uses only <i>who liked it</i>: “people whose ratings look like yours also loved …”. We have no consumer data, so this is a toy with made-up ratings, to show the mechanics.</p>
     <div class="row"><label>Recommend for <select id="rcu"></select></label><label>Method <select id="rcm2"><option value="uu">user-user (find similar people)</option><option value="ii">item-item (find similar wines)</option></select></label></div><div id="rcf"></div></div>
 
-  <h3 class="th">7 · Glossary</h3>
+  <h3 class="th">Glossary</h3>
   <div class="panel"><dl id="rgl" class="note" style="margin:0"></dl></div>
+  </div>
   <p class="note warn">Wines are the 25,000-wine sample of the corpus (same reviews as everywhere else); recommendations describe notes written by critics, not what you will taste. Similar notes do not guarantee similar bottles. Review text is shown only on your machine.</p>
 </section>
 <section id="compare"><div class="grid2">
-  <div class="panel"><b>RSA (Spearman) vs WSET vectors</b><div id="rsaPlot" class="plot s"></div></div>
-  <div class="panel"><b>Nearest-neighbour overlap@10 vs WSET</b><div id="knnPlot" class="plot s"></div></div>
-  <div class="panel"><b>Predicting metadata (accuracy / R²)</b><div id="metaPlot" class="plot s"></div></div>
-  <div class="panel"><b>Embedding → WSET dimension (AUC / R²)</b><div id="probePlot" class="plot s"></div></div>
-</div><div class="panel" style="margin-top:12px"><b>Layout faithfulness (trustworthiness)</b><div id="trustTable"></div></div></section>
+  <div class="panel"><b>Do they arrange the wines alike?</b> <span class="note">Representational similarity (RSA): rank correlation between all pairwise distances in each embedding and in the WSET vectors. 1 = same geometry.</span><div id="rsaPlot" class="plot s"></div></div>
+  <div class="panel"><b>Do they find the same neighbours?</b> <span class="note">Share of a wine's 10 nearest neighbours that are the same in the embedding and in WSET space.</span><div id="knnPlot" class="plot s"></div></div>
+  <div class="panel"><b>What facts can be read off each space?</b> <span class="note">A simple linear model predicts grape, country, colour and critic points from the vectors (accuracy or R²).</span><div id="metaPlot" class="plot s"></div></div>
+  <div class="panel"><b>Does the embedding contain the WSET cues?</b> <span class="note">Linear probes predict each WSET dimension from the embedding (AUC for yes/no cues, R² for scales): how much of our hand-made vector is recoverable?</span><div id="probePlot" class="plot s"></div></div>
+</div><div class="panel" style="margin-top:12px"><b>Is the 2D/3D picture honest?</b> <span class="note">Trustworthiness: the share of neighbours in the picture that are real neighbours in the full space (1 = perfect).</span><div id="trustTable"></div></div></section>
 <section id="examples">
   <p class="note warn" id="exNote">Real reviews mapped by BOTH methods, side by side, on the WSET Level 4 SAT card (2023): the deterministic keyword rules (left) and Jev (right). Review text is copyrighted scraped content, so this tab only works on a local copy — it is excluded from deployment.</p>
   <div class="row"><label>Case <select id="exCase"></select></label><label>Country <select id="exCountry"></select></label><label>Set <select id="exQ"><option value="">all</option><option value="pilot-500">Jev pilot (500)</option><option value="new-1000">new 1,000 (both methods)</option><option value="none">deterministic only</option></select></label><label>Order <select id="exSort"><option value="order">dataset order</option><option value="diff">most disagreement first</option><option value="agree">most agreement first</option></select></label>
@@ -224,16 +223,16 @@ tr.clk{cursor:pointer}tr.clk:hover{background:var(--line)}
 <section id="mappings">
   <div class="panel"><b>Try the matcher</b> <span class="note">— the same deterministic logic as the Python pipeline, running in your browser. Your text never leaves the page.</span>
     <textarea id="tryText" rows="3" spellcheck="false"></textarea>
-    <div class="row" style="margin-top:8px"><label><input type="checkbox" id="tryEmbed" checked> include embedding-mapped terms</label><label>wine colour <select id="tryColour"><option value="">unknown</option><option>red</option><option>white</option><option>rose</option><option>sparkling</option></select></label><span id="samples"></span></div>
+    <div class="row" style="margin-top:8px"><label class="ds"><input type="checkbox" id="tryEmbed" checked> include embedding-mapped terms</label><label>wine colour <select id="tryColour"><option value="">unknown</option><option>red</option><option>white</option><option>rose</option><option>sparkling</option></select></label><span id="samples"></span></div>
     <div id="tryOut"></div></div>
-  <div class="panel" style="margin-top:12px"><b>Lexicon browser</b> <span class="note">— click a row to test it above</span>
+  <div class="panel ds" style="margin-top:12px"><b>Lexicon browser</b> <span class="note">— click a row to test it above</span>
     <div class="row" style="margin-top:8px"><label>Kind <select id="fk"><option value="">all</option><option>aroma</option><option>structure</option><option>cat</option><option>readiness</option></select></label>
       <label>Field <select id="ff"><option value="">all</option></select></label>
       <label>Source <select id="fsrc"><option value="">all</option><option value="rule">rule (hand-written)</option><option value="bound">bound adjective+noun</option><option value="bound-x">bound across comma/“and”</option><option value="embed">embedding-mapped</option></select></label>
       <label>Used in ≥ <select id="fmin"><option value="0">any</option><option value="1">1 review</option><option value="10">10</option><option value="100">100</option><option value="1000">1,000</option></select></label>
       <input id="fq" type="search" placeholder="search form or target…" style="max-width:260px"><span class="note" id="fcount"></span></div>
     <div style="max-height:440px;overflow:auto"><table id="ftab"></table></div><button class="btn" id="fmore" style="margin-top:8px">show more</button></div>
-  <div class="panel" style="margin-top:12px"><b>What the lexicon misses</b> <span class="note">— most frequent words in reviews that no rule matched. “Embedding guess” is the nearest aroma descriptor from MiniLM; ✓ = accepted (clears the similarity threshold).</span>
+  <div class="panel ds" style="margin-top:12px"><b>What the lexicon misses</b> <span class="note">— most frequent words in reviews that no rule matched. “Embedding guess” is the nearest aroma descriptor from MiniLM; ✓ = accepted (clears the similarity threshold).</span>
     <div style="max-height:340px;overflow:auto"><table id="utab"></table></div></div>
 </section>
 <section id="method"><div class="panel"><b>How a review becomes a WSET-style vector (no models, no randomness)</b>
@@ -250,26 +249,18 @@ tr.clk{cursor:pointer}tr.clk:hover{background:var(--line)}
 <g><rect class="bx fs" x="760" y="490" width="180" height="44" rx="8"/><text class="t" x="770" y="508">long</text><text class="t m" x="770" y="525">→ finish 5</text></g>
 </svg>
 <p class="note">Gaps are kept honest: appearance is never mentioned, alcohol rarely, and cue levels are project heuristics — not validated by WSET-qualified tasters.</p></div></section>
-<section id="about"><div class="panel">
-<h3>Method</h3><p>Reviews are normalised and matched against a hand-written WSET-style lexicon (aromas, structure cues, readiness). Unmatched frequent words are mapped to descriptors with MiniLM/BERT embeddings, with a negative class and a leave-one-out calibrated threshold. Everything is deterministic: pinned model revisions, fixed seeds, CPU.</p>
-<h3>Limits</h3><ul><li>Taxonomy follows the WSET Level 4 SAT (Issue 1.2, Aug 2023): 18 aroma clusters (99 descriptors) in 3 tiers and the SAT scale names. Appearance, condition and alcohol are sparse in reviews; quality is a proxy from critic points; many tertiary words (earthy, leather) also appear in young wines.</li><li>One-of fields: on the card, hyphen-separated lines allow exactly one value (clarity, intensity, colour, condition, sweetness, acidity, tannin level, alcohol, body, flavour intensity, finish, quality, bottle ageing). Assumption A1 (ours, not WSET's): fruit ripeness (unripe – ripe – dried – cooked) is also one-of per note; the matcher keeps the most specific state and flags conflicts as mixed, and Jev answers it as a single choice.</li><li>Cue-to-level mappings and nose/palate scoping are project heuristics, not part of the SAT, and are not validated by WSET-qualified tasters.</li><li>Weather is grid-scale reanalysis at region centroids.</li></ul>
-<h3>Data &amp; licences</h3><p>Review corpus: public Wine Enthusiast reviews (Kaggle, reportedly CC BY-NC-SA); only aggregates are shown here, no review text. Weather: NASA POWER (MERRA-2 reanalysis, 0.5°×0.625° grid; NASA open data). Geocoding: © OpenStreetMap contributors.</p>
-<p class="note" id="built"></p></div></section>
+<section id="about"></section>
+<div id="pagefoot"></div>
 </main>
 <script>
-const $=id=>document.getElementById(id), TABS=[["overview","Overview"],["spaces","Vector spaces"],["map","Map"],["terroir","Terroir"],["guess","Guess"],["causal","Causal"],["recommend","Recommend"],["compare","Compare"],["examples","Examples"],["mappings","Mappings"],["method","Method"],["missing","Missing"],["about","About"]];
+const $=id=>document.getElementById(id);
 const cache={}; async function load(n){ if(cache[n]!==undefined) return cache[n]; try{const r=await fetch("data/"+n+".json"); cache[n]=r.ok?await r.json():null;}catch(e){cache[n]=null} return cache[n]; }
 const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const lay=(x={})=>Object.assign({paper_bgcolor:"rgba(0,0,0,0)",plot_bgcolor:"rgba(0,0,0,0)",font:{color:css("--ink")},margin:{l:50,r:10,t:30,b:40}},x);
 const missing=id=>{$(id).innerHTML='<p class="note">Data not generated yet — run build_dashboard.py.</p>'};
 const PAL=["#4e79a7","#f28e2b","#59a14f","#e15759","#b07aa1","#76b7b2","#edc948","#9c755f","#ff9da7","#bab0ac"];
 const pct=x=>(100*x).toFixed(1)+"%";
-function tabs(){ $("tabs").innerHTML=TABS.map(([k,l])=>`<button data-t="${k}">${l}</button>`).join("");
-  $("tabs").onclick=e=>{const t=e.target.dataset.t; if(!t)return; show(t)}; }
 const shown={};
-async function show(t){ document.querySelectorAll("section").forEach(s=>s.classList.toggle("on",s.id===t));
-  document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.t===t)); location.hash=t;
-  if(!shown[t]){shown[t]=1; await ({overview,spaces,map,terroir,guess,causal,recommend,compare,examples,mappings,method,missing:missingTab,about}[t])();} else if(t==="spaces")drawSpace(); else if(t==="map")drawMap(); else if(t==="terroir")terroirRedraw(); }
 async function overview(){ const o=await load("overview"); if(!o)return missing("overview");
   const c=o.coverage, cards=[[o.n_reviews.toLocaleString(),"reviews"],[o.n_countries,"countries"],[o.n_regions.toLocaleString(),"regions"],[o.n_varieties,"grape labels"],[pct(o.vintage_coverage),"with vintage"],[pct(c.aroma_cluster),"with ≥1 aroma cluster"]];
   $("overview").innerHTML=`<div class="cards">${cards.map(([a,b])=>`<div class="card"><b>${a}</b><small>${b}</small></div>`).join("")}</div>
@@ -296,16 +287,7 @@ function drawSpace(){ if(!SP)return; const key=$("sp").value+"|"+$("md").value, 
   if(num){ const ok=all.filter(i=>v[i]!=null); tr.push(mk(ok,{marker:{size:dim===3?2.5:4,opacity:.7,color:ok.map(i=>v[i]),colorscale:"Viridis",showscale:true,colorbar:{title:cn}}})); }
   else { const cats={}; all.forEach(i=>{const k=v[i]??"n/a"; (cats[k]=cats[k]||[]).push(i)});
     Object.entries(cats).sort((a,b)=>b[1].length-a[1].length).slice(0,24).forEach(([k,idx],j)=>tr.push(mk(idx,{name:k,marker:{size:dim===3?2.5:4,opacity:.7,color:PAL[j%PAL.length]}}))); }
-  Plotly.react("spacePlot",tr,lay({showlegend:!num,legend:{orientation:"h",y:-0.12},margin:{l:10,r:10,t:10,b:10},scene:{xaxis:{showticklabels:false},yaxis:{showticklabels:false},zaxis:{showticklabels:false}},xaxis:{showticklabels:false,zeroline:false},yaxis:{showticklabels:false,zeroline:false}}),{responsive:true}); }
-let MP=null;
-async function map(){ MP=await load("map"); if(!MP)return missing("map");
-  const opts=[["points","Avg points"],["acidity","Acidity cue (1–5)"],["tannin","Tannin cue (1–5)"],["body","Body cue (1–5)"],["sweetness","Sweetness cue (1–5)"],["price","Median price $"],["gdd","Growing degree days"],["rain_season","Season rain mm"],["diurnal","Diurnal range °C"]].filter(([k])=>MP.some(r=>r[k]!=null));
-  $("mm").innerHTML=opts.map(([k,l])=>`<option value="${k}">${l}</option>`).join(""); $("mm").onchange=$("mn").onchange=drawMap; drawMap(); }
-function drawMap(){ if(!MP)return; const m=$("mm").value, mn=+$("mn").value, d=MP.filter(r=>r[m]!=null&&r.n>=mn);
-  Plotly.react("mapPlot",[{type:"scattergeo",mode:"markers",lat:d.map(r=>r.lat),lon:d.map(r=>r.lon),
-   text:d.map(r=>`<b>${r.region_1!=="∅"?r.region_1:r.province}</b>, ${r.country}<br>${r.n} reviews · ${(r.points||0).toFixed(1)} pts<br>${m}: ${(+r[m]).toFixed(2)}<br>top grape: ${r.top_variety}`),hoverinfo:"text",
-   marker:{size:d.map(r=>4+3*Math.log10(r.n)),color:d.map(r=>r[m]),colorscale:"Turbo",showscale:true,opacity:.8,line:{width:.3,color:"#0006"},colorbar:{title:m}}}],
-   lay({margin:{l:0,r:0,t:0,b:0},geo:{projection:{type:"natural earth"},showland:true,landcolor:css("--panel"),showocean:true,oceancolor:css("--bg"),showcountries:true,countrycolor:css("--line"),bgcolor:"rgba(0,0,0,0)"}}),{responsive:true}); }
+  Plotly.react("spacePlot",tr,lay({showlegend:!num,legend:{orientation:"h",y:-0.02,yanchor:"top"},margin:{l:10,r:10,t:10,b:num?10:130},scene:{xaxis:{showticklabels:false,showgrid:false},yaxis:{showticklabels:false,showgrid:false},zaxis:{showticklabels:false,showgrid:false}},xaxis:{showticklabels:false,zeroline:false,showgrid:false},yaxis:{showticklabels:false,zeroline:false,showgrid:false}}),{responsive:true}); }
 let WX=null;
 async function weather(){ WX=await load("weather"); if(!WX)return; $("wv").onchange=drawWeather; drawWeather(); }
 function drawWeather(){ if(!WX)return; const v=$("wv").value, W=[...new Set(WX.map(r=>r.weather))], Y=[...new Set(WX.map(r=>r.outcome))];
@@ -317,8 +299,7 @@ const eff=(a,v)=>v==null?"–":T.meta.rates.includes(a)?(v>=0?"+":"")+(v*100).to
 const aLab=a=>T.meta.attrs[a]+(T.meta.rates.includes(a)?" (share of notes)":"");
 async function terroir(){ T=await load("terroir"); TA.v=await load("place_attrs")||{}; if(!T){ $("terroir").innerHTML='<p class="note">Run src/terroir.py to generate data/terroir.json.</p>'; return; }
   const A=Object.keys(T.meta.attrs), cs=T.curves.ALL.z_gdd, v=Object.fromEntries(T.variance.wset.map(r=>[r.factor,r.adj])), dn=T.decay.net_of_grape.bins[0];
-  const cards=[[eff("points",cs.points.slope),"critic points per +1 SD warmer season (same place)"],[eff("s_acidity",cs.s_acidity.slope),"acidity cue (1–5 scale) per +1 SD warmer season"],
-    [(100*dn[3]).toFixed(0)+"%","taste distance of regions <25 km apart, vs the average pair (net of grape)"],[(100*v["Place × grape"]).toFixed(1)+"%","of a note's WSET profile explained by place × grape"]];
+  const cards=[[eff("s_acidity",cs.s_acidity.slope),"acidity cue (1–5 scale) per +1 SD warmer season (the one effect that passes the placebo test)"],[eff("points",cs.points.slope),"critic points per +1 SD warmer season (association only: fails the placebo test)"],[(100*v["Place × grape"]).toFixed(1)+"%","of a note's WSET profile explained by place × grape"]];
   $("tKeys").innerHTML=cards.map(([a,b])=>`<div class="card"><b>${a}</b><small>${b}</small></div>`).join("");
   $("tg").innerHTML=["ALL",...T.meta.grapes].map(g=>`<option value="${esc(g)}">${g==="ALL"?"all grapes pooled":esc(g)}</option>`).join("");
   $("ta").innerHTML=A.map(a=>`<option value="${a}">${esc(T.meta.attrs[a])}</option>`).join(""); $("ta").value="points";
@@ -326,16 +307,20 @@ async function terroir(){ T=await load("terroir"); TA.v=await load("place_attrs"
   const exName=e=>`${e.place} — ${e.grape} (${e.reviews} notes, ${e.vint.length} vintages)`;
   const fillEx=()=>{ const q=$("tvq").value.toLowerCase(); T._ex=T.explorer.map((e,i)=>[e,i]).filter(([e])=>!q||(e.place+" "+e.grape).toLowerCase().includes(q)); $("tvs").innerHTML=T._ex.slice(0,200).map(([e,i])=>`<option value="${i}">${esc(exName(e))}</option>`).join(""); drawVint(); };
   $("tva").innerHTML=T.explorer_attrs.map(a=>`<option value="${a}">${esc(T.meta.attrs[a])}</option>`).join(""); $("tvq").oninput=fillEx; $("tvs").onchange=$("tva").onchange=drawVint; fillEx();
+  terroirRedraw(); weather(); }
+function terroirRedraw(){ if(!T)return; drawVar(); drawCurve(); drawForest(); drawVint(); }
+async function tastemap(){ T=T||await load("terroir"); TA.v=await load("place_attrs")||{}; if(!T){ $("tastemap").innerHTML='<p class="note">Run src/terroir.py to generate data/terroir.json.</p>'; return; }
+  const dn=T.decay.net_of_grape.bins[0]; $("tmKeys").innerHTML=[[(100*dn[3]).toFixed(0)+"%","taste distance of regions under 25 km apart, vs a random pair (grape removed)"],[T.places.length,"wine regions with at least 40 notes"],[T.decay.net_of_grape.rho_lt1600.toFixed(2),"how closely taste follows distance within 1,600 km (0 = not at all, 1 = perfectly)"]].map(([a,b])=>`<div class="card"><b>${a}</b><small>${b}</small></div>`).join("");
   $("tat").innerHTML=TATTR.map(a=>`<option value="${a[0]}">${esc(a[1])}</option>`).join(""); ["ts","tp","td","tc","tat","tlab","tsh"].forEach(i=>$(i).onchange=()=>drawTaste()); $("tclr").onclick=()=>{TS.sel=new Set(); TS.focus=null; TS.grp=null; paintSel()};
   $("tPresets").innerHTML+=PRESETS.map((p,i)=>`<button data-pre="${i}">${esc(p[0])}</button>`).join(""); document.querySelectorAll("[data-pre]").forEach(b=>b.onclick=()=>tastePreset(+b.dataset.pre));
-  terroirRedraw(); weather(); }
-function terroirRedraw(){ if(!T)return; drawVar(); drawCurve(); drawForest(); drawVint(); drawTaste(); drawDecay(); }
+  drawTaste(); drawDecay(); }
+function tasteRedraw(){ if(T){ drawTaste(); drawDecay(); } }
 function drawVar(){ const W=T.variance.wset, E=Object.fromEntries(T.variance.embedding.map(r=>[r.factor,r.adj])), f=W.map(r=>r.factor);
-  Plotly.react("varPlot",[{type:"bar",orientation:"h",name:"WSET profile (122 dims, 127k–169k notes)",y:f,x:W.map(r=>100*r.adj),marker:{color:PAL[0]}},
-    {type:"bar",orientation:"h",name:"Text embedding (384 dims, 20k notes)",y:f,x:f.map(k=>E[k]==null?null:100*E[k]),marker:{color:PAL[1]}}],
-    lay({barmode:"group",xaxis:{title:"% of a single note's variation explained (adjusted R²)"},yaxis:{autorange:"reversed"},margin:{l:250,r:10,t:10,b:40},legend:{orientation:"h",y:-0.25}}),{displayModeBar:false});
+  Plotly.react("varPlot",[{type:"bar",orientation:"h",name:"Taste profile (WSET cues)",y:f,x:W.map(r=>100*r.adj),marker:{color:PAL[0]}},
+    {type:"bar",orientation:"h",name:"Wording of the note (text embedding, 20k notes)",y:f,x:f.map(k=>E[k]==null?null:100*E[k]),marker:{color:PAL[1]}}],
+    lay({barmode:"group",xaxis:{title:"% of the differences between notes explained"},yaxis:{autorange:"reversed"},margin:{l:250,r:10,t:10,b:40},legend:{orientation:"h",y:-0.25}}),{displayModeBar:false});
   const g=n=>(100*W.find(r=>r.factor===n).adj).toFixed(1), pl=T.pls.warm;
-  $("tVarTxt").innerHTML=`Even the best combination, <b>place × grape</b>, explains only ${g("Place × grape")}% of a note (${(100*E["Place × grape"]).toFixed(0)}% for text embeddings, which also pick up the writer and the producer). <b>Producer</b> ${g("Producer (winery)")}%, <b>vintage year</b> ${g("Vintage year")}%, <b>season weather within a place×grape</b> ${(100*W[W.length-1].adj).toFixed(2)}%. The rest is individual-note variation. A model cannot tell a warm vintage from a cool one using the notes alone (leave-vintage-out R² = ${pl.cv_r2.toFixed(2)}, ${pl.n_units.toLocaleString()} units), so weather has to be studied through targeted effects, as below.`; }
+  $("tVarTxt").innerHTML=`Even the best combination, <b>place × grape</b>, explains only ${g("Place × grape")}% of how notes differ (${(100*E["Place × grape"]).toFixed(0)}% for the wording, which also picks up the writer and the producer). <b>Producer</b> ${g("Producer (winery)")}%, <b>vintage year</b> ${g("Vintage year")}%, <b>season weather within a place and grape</b> ${(100*W[W.length-1].adj).toFixed(2)}%. The rest is the individual wine and the person writing about it. <span class="ds">Statistic: adjusted R² on the standardised profile. A model cannot tell a warm vintage from a cool one using the notes alone (leave-vintage-out R² = ${pl.cv_r2.toFixed(2)}, ${pl.n_units.toLocaleString()} units), so weather has to be studied through targeted effects, as below.</span>`; }
 function drawCurve(){ const g=$("tg").value, x=$("tx").value, a=$("ta").value, m=$("tm").value;
   if(m==="site"){ const r=T.site.find(s=>s.grape===g); if(!r||!r[a]) { Plotly.purge("curvePlot"); $("tCurveTxt").textContent="Not enough places for this grape/attribute."; return; }
     const pts=r.gdd.map((gd,i)=>[gd,r[a][i],r.n[i],r.names[i]||""]).filter(p=>p[1]!=null), n=pts.length, mx=pts.reduce((s,p)=>s+p[0],0)/n, my=pts.reduce((s,p)=>s+p[1],0)/n;
@@ -363,7 +348,8 @@ function drawVint(){ const i=+$("tvs").value; const e=T.explorer[i]; if(!e){ Plo
   const cs=Object.entries(e.contrast).sort((p,q)=>Math.abs(q[1][0])-Math.abs(p[1][0]));
   $("tContH").textContent=`Warm years (${e.warm}) vs cool years (${e.cool}) · ${e.place.split(" · ")[0]}, ${e.grape}`;
   $("tCont").innerHTML=cs.length?`<table><tr><th>attribute</th><th>warm − cool</th><th>90% CI</th></tr>`+cs.map(([a,[d,lo,hi]])=>{const sig=lo>0||hi<0; return `<tr style="${sig?"":"opacity:.55"}"><td>${sig?"● ":""}${esc(T.meta.attrs[a])}</td><td>${eff(a,d)}</td><td class="note">${eff(a,lo)} … ${eff(a,hi)}</td></tr>`}).join("")+`</table><p class="note">Warm = season ≥0.4 SD above this place's norm, cool = ≤−0.4 SD. Few vintages → wide intervals.</p>`:'<p class="note">Fewer than 2 warm and 2 cool vintages with enough notes for a contrast.</p>'; }
-const TATTR=[["pts","critic points"],["acidity","acidity cue (1–5)"],["body","body cue (1–5)"],["tannin","tannin cue (1–5)"],["oak","oak (share of notes)"],["citrus","citrus fruit"],["tropical","tropical fruit"],["red_fruit","red fruit"],["black_fruit","black fruit"],["cooked","cooked fruit"],["tertiary","tertiary notes"],["price","median price $"],["red_share","red-wine share"]];
+const plainD=n=>{ const [a,b]=String(n).split(": "); if(!b) return String(a).replace(/_/g," "); return b.endsWith(" generic")?a:b; }, dd=(L,n)=>[...new Set(L.map(plainD))].slice(0,n).join(", ");
+const TATTR=[["pts","critic points"],["acidity","acidity cue (1–5)"],["body","body cue (1–5)"],["tannin","tannin cue (1–5)"],["oak","oak (share of notes)"],["citrus","citrus fruit"],["tropical","tropical fruit"],["red_fruit","red fruit"],["black_fruit","black fruit"],["cooked","cooked fruit"],["tertiary","tertiary notes"],["price","median price $"],["red_share","red-wine share"],["gdd","growing-degree days (warmth)"],["rain","season rainfall (mm)"],["diurnal","day-night temperature range (°C)"]];
 const OLDW=["France","Italy","Spain","Portugal","Germany","Austria","Greece","Hungary","Romania","Switzerland"], NEWW=["US","Australia","New Zealand","Chile","Argentina","South Africa","Canada","Uruguay","Brazil"];
 const PRESETS=[["Burgundy vs Napa Valley",p=>p.province==="Burgundy",p=>p.name.startsWith("Napa Valley")],["Old World vs New World",p=>OLDW.includes(p.country),p=>NEWW.includes(p.country)],["Loire Valley vs Marlborough",p=>p.province==="Loire Valley",p=>p.name.startsWith("Marlborough")]];
 function tasteView(){ const sp=$("ts").value; let pj=$("tp").value, dm=+$("td").value; const byName=new Map(T.places.map((p,i)=>[p.name,i]));
@@ -375,19 +361,19 @@ const attrOf=(p,a)=>a==="pts"?p.pts:((TA.v||{})[p.name]||{})[a];
 function colourKey(V,cm){ const el=$("tKey"); if(cm!=="taste"){ el.innerHTML=cm==="attr"?`<span class="note">Colour = ${esc(TATTR.find(a=>a[0]===$("tat").value)[1])} (bar on the map).</span>`:cm==="country"?'<span class="note">Colour = country.</span>':'<span class="note">Colour = average critic points.</span>'; return; }
   let s='<svg viewBox="0 0 200 110" width="200" height="110" style="float:left;margin-right:12px"><g transform="translate(55,55)">'; for(let a=0;a<360;a+=10) for(const [r0,r1,rr] of [[0,26,.3],[26,50,.9]]){ const t0=a*Math.PI/180,t1=(a+10)*Math.PI/180; s+=`<path d="M${r0*Math.cos(t0)} ${-r0*Math.sin(t0)}L${r1*Math.cos(t0)} ${-r1*Math.sin(t0)}A${r1} ${r1} 0 0 0 ${r1*Math.cos(t1)} ${-r1*Math.sin(t1)}L${r0*Math.cos(t1)} ${-r0*Math.sin(t1)}Z" fill="hsl(${a+5} ${(0.35+0.55*rr)*100}% ${(0.62-0.18*rr)*100}%)"/>`; }
   s+='</g><text x="115" y="30" font-size="11" fill="'+css("--muted")+'">hue = direction</text><text x="115" y="46" font-size="11" fill="'+css("--muted")+'">from the centre</text><text x="115" y="70" font-size="11" fill="'+css("--muted")+'">strength =</text><text x="115" y="86" font-size="11" fill="'+css("--muted")+'">distance out</text></svg>';
-  el.innerHTML=s+`<span class="note"><b>Colour key.</b> A dot's colour is where it sits in the taste plot: the same colour on the map and in the plot means similar taste, and neighbouring colours mean neighbouring tastes. ${V.pj==="pca"&&V.axes?`Left–right (${(100*V.axes[0].ev).toFixed(0)}% of the variation): ${esc(V.axes[0].neg.slice(0,3).join(", "))} ⟷ ${esc(V.axes[0].pos.slice(0,3).join(", "))}. Up–down: ${esc(V.axes[1].neg.slice(0,3).join(", "))} ⟷ ${esc(V.axes[1].pos.slice(0,3).join(", "))}.`:V.pj==="umap"?"UMAP keeps neighbours together but its axes mean nothing.":""}</span><div style="clear:both"></div>`; }
+  el.innerHTML=s+`<span class="note"><b>Colour key.</b> A dot's colour is where it sits in the taste plot: the same colour on the map and in the plot means similar taste, and neighbouring colours mean neighbouring tastes. ${V.pj==="pca"&&V.axes?`Left–right (${(100*V.axes[0].ev).toFixed(0)}% of the variation): ${esc(dd(V.axes[0].neg,3))} ⟷ ${esc(dd(V.axes[0].pos,3))}. Up–down: ${esc(dd(V.axes[1].neg,3))} ⟷ ${esc(dd(V.axes[1].pos,3))}.`:V.pj==="umap"?"UMAP keeps neighbours together but its axes mean nothing.":""}</span><div style="clear:both"></div>`; }
 function drawTaste(){ const V=tasteView(); if(!V){ $("tSel").textContent="Embedding space unavailable."; return; } TS.view=V; const P=T.places, cm=$("tc").value; $("tat").style.display=cm==="attr"?"":"none"; const at=$("tat").value||"pts";
   const cty=[...new Set(P.map(p=>p.country))].sort(), av=V.idx.map(pi=>attrOf(P[pi],at)), okv=av.filter(v=>v!=null).sort((a,b)=>a-b), lo=okv.length?okv[Math.floor(okv.length*.03)]:0, hi=okv.length?okv[Math.floor(okv.length*.97)]:1;
   const colors=V.idx.map((pi,k)=>cm==="taste"?V.col[k]:cm==="country"?CPAL[cty.indexOf(P[pi].country)%CPAL.length]:cm==="attr"?av[k]:P[pi].pts); TS.base=colors.slice();
   const sym=V.idx.map(pi=>$("tsh").checked?(((TA.v||{})[P[pi].name]||{}).red_share>=.5?"circle":"diamond"):"circle");
   const marker=(sz,bar)=>Object.assign({size:V.idx.map(pi=>sz+3*Math.log10(P[pi].n)),opacity:1,symbol:sym},(cm==="pts"||cm==="attr")?{color:colors,colorscale:cm==="attr"?"Viridis":"Turbo",cmin:cm==="attr"?lo:undefined,cmax:cm==="attr"?hi:undefined,showscale:!!bar,colorbar:bar?{title:{text:cm==="attr"?TATTR.find(a=>a[0]===at)[1]:"points",font:{size:11}},thickness:10,len:.6}:undefined,line:{width:.5,color:"#0007"}}:{color:colors,line:{width:.5,color:"#0007"}});
-  const text=V.idx.map(pi=>{const p=P[pi], a=cm==="attr"?`<br>${TATTR.find(x=>x[0]===at)[1]}: ${attrOf(p,at)==null?"–":attrOf(p,at)}`:""; return `<b>${esc(p.name)}</b><br>${p.n} notes · ${p.pts} pts${a}<br>${esc(p.grapes)}<br><i>distinct: ${p.more.slice(0,3).map(x=>x[0]).join(", ")}</i>`});
+  const text=V.idx.map(pi=>{const p=P[pi], a=cm==="attr"?`<br>${TATTR.find(x=>x[0]===at)[1]}: ${attrOf(p,at)==null?"–":attrOf(p,at)}`:""; return `<b>${esc(p.name)}</b><br>${p.n} notes · ${p.pts} pts${a}<br>${esc(p.grapes)}<br><i>distinct: ${dd(p.more.map(x=>x[0]),3)}</i>`});
   const ring={hoverinfo:"skip",showlegend:false,marker:{size:24,color:"rgba(0,0,0,0)",line:{width:3,color:"#fff"}}}, twin={type:"scattergeo",mode:"lines",lat:[],lon:[],hoverinfo:"skip",line:{color:"#e15759",width:1.6},showlegend:false};
   Plotly.react("tMap",[{type:"scattergeo",mode:"markers",lat:V.idx.map(pi=>P[pi].lat),lon:V.idx.map(pi=>P[pi].lon),customdata:V.idx,text,hoverinfo:"text",marker:marker(5,true),showlegend:false},Object.assign({type:"scattergeo",mode:"markers",lat:[],lon:[]},ring),twin],
     lay({dragmode:"select",margin:{l:0,r:0,t:0,b:0},geo:{projection:{type:"natural earth"},showland:true,landcolor:css("--panel"),showocean:true,oceancolor:css("--bg"),showcountries:true,countrycolor:css("--line"),bgcolor:"rgba(0,0,0,0)"}}),{responsive:true,displaylogo:false});
   const ax=V.axes, lo2={margin:{l:10,r:10,t:10,b:10}}; $("tAx").innerHTML=V.pj==="umap"?"· UMAP: only neighbourhoods are meaningful":"";
   const big=[...V.idx.keys()].sort((a,b)=>P[V.idx[b]].n-P[V.idx[a]].n).slice(0,$("tlab").checked?18:0), ann=[];
-  if(V.dm===2&&V.pj==="pca"&&ax){ const f=(x,y,t,xa,ya)=>({xref:"paper",yref:"paper",x,y,text:t,showarrow:false,xanchor:xa,yanchor:ya,font:{size:11,color:css("--muted")}}); ann.push(f(0,.5,"◀ "+ax[0].neg.slice(0,2).join(", "),"left","middle"),f(1,.5,ax[0].pos.slice(0,2).join(", ")+" ▶","right","middle"),f(.5,1,"▲ "+ax[1].pos.slice(0,2).join(", "),"center","top"),f(.5,0,"▼ "+ax[1].neg.slice(0,2).join(", "),"center","bottom")); }
+  if(V.dm===2&&V.pj==="pca"&&ax){ const f=(x,y,t,xa,ya)=>({xref:"paper",yref:"paper",x,y,text:t,showarrow:false,xanchor:xa,yanchor:ya,font:{size:11,color:css("--muted")}}); ann.push(f(0,.5,"◀ "+dd(ax[0].neg,2),"left","middle"),f(1,.5,dd(ax[0].pos,2)+" ▶","right","middle"),f(.5,1,"▲ "+dd(ax[1].pos,2),"center","top"),f(.5,0,"▼ "+dd(ax[1].neg,2),"center","bottom")); }
   const lab={type:"scatter",mode:"text",x:big.map(k=>V.xy[k][0]),y:big.map(k=>V.xy[k][1]),text:big.map(k=>P[V.idx[k]].name.split(" · ")[0]),textposition:"top center",textfont:{size:10,color:css("--ink")},hoverinfo:"skip",showlegend:false};
   if(V.dm===3) Plotly.react("tProj",[{type:"scatter3d",mode:"markers",x:V.xy.map(r=>r[0]),y:V.xy.map(r=>r[1]),z:V.xy.map(r=>r[2]),customdata:V.idx,text,hoverinfo:"text",marker:Object.assign({},marker(3,false),{line:{width:0}}),showlegend:false},Object.assign({type:"scatter3d",mode:"markers",x:[],y:[],z:[]},ring)],lay(Object.assign(lo2,{scene:{xaxis:{showticklabels:false,title:"PC1"},yaxis:{showticklabels:false,title:"PC2"},zaxis:{showticklabels:false,title:"PC3"}}})),{responsive:true,displaylogo:false});
   else Plotly.react("tProj",[{type:"scatter",mode:"markers",x:V.xy.map(r=>r[0]),y:V.xy.map(r=>r[1]),customdata:V.idx,text,hoverinfo:"text",marker:marker(6,false),showlegend:false},Object.assign({type:"scatter",mode:"markers",x:[],y:[]},ring),lab],lay(Object.assign(lo2,{dragmode:"select",annotations:ann,xaxis:{showticklabels:false,zeroline:false,showgrid:false},yaxis:{showticklabels:false,zeroline:false,showgrid:false}})),{responsive:true,displaylogo:false});
@@ -403,7 +389,7 @@ function drawTaste(){ const V=tasteView(); if(!V){ $("tSel").textContent="Embedd
 function twinsOf(c){ const V=TS.view, P=T.places, k=V.idx.indexOf(c); if(k<0) return; const d=V.idx.map((pi,j)=>[j===k?1e9:V.xy[j].reduce((s,v,i)=>s+(v-V.xy[k][i])**2,0),pi]).sort((a,b)=>a[0]-b[0]).slice(0,8).map(a=>a[1]);
   TS.focus={c,twins:d}; TS.grp=null; TS.sel=new Set([c,...d]); paintSel(); }
 function groupSummary(S){ const N=S.reduce((a,p)=>a+p.n,0), gr={}, ds={}; S.forEach(p=>{ p.grapes.split(", ").forEach(t=>{const m=t.match(/^(.*) \((\d+)\)$/); if(m) gr[m[1]]=(gr[m[1]]||0)+ +m[2]}); p.more.forEach(([n,v])=>{ds[n]=(ds[n]||[0,0]); ds[n][0]+=v*p.n; ds[n][1]+=p.n}); });
-  const dv=Object.entries(ds).map(([n,[s,w]])=>[n,s/N,w]).filter(r=>r[2]>=N*.08); return {N,places:S.length,pts:S.reduce((a,p)=>a+p.pts*p.n,0)/N,grapes:Object.entries(gr).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([g,n])=>`${esc(g)} (${n})`).join(", "),up:dv.filter(r=>r[1]>0).sort((a,b)=>b[1]-a[1]).slice(0,6).map(r=>r[0]).join(", "),dn:dv.filter(r=>r[1]<0).sort((a,b)=>a[1]-b[1]).slice(0,4).map(r=>r[0]).join(", "),cty:[...new Set(S.map(p=>p.country))]}; }
+  const dv=Object.entries(ds).map(([n,[s,w]])=>[n,s/N,w]).filter(r=>r[2]>=N*.08); return {N,places:S.length,pts:S.reduce((a,p)=>a+p.pts*p.n,0)/N,grapes:Object.entries(gr).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([g,n])=>`${esc(g)} (${n})`).join(", "),up:[...new Set(dv.filter(r=>r[1]>0).sort((a,b)=>b[1]-a[1]).map(r=>plainD(r[0])))].slice(0,6).join(", "),dn:[...new Set(dv.filter(r=>r[1]<0).sort((a,b)=>a[1]-b[1]).map(r=>plainD(r[0])))].slice(0,4).join(", "),cty:[...new Set(S.map(p=>p.country))]}; }
 function paintSel(){ const V=TS.view; if(!V) return; const P=T.places, has=TS.sel.size>0, op=V.idx.map(pi=>!has||TS.sel.has(pi)?1:.12);
   const cols=TS.grp?TS.base.map((c,k)=>TS.grp.has(V.idx[k])?(TS.grp.get(V.idx[k])===0?"#4e79a7":"#e15759"):c):TS.base, num=typeof TS.base[0]==="number", upd={"marker.opacity":[op],selectedpoints:[null]}; if(!num||TS.grp) upd["marker.color"]=[cols];
   ["tMap","tProj"].forEach(id=>{ try{Plotly.restyle(id,upd,[0])}catch(e){} });
@@ -414,7 +400,7 @@ function paintSel(){ const V=TS.view; if(!V) return; const P=T.places, has=TS.se
     const col=(g,s,c)=>`<div><b style="color:${c}">${esc(g)}</b>: ${s.places} places, ${s.N.toLocaleString()} notes, avg ${s.pts.toFixed(1)} pts<br>Main grapes: ${s.grapes}<br>Distinctive (net of grape): <b>more</b> ${s.up||"–"}${s.dn?` · <b>less</b> ${s.dn}`:""}</div>`;
     $("tSel").innerHTML=`<div class="grid2">${col(TS.gnames[0],a,"#4e79a7")}${col(TS.gnames[1],b,"#e15759")}</div><p class="note">The two groups' centres are about ${Math.round(km).toLocaleString()} km apart on the map. The taste plot shows how far apart they are in taste.</p>`; return; }
   const s=groupSummary(S); let h=f?`<b>Taste twins of ${esc(P[f.c].name)}</b> (nearest in this plot): `+f.twins.map(t=>`${esc(P[t].name)} <span class="note">${Math.round(WsetGuess.haversine(P[f.c].lat,P[f.c].lon,P[t].lat,P[t].lon)).toLocaleString()} km</span>`).join(" · ")+"<br>":"";
-  $("tSel").innerHTML=h+`<b>${s.places} places</b> (${s.cty.slice(0,6).join(", ")}${s.cty.length>6?"…":""}) · ${s.N.toLocaleString()} notes · avg ${s.pts.toFixed(1)} pts<br>Main grapes: ${s.grapes}<br>Distinctive in these places (net of grape, vs all places): <b>more</b> ${s.up||"–"}${s.dn?` · <b>less</b> ${s.dn}`:""}${S.length<=6&&!f?"<br>"+S.map(p=>`<span class="note">${esc(p.name)}: ${esc(p.more.slice(0,4).map(x=>x[0]).join(", "))}</span>`).join("<br>"):""}`; }
+  $("tSel").innerHTML=h+`<b>${s.places} places</b> (${s.cty.slice(0,6).join(", ")}${s.cty.length>6?"…":""}) · ${s.N.toLocaleString()} notes · avg ${s.pts.toFixed(1)} pts<br>Main grapes: ${s.grapes}<br>Distinctive in these places (net of grape, vs all places): <b>more</b> ${s.up||"–"}${s.dn?` · <b>less</b> ${s.dn}`:""}${S.length<=6&&!f?"<br>"+S.map(p=>`<span class="note">${esc(p.name)}: ${esc(dd(p.more.map(x=>x[0]),4))}</span>`).join("<br>"):""}`; }
 function tastePreset(i){ const [name,fa,fb]=PRESETS[i], P=T.places, V=TS.view; if(!V) return; const A=V.idx.filter(k=>fa(P[k])), B=V.idx.filter(k=>fb(P[k])); if(!A.length||!B.length){ $("tSel").textContent="This comparison needs places not present in the current space."; return; }
   TS.focus=null; TS.grp=new Map([...A.map(k=>[k,0]),...B.map(k=>[k,1])]); TS.gnames=name.split(" vs "); TS.sel=new Set([...A,...B]); paintSel(); }
 function drawDecay(){ const D=T.decay, ln=(k,name,col)=>{const b=D[k].bins, x=b.map(r=>r[1]>=20000?"> 3,200":`${r[0]}–${r[1]}`); return [{x,y:b.map(r=>r[5]),type:"scatter",mode:"lines",line:{width:0},hoverinfo:"skip",showlegend:false},{x,y:b.map(r=>r[4]),type:"scatter",mode:"lines",fill:"tonexty",fillcolor:col+"22",line:{width:0},hoverinfo:"skip",showlegend:false},
@@ -440,7 +426,7 @@ const cls3=c=>{ const [a,b,r]=c.split("|"); return r?`${r} · ${b}, ${a}`:b?`${b
 async function guess(){ if(!LEX) LEX=await load("lexicon"); GM=await load("guess_model"); if(!LEX||!GM){ $("guess").innerHTML='<p class="note">Run src/export_guess.py to generate data/guess_model.json.</p>'; return; }
   GMT.m=new WsetMatcher.Matcher(LEX,{embed:false});
   $("gex").innerHTML='<option value="">—</option>'+ARCH.map((a,i)=>`<option value="${i}">${esc(a[0])}</option>`).join(""); $("gex").onchange=()=>{ if($("gex").value!==""){ $("gtext").value=ARCH[+$("gex").value][1]; runGuess(); } };
-  let tm=null; $("gtext").oninput=()=>{ clearTimeout(tm); tm=setTimeout(runGuess,250); }; $("gtext").value=ARCH[2][1]; $("gex").value="2";
+  let tm=null; $("gtext").oninput=()=>{ clearTimeout(tm); tm=setTimeout(runGuess,250); }; $("gtext").value=ARCH[0][1]; $("gex").value="0";
   runGuess(); guessExamples(); guessRounds(); }
 function circlePts(lat,lon,km){ const R=6371, d=km/R, la=lat*Math.PI/180, lo=lon*Math.PI/180, P=[]; for(let b=0;b<=360;b+=10){ const t=b*Math.PI/180, la2=Math.asin(Math.sin(la)*Math.cos(d)+Math.cos(la)*Math.sin(d)*Math.cos(t)), lo2=lo+Math.atan2(Math.sin(t)*Math.sin(d)*Math.cos(la),Math.cos(d)-Math.sin(la)*Math.sin(la2)); P.push([la2*180/Math.PI,((lo2*180/Math.PI+540)%360)-180]); } return P; }
 function guessWhy(x,Pv){ const n=GM.mu.length, z=Array.from(x,(v,i)=>(v-GM.mu[i])/GM.sd[i]), W=GM.variety.W, top=Pv.indexOf(Math.max(...Pv)), names=GM.spec.names;
@@ -831,15 +817,16 @@ async function missingTab(){ MS=await load("missing"); if(!MS)return missing("mi
   $("mcsv").onclick=()=>{const h="country,province,region_1,reviews,reviews_vintage_2000_17,geo_level,lat,lon,weather,gaps\n"+MF.map(r=>r.slice(0,9).concat([r[9].join("; ")]).map(x=>'"'+String(x??"").replace(/"/g,'""')+'"').join(",")).join("\n");
     const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([h],{type:"text/csv"})); a.download="missing_locations.csv"; a.click()}; drawMiss(); }
 async function about(){ const m=await load("meta"); if(m)$("built").textContent="Data built "+m.built+" · sample "+m.sample; }
-$("theme").onclick=()=>{const r=document.documentElement; r.dataset.theme=(r.dataset.theme==="dark"||(!r.dataset.theme&&matchMedia("(prefers-color-scheme:dark)").matches))?"light":"dark"; Object.keys(shown).forEach(k=>shown[k]=0); show(location.hash.slice(1)||"overview")};
+$("theme").onclick=()=>{const r=document.documentElement; r.dataset.theme=(r.dataset.theme==="dark"||(!r.dataset.theme&&matchMedia("(prefers-color-scheme:dark)").matches))?"light":"dark"; window.siteRefresh&&window.siteRefresh()};
 async function keyBanner(){ const k=await load("key_status"); if(!k)return; const el=$("keyBanner"); const fmt=x=>x?new Date(x).toLocaleString():"never";
   const left=k.expires_on?Math.ceil((new Date(k.expires_on+"T23:59:59")-Date.now())/864e5):null; let cls="",msg="";
   if(k.status==="invalid_or_expired"||k.status==="payment_or_quota"||k.status==="missing"){ cls="bad";
     msg=`<b>Jev API key stopped working</b> (${k.message}). Failing since ${fmt(k.failing_since)}; last worked ${fmt(k.last_ok_at)}. <a href="${k.renew_url}" target="_blank" rel="noopener">Get a new key</a>, put it in <code>.env</code> as <code>TYPESAFE_API_KEY</code>, then run <code>src/key_status.py</code>.`; }
   else if(left!==null&&left<=7){ cls="soon"; msg=`<b>Jev API key expires ${left<=0?"today or has expired":"in "+left+" day"+(left===1?"":"s")}</b> (${k.expires_on}). <a href="${k.renew_url}" target="_blank" rel="noopener">Get a new key</a> before then.`; }
-  else { msg=`<span class="note">Jev API key: ${k.status==="ok"||k.status==="rate_limited"?"working":k.status} · last checked ${fmt(k.checked_at)}${left!==null?" · expires "+k.expires_on:" · expiry date not set (TYPESAFE_KEY_EXPIRES in .env)"}</span>`; }
+  else { el.style.display="none"; return; }
   el.innerHTML=`<div class="kb ${cls}">${msg}</div>`; el.style.display="block"; }
-tabs(); show((location.hash||"#overview").slice(1)); keyBanner();
 </script>
+<script src="site.js"></script>
+<script>siteInit();</script>
 </body>
 </html>

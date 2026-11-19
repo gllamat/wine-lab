@@ -38,3 +38,9 @@ parity `node dashboard/causal_parity.js`), `src/causal_estimate.py` (adjustment 
 offline on 3,000 queries (`recsys_eval.json`) and writes a parity fixture; `dashboard/recsys.js` is the browser engine (`node dashboard/recsys_parity.js`).
 Techniques (all content-based, since the corpus has critics' reviews, not consumer ratings): cosine kNN on raw cues, on standardised cues, in a 32-dim SVD taste space, on MiniLM embeddings; score fusion;
 reciprocal rank fusion; MMR diversification; plus filters (cheaper, other country, similar score), a Rocchio taste profile from thumbs, critiquing ("more acidity"), and a labelled toy collaborative-filtering demo.
+
+## Site structure (two audiences)
+`dashboard/index.html` holds the tools; `dashboard/site.js` + `site.css` are the shell. A header switch selects **Wine lover** (Start, Taste a wine, Wines like this one, Regions & taste, Vintages & weather,
+Read a tasting note, About) or **Data science** (Start, 1 Data, 2 Text → numbers, 3 Vector spaces, 4 Place & weather, 5 Predict, 6 Recommend, 7 Causality, About). The same sections serve both:
+`PAGES` in `site.js` defines each page's title, lead, "What we found" (wine; numbers read from the data JSONs), "How it works" and the Wine / Maths / Computer-science lens (data science), "Try this" prompts and the next step.
+Blocks with class `ds` are hidden in wine mode. The mode and hash are remembered; switching mode keeps your place (`EQ` map). The old Map tab was folded into Regions & taste (colour by attribute incl. climate).

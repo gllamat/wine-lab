@@ -1,0 +1,44 @@
+{
+ "round": 1,
+ "recipe": "lite-1",
+ "seed": 1001,
+ "n_sealed": 500,
+ "n_pool": 168928,
+ "date": "2026-11-19T11:49:11",
+ "git_commit": "3ab1f7a",
+ "git_dirty": true,
+ "python": "3.9.6",
+ "packages": {
+  "numpy": "1.26.4",
+  "pandas": "2.3.3",
+  "sklearn": "1.6.1",
+  "scipy": "1.13.1"
+ },
+ "tiers": [
+  "lite",
+  "full"
+ ],
+ "hashes": {
+  "vectors": "d5ce2f5fc0d4d614",
+  "spec": "02bee50caa7bc014",
+  "corpus": "c9a029fc9bb264c5",
+  "requirements": "1b8f0b21cea2f9c1",
+  "predictions": {
+   "lite": "4f753677d64b7a60",
+   "full": "46780a4c4ce9cbe2"
+  },
+  "embeddings": "55f640921d280e3b"
+ },
+ "hyper": {
+  "MIN_VAR": 150,
+  "MIN_PLACE": 80,
+  "MIN_WINERY": 20,
+  "NPC": 40,
+  "C_GRAPE": 0.3,
+  "C_PLACE": 0.3,
+  "tau": 8.0,
+  "T_var": 1.0,
+  "T_place": 1.0
+ },
+ "seconds": 2310
+}
