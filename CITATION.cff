@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+message: "If you use this work, please cite it as below. The derived data are CC BY-NC-SA 4.0 (non-commercial); see DATA_LICENSES.md."
+title: "Wine Lab: data science applied to wine tasting notes"
+type: software
+authors:
+  - name: "Lamat UK"
+version: "0.1.0"
+date-released: "2026-11-19"
+license: MIT
+repository-code: "https://github.com/gllamat/wine-lab"
+url: "https://lamatuk.com"
+keywords:
+  - wine
+  - text mining
+  - recommender systems
+  - causal inference
+  - data science education

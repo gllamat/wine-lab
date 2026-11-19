@@ -1,49 +1,57 @@
-# wset_pipeline
+# Wine Lab
 
-Deterministic pipeline turning free-text wine reviews into partial WSET SAT vectors. The card/lexicon follow the WSET Level 4 Systematic
-Approach to Tasting Wine, Issue 1.2 (Aug 2023); the earlier Level 3 (3W v2.0, 2016) version is archived in lexicon/archive/. (c) WSET; the SAT documents are not stored here, compared with Jev (TypeSafe System One),
-BERT/sentence embeddings, geography, vintage and growing-season weather. See `reports/REVIEW_vs_WSET_L3_SAT.md`.
+**Data science applied to wine: what 169,000 critics' tasting notes can tell us, and how the methods work.**
+A free, open-source, **non-commercial** demonstration by [Lamat UK](https://lamatuk.com).
 
-- `lexicon/` aromas.yaml (18 SAT clusters in 3 tiers, 99 SAT descriptors + non-SAT cluster-level extras), structure.yaml (SAT scales incl. 6-level sweetness, mousse, nose intensity;
-  categorical colour/clarity/condition; readiness), overrides.yaml (audit corrections). Cue words and cue-to-level mappings are project heuristics.
-- `src/wsetkit.py` matcher: longest-match lookup, bound adjectives, negation, nose/palate scope, wine-colour resolution of white/red tertiary clusters.
-  `dashboard/matcher.js` is a parity-tested browser port (`node dashboard/parity.js`).
-- `src/jev_pilot.py` + `src/compare_jev.py`: 238 SAT-derived typed questions per review (every lexicon descriptor asked separately for nose and palate); key from `.env` (gitignored); `src/key_status.py` monitors key health.
-- Quality is a PROXY from critic points (SAT has 6 levels; corpus minimum is 80 pts).
-- Data/outputs are git-ignored; source reviews are scraped Wine Enthusiast text (reportedly CC BY-NC-SA). The deployed dashboard carries aggregates only.
-- Setup: `python3 -m venv .venv && .venv/bin/pip install -r requirements.txt`. Weather: NASA POWER. Geocoding: OpenStreetMap Nominatim (validated in `src/places.py`).
+[![CI](https://github.com/gllamat/wine-lab/actions/workflows/ci.yml/badge.svg)](https://github.com/gllamat/wine-lab/actions/workflows/ci.yml)
+[![Code: MIT](https://img.shields.io/badge/code-MIT-009999.svg)](LICENSE)
+[![Data: CC BY-NC-SA 4.0](https://img.shields.io/badge/derived%20data-CC%20BY--NC--SA%204.0-lightgrey.svg)](DATA_LICENSES.md)
 
-## Terroir tab
-`python src/terroir.py` (about 3 min; needs the vectors, weather cache and embeddings) writes `dashboard/data/terroir.json` (aggregates only, safe to deploy): variance explained, climate response curves, vintage explorer, taste map with linked selection, and geography-vs-taste distance decay. See reports/REVIEW_vs_WSET_L3_SAT.md section 7.
+> **Not-for-profit and non-commercial.** This project has no ads, no fees and sells nothing. The tasting-note data are CC BY-NC-SA 4.0, so everything derived from them is for **non-commercial use only**, with attribution and share-alike. It is **not affiliated with or endorsed by WSET, Wine Enthusiast, Kaggle, NASA or OpenStreetMap**. No review text is included. Read [DISCLAIMER.md](DISCLAIMER.md) and [DATA_LICENSES.md](DATA_LICENSES.md) before reusing anything.
 
-## Guess model, blind rounds, causal lab (added 2026-11-19)
+## What it is
+One site, two audiences (switch in the header):
 
-**Guess (deterministic, statistical).** From the description alone, `src/guess_model.py` guesses grape, place, producer, vintage, price and critic points.
-Features: the SAT vector computed *without* the wine-colour label (`run_matcher.py all --nocolour`) plus note length and year hints (`src/guess_features.py`, 170 features; hits-path and vector-path
-featurisers are tested identical). Models: softmax regression (variety, country, place, stacked on grape probabilities), ridge with residual-quantile intervals (vintage, log price, points),
-producer = P(winery | place, grape) tables x a style kernel. Tiers: `lite` (SAT only; exported to JSON and run in the browser: `src/export_guess.py`, `dashboard/guess.js`, parity test `node dashboard/guess_parity.js`)
-and `full` (SAT + MiniLM embedding, `python src/embed.py minilm all` first). `python src/guess_model.py dev [full]` = development split (not a blind round).
+- **Wine lover**: describe a wine in words and see what a model thinks it is; find wines like one you love and steer the search; explore which regions taste alike; see what vintages and warm summers do; read a tasting note the way a WSET taster would.
+- **Data science**: a seven-chapter path from raw data to causal claims, each with the mathematics and code behind it: data → words to numbers (a deterministic WSET parser) → vector spaces → place, vintage and weather → prediction (with calibration and sealed blind-test rounds) → recommender systems → causal inference (DAGs, do-calculus, placebo tests).
 
-**Blind rounds** (`src/blind.py run [--n 500] [--dry]`): sample 500 notes never tested (seed 1000+round, minus `experiments/blind_tasting/ledger.csv`), seal the key, train on everything else
-(earlier revealed rounds included), predict, freeze predictions (sha256 in the manifest), reveal, score, record, append the ids to the ledger. Both tiers are scored on the same notes.
-Results: `experiments/blind_tasting/round_NNN/` and `dashboard/data/blind_rounds.json` (metrics only; `blind_examples.json` has review text and stays local).
+Data science sits where **domain knowledge, mathematics and computer science** meet; every page says which part of each it uses.
 
-**Causal lab**: `lexicon/dag.yaml` (base graph) + `lexicon/dags/*.yaml` (variants), `src/causal.py` (d-separation, back-door/front-door, adjustment sets, the three do-calculus rules; JS port `dashboard/causal.js`,
-parity `node dashboard/causal_parity.js`), `src/causal_estimate.py` (adjustment gallery on the real data, placebo tests; needs `requirements/causal.txt`). Dashboard tab "Causal".
+## Headline results (held-out data)
+| | Simple model (runs in your browser) | Full model (adds a text embedding) |
+|---|---|---|
+| Grape right first guess | 36% | 58% (63% on blind round 1) |
+| Country right first guess | 60% | 78% |
+| Median miss distance | 666 km | 242 km |
 
-**Environment**: `Dockerfile` targets `core`, `causal`, `embed`, `serve`; `docker-compose.yml`; `Makefile`; pinned `requirements/*.txt`; `scripts/smoke.py`. Data is mounted, never baked in.
+Intervals for vintage and price contain the truth about 80% of the time. Producers are close to unguessable. Warmer seasons go with lower acidity in the notes (and this is the one weather effect that passes our placebo test). See the site for details and caveats.
 
-## Recommender lab (tab "Recommend")
-`python src/recsys.py build | eval | fixture` builds a 25,000-wine index (`dashboard/data/recsys_meta.json`, `recsys_x.bin`, `recsys_e.bin`; `recsys_text.json` has review text and stays local), evaluates the techniques
-offline on 3,000 queries (`recsys_eval.json`) and writes a parity fixture; `dashboard/recsys.js` is the browser engine (`node dashboard/recsys_parity.js`).
-Techniques (all content-based, since the corpus has critics' reviews, not consumer ratings): cosine kNN on raw cues, on standardised cues, in a 32-dim SVD taste space, on MiniLM embeddings; score fusion;
-reciprocal rank fusion; MMR diversification; plus filters (cheaper, other country, similar score), a Rocchio taste profile from thumbs, critiquing ("more acidity"), and a labelled toy collaborative-filtering demo.
+## Quick start
+```bash
+git clone https://github.com/gllamat/wine-lab.git && cd wine-lab/dashboard
+python3 -m http.server 8765        # open http://localhost:8765
+```
+The dashboard is a static site (no build step) and ships with the derived data it needs. To reproduce the analysis you need to download the public datasets yourself: see [docs/DATA.md](docs/DATA.md). To deploy, point any static host (for example Vercel, with Root Directory `dashboard`) at the `dashboard/` folder.
 
-## Site structure (two audiences)
-`dashboard/index.html` holds the tools; `dashboard/site.js` + `site.css` are the shell. A header switch selects **Wine lover** (Start, Taste a wine, Wines like this one, Regions & taste, Vintages & weather,
-Read a tasting note, About) or **Data science** (Start, 1 Data, 2 Text → numbers, 3 Vector spaces, 4 Place & weather, 5 Predict, 6 Recommend, 7 Causality, About). The same sections serve both:
-`PAGES` in `site.js` defines each page's title, lead, "What we found" (wine; numbers read from the data JSONs), "How it works" and the Wine / Maths / Computer-science lens (data science), "Try this" prompts and the next step.
-Blocks with class `ds` are hidden in wine mode. The mode and hash are remembered; switching mode keeps your place (`EQ` map). The old Map tab was folded into Regions & taste (colour by attribute incl. climate).
+## Repository map
+| Path | What |
+|---|---|
+| `dashboard/` | the static site: `index.html` (tools), `site.js`/`site.css` (two-audience shell), JavaScript ports of the matcher, guess model, causal tools and recommender, derived data in `data/` |
+| `src/` | Python: matcher (`wsetkit.py`), guess model, blind rounds, recommender, causal tools, terroir analysis, corpus and pipeline scripts |
+| `lexicon/` | word lists and structure for the parser; the causal graphs (`dag.yaml`, `dags/`) |
+| `experiments/` | records of the blind-tasting rounds (ledger, manifests, scores) |
+| `docs/` | [DATA.md](docs/DATA.md) (get the data, run the pipeline), [PIPELINE.md](docs/PIPELINE.md) (module notes) |
+| `Dockerfile`, `docker-compose.yml`, `Makefile`, `requirements/` | reproducible environments (targets `core`, `causal`, `embed`, `serve`) |
 
-## Branding
-The dashboard follows the Lamat UK look: logo in `dashboard/assets/` (header, favicon, footer), teal `#009999` from the logo (darker `#007878` for text-bearing buttons), charcoal text `#313131`, grey hero band `#e7e7e7`, blue links `#2375ae`, PT Sans. Light by default; dark theme via the header button. Tokens live in `:root` in `index.html` and `site.css`.
+Everything is **deterministic** (pinned requirements, fixed seeds, pinned model revisions), and Python and JavaScript implementations are tested against each other (`node dashboard/parity.js`, `guess_parity.js`, `causal_parity.js`, `recsys_parity.js`).
+
+## Licences and attributions
+- **Code**: MIT ([LICENSE](LICENSE)).
+- **Derived data and models**: CC BY-NC-SA 4.0; place coordinates © OpenStreetMap contributors (ODbL 1.0) ([DATA_LICENSES.md](DATA_LICENSES.md)).
+- **Review data**: Wine Enthusiast reviews via Kaggle "Wine Reviews" (CC BY-NC-SA 4.0). **Weather**: NASA POWER Project (NASA Langley Research Center). **Geography**: © OpenStreetMap contributors.
+- **WSET**: the SAT card and Wine-Lexicon belong to the Wine & Spirit Education Trust and are not included; our interpretation is unofficial ([DISCLAIMER.md](DISCLAIMER.md)).
+- **Lamat** name and logo are not covered by the open-source licences.
+- Third-party software: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+## Contributing, citing, contact
+See [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md). Rights concerns or takedown requests: use the issue template or see [DISCLAIMER.md](DISCLAIMER.md) section 5. Cite with [CITATION.cff](CITATION.cff). More about Lamat UK: <https://lamatuk.com>.

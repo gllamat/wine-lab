@@ -76,7 +76,7 @@ def main():
             q = q_for(p, lvl)
             if q is None or (lvl == "country" and cache.get(q_for(p, "province"))):
                 continue
-            if lvl == "region_1" and cache.get(q_for(p, "region_1"), 0) is not 0:
+            if lvl == "region_1" and cache.get(q_for(p, "region_1"), 0) != 0:
                 continue
             query(q, cache)
             done += 1

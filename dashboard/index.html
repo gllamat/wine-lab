@@ -254,7 +254,7 @@ tr.clk{cursor:pointer}tr.clk:hover{background:var(--line)}
 <section id="about"></section>
 <div id="pagefoot"></div>
 </main>
-<footer class="sitefoot"><img src="assets/lamat-logo.png" alt="" width="22" height="22"><span>A <a href="https://lamatuk.com" target="_blank" rel="noopener">Lamat UK</a> demo · Wine Lab · data: Wine Enthusiast reviews (CC BY-NC-SA 4.0), NASA POWER, OpenStreetMap</span></footer>
+<footer class="sitefoot"><div class="fl"><img src="assets/lamat-logo.png" alt="" width="22" height="22"><span>A <a href="https://lamatuk.com" target="_blank" rel="noopener">Lamat UK</a> demo. Free, open-source, <b>non-commercial</b> research and teaching project.</span></div><div class="fs">Not affiliated with or endorsed by WSET, Wine Enthusiast, Kaggle, NASA or OpenStreetMap. No review text is published. Data: Wine Enthusiast reviews via Kaggle (CC BY-NC-SA 4.0) · NASA POWER · © OpenStreetMap contributors (ODbL). <a href="https://github.com/gllamat/wine-lab/blob/main/DISCLAIMER.md" target="_blank" rel="noopener">Disclaimer</a> · <a href="https://github.com/gllamat/wine-lab/blob/main/DATA_LICENSES.md" target="_blank" rel="noopener">Data licences</a> · <a href="https://github.com/gllamat/wine-lab" target="_blank" rel="noopener">Source code (MIT)</a></div></footer>
 <script>
 const $=id=>document.getElementById(id);
 const cache={}; async function load(n){ if(cache[n]!==undefined) return cache[n]; try{const r=await fetch("data/"+n+".json"); cache[n]=r.ok?await r.json():null;}catch(e){cache[n]=null} return cache[n]; }
