@@ -39,3 +39,11 @@ Or use Docker: `make build`, then `make matcher`, `make guess-dev`, `make blind-
 
 ## 4. Local-only files (never commit or deploy)
 `dashboard/data/examples.json`, `recsys_text.json`, `blind_examples.json` and `key_status.json` contain review text or operational data. They are in `.gitignore` and `dashboard/.vercelignore`.
+
+## 5. Local-only full views (optional)
+The public site keeps things light: an 8,000-review sample in the vector-space plot and a 25,000-wine index in the recommender. Two scripts build **local-only** versions with every review; their output goes to `dashboard/data/local/`, which is git-ignored and excluded from deployment (`.vercelignore`):
+```bash
+python src/spaces_full.py          # PCA + UMAP of all 169,428 reviews, WSET and MiniLM spaces (about 5-10 minutes)
+python src/recsys.py build --full  # int8 index of all wines (about 95 MB) + the notes (about 42 MB)
+```
+When those files exist, the dashboard adds an "ALL reviews (local copy)" option to the vector-space page and automatically searches all wines in the recommender. Without them it silently uses the public samples.

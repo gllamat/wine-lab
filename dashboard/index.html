@@ -70,10 +70,10 @@ tr.clk{cursor:pointer}tr.clk:hover{background:var(--line)}
 <section id="home"></section>
 <section id="overview"></section>
 <section id="spaces">
-  <div class="row"><label>Space <select id="sp"></select></label><label>Method <select id="md"><option>umap</option><option>pca</option></select></label>
+  <div class="row"><label>Show <select id="spsrc"><option value="sample">a sample (8,000 reviews)</option></select></label><label>Space <select id="sp"></select></label><label>Method <select id="md"><option>umap</option><option>pca</option></select></label>
   <label>Dims <select id="dm"><option>2</option><option>3</option></select></label><label>Colour <select id="cl"></select></label></div>
   <div class="panel"><div id="spacePlot" class="plot"></div></div>
-  <p class="note">8,000-review sample. WSET space = aroma descriptors + structure cues (missing cues neutral). Embeddings are mean-pooled; hover shows metadata only.</p>
+  <p class="note" id="spNote">8,000-review sample. WSET space = aroma descriptors + structure cues (missing cues neutral). Embeddings are mean-pooled; hover shows metadata only.</p>
 </section>
 <section id="terroir">
   <div class="cards" id="tKeys"></div>
@@ -94,7 +94,7 @@ tr.clk{cursor:pointer}tr.clk:hover{background:var(--line)}
 <section id="tastemap">
   <div class="cards" id="tmKeys"></div>
   <h3 class="th">The taste map: geography and taste side by side</h3>
-  <div class="row"><label>Taste space <select id="ts"><option value="raw">Taste: aromas and structure</option><option value="net">Place character: taste with the grape removed</option><option value="emb">Wording of the notes (20k sample)</option></select></label>
+  <div class="row"><label>Taste space <select id="ts"><option value="raw">Taste: aromas and structure</option><option value="net">Place character: taste with the grape removed</option><option value="emb">Wording of the notes (text embedding)</option></select></label>
     <label class="ds">Projection <select id="tp"><option value="pca">PCA (axes have meaning)</option><option value="umap">UMAP (neighbourhoods)</option></select></label>
     <label class="ds">Dimensions <select id="td"><option value="2">2D</option><option value="3">3D (PCA)</option></select></label>
     <label>Colour <select id="tc"><option value="taste">taste position</option><option value="country">country</option><option value="pts">critic points</option><option value="attr">an attribute…</option></select> <select id="tat" style="display:none"></select></label><label><input type="checkbox" id="tlab"> label big regions</label><label><input type="checkbox" id="tsh"> shape: ● red-majority ◆ white-majority</label><button id="tclr">clear selection</button></div>
@@ -161,6 +161,7 @@ tr.clk{cursor:pointer}tr.clk:hover{background:var(--line)}
   
   <h3 class="th">Pick a wine you like</h3>
   <div class="row"><label>Search <input id="rsq" type="search" placeholder="producer, grape, region… e.g. chablis" style="min-width:260px"></label><button id="rsr">surprise me</button><span class="note" id="rsn"></span></div>
+  <div class="note" id="rsix" style="margin-bottom:6px"></div>
   <select id="rsl" size="6" style="width:100%;margin-bottom:8px"></select>
   <details><summary class="note">…or describe a wine in words (uses only the WSET cues; the text-embedding techniques need a wine from the list)</summary><textarea id="rst" rows="3" style="width:100%;box-sizing:border-box;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:inherit" placeholder="e.g. Pale lemon. Lime, green apple and wet stones, high acidity, light body, dry."></textarea></details>
   <div class="panel" id="rsq0" style="margin-top:8px"></div>
@@ -274,12 +275,25 @@ async function overview(){ const o=await load("overview"); if(!o)return missing(
   Plotly.newPlot("covPlot",[{type:"bar",orientation:"h",x:s.map(d=>d[1]*100),y:s.map(d=>d[0]),marker:{color:css("--accent")}}],lay({xaxis:{title:"% of reviews"},margin:{l:130,r:10,t:10,b:40}}),{displayModeBar:false});
   const k=Object.entries(o.clusters).sort((a,b)=>a[1]-b[1]);
   Plotly.newPlot("cluPlot",[{type:"bar",orientation:"h",x:k.map(d=>d[1]*100),y:k.map(d=>d[0]),marker:{color:css("--accent2")}}],lay({xaxis:{title:"% of reviews"},margin:{l:150,r:10,t:10,b:40}}),{displayModeBar:false}); }
-let SP=null;
+let SP=null, SPF=null;
+async function spfCoords(space,method){ const k=space+"_"+method; if(SPF.bin[k]) return SPF.bin[k]; const r=await fetch(`data/local/sp_${k}.f32`); if(!r.ok) return null; const a=new Float32Array(await r.arrayBuffer()), N=SPF.meta.n; return SPF.bin[k]=[0,1,2,3,4].map(c=>a.subarray(c*N,(c+1)*N)); }
 async function spaces(){ SP=await load("spaces"); if(!SP)return missing("spaces");
   const names=[...new Set(Object.keys(SP.spaces).map(k=>k.split("|")[0]))]; $("sp").innerHTML=names.map(n=>`<option>${n}</option>`).join("");
   $("cl").innerHTML=["variety_group","country","colour","points","vintage","quality"].map(n=>`<option>${n}</option>`).join("");
-  ["sp","md","dm","cl"].forEach(i=>$(i).onchange=drawSpace); drawSpace(); }
-function drawSpace(){ if(!SP)return; const key=$("sp").value+"|"+$("md").value, dim=+$("dm").value, coords=SP.spaces[key]; if(!coords)return;
+  ["sp","md","dm","cl","spsrc"].forEach(i=>$(i).onchange=drawSpace);
+  try{ const r=await fetch("data/local/spaces_full_done.json"); if(r.ok){ SPF={meta:await load("local/spaces_full_meta"),bin:{}}; $("spsrc").insertAdjacentHTML("beforeend",`<option value="all">ALL ${SPF.meta.n.toLocaleString()} reviews (local copy)</option>`); } }catch(e){}
+  drawSpace(); }
+async function drawSpaceFull(){ const sp=$("sp").value, md=$("md").value, cn=$("cl").value; let dim=+$("dm").value, note="";
+  const C=["wset","minilm"].includes(sp)?await spfCoords(sp,md):null; if(!C){ $("spNote").textContent=`All-review views are computed for the WSET and MiniLM spaces only (${sp} falls back to the sample).`; $("spsrc").value="sample"; return drawSpace(); }
+  if(md==="umap"&&dim===3){ dim=2; note=" (3D UMAP was not computed for all reviews; showing 2D)"; }
+  const M=SPF.meta, N=M.n, X=C[dim===3?2:0], Y=C[dim===3?3:1], Zc=dim===3?C[4]:null, T=dim===3?"scatter3d":"scattergl", mk=(idx,extra)=>{ const x=new Float32Array(idx.length), y=new Float32Array(idx.length), z=dim===3?new Float32Array(idx.length):null; idx.forEach((i,k)=>{ x[k]=X[i]; y[k]=Y[i]; if(z) z[k]=Zc[i]; }); return Object.assign({type:T,mode:"markers",x,y,hoverinfo:"name"},z?{z}:{},extra); };
+  const num=["points","vintage"].includes(cn), tr=[], sz=dim===3?1.5:2; const all=Array.from({length:N},(_,i)=>i);
+  if(num){ const v=M[cn], ok=all.filter(i=>v[i]!=null); tr.push(Object.assign(mk(ok,{}),{hoverinfo:"skip",marker:{size:sz,opacity:.55,color:Float32Array.from(ok,i=>v[i]),colorscale:"Viridis",showscale:true,colorbar:{title:cn}}})); }
+  else { const codes=M.codes[cn], names=M.dicts[cn], by={}; all.forEach(i=>(by[codes[i]]=by[codes[i]]||[]).push(i)); const ord=Object.entries(by).sort((a,b)=>b[1].length-a[1].length), top=ord.slice(0,24), rest=ord.slice(24).flatMap(e=>e[1]);
+    top.forEach(([c,idx],j)=>tr.push(mk(idx,{name:`${names[c]} (${idx.length.toLocaleString()})`,marker:{size:sz,opacity:.55,color:PAL[j%PAL.length]}}))); if(rest.length) tr.push(mk(rest,{name:`other (${rest.length.toLocaleString()})`,marker:{size:sz,opacity:.4,color:"#aab2b2"}})); }
+  $("spNote").textContent=`All ${N.toLocaleString()} reviews (local copy, WebGL). ${sp==="wset"?"WSET space: 170 SAT features, standardised.":"MiniLM text-embedding space."} ${md.toUpperCase()}${note}. Hover shows the group only.`;
+  Plotly.react("spacePlot",tr,lay({showlegend:!num,legend:{orientation:"h",y:-0.02,yanchor:"top",itemsizing:"constant"},margin:{l:10,r:10,t:10,b:num?10:130},scene:{xaxis:{showticklabels:false,showgrid:false},yaxis:{showticklabels:false,showgrid:false},zaxis:{showticklabels:false,showgrid:false}},xaxis:{showticklabels:false,zeroline:false,showgrid:false},yaxis:{showticklabels:false,zeroline:false,showgrid:false}}),{responsive:true}); }
+function drawSpace(){ if(!SP)return; if($("spsrc").value==="all"&&SPF) return drawSpaceFull(); $("spNote").textContent="8,000-review sample (about 5% of all reviews). WSET space = aroma descriptors + structure cues (missing cues neutral). Embeddings are mean-pooled; hover shows metadata only."; const key=$("sp").value+"|"+$("md").value, dim=+$("dm").value, coords=SP.spaces[key]; if(!coords)return;
   const sets=[]; const offs=SP.spaces[key].length; // coords stored as [pca2 x,y, pca3 x,y,z]? see layout below
   // stored per (space|method) in column order of the parquet: dim2 cols then dim3 cols
   const c2=coords.slice(0,2), c3=coords.slice(2,5), C=dim===2?c2:c3; const cn=$("cl").value, v=SP.meta[cn]; if(!C||!C.length)return;
@@ -567,17 +581,20 @@ const TECHX={
 const lbl=i=>{ const m=RS.meta; return `${m.dicts.winery[m.codes.winery[i]]} — ${m.dicts.variety[m.codes.variety[i]]}`; };
 const sub=i=>{ const m=RS.meta, d=m.dicts, c=m.codes, pl=[d.region[c.region[i]],d.province[c.province[i]],d.country[c.country[i]]].filter(Boolean).filter((v,j,a)=>a.indexOf(v)===j); return `${pl.join(", ")} · ${m.vintage[i]||"NV"} · ${m.price[i]==null?"–":"$"+m.price[i]} · ${m.points[i]} pts`; };
 const cuesOf=(x,max=14)=>RS.meta.names.map((n,j)=>[n,x[j]]).filter(([n,v])=>n.startsWith("a_")&&v>.5).slice(0,max).map(a=>`<span class="di">${esc(featLab(a[0]))}</span>`).join(" ");
-async function recommend(){ $("rres").innerHTML='<p class="note">Loading 25,000 wines…</p>';
-  const [meta,xb,eb,ev]=await Promise.all([load("recsys_meta"),fetch("data/recsys_x.bin").then(r=>r.ok?r.arrayBuffer():null),fetch("data/recsys_e.bin").then(r=>r.ok?r.arrayBuffer():null),load("recsys_eval")]);
+async function recommend(){ $("rres").innerHTML='<p class="note">Loading the wine index…</p>';
+  let loc=null; try{ const r=await fetch("data/local/recsys_full_meta.json"); if(r.ok){ loc=await r.json(); $("rres").innerHTML='<p class="note">Loading all '+loc.n.toLocaleString()+' wines (local copy)…</p>'; } }catch(e){}
+  const pre=loc?"local/recsys_full_":"recsys_";
+  const [meta,xb,eb,ev]=await Promise.all([loc||load("recsys_meta"),fetch("data/"+pre+"x.bin").then(r=>r.ok?r.arrayBuffer():null),fetch("data/"+pre+"e.bin").then(r=>r.ok?r.arrayBuffer():null),load("recsys_eval")]);
   if(!meta||!xb||!eb){ $("recommend").innerHTML='<p class="note">Run <code>python src/recsys.py build</code> to generate the index.</p>'; return; }
   if(!LEX) LEX=await load("lexicon"); GM=GM||await load("guess_model"); GMT.m=GMT.m||new WsetMatcher.Matcher(LEX,{embed:false});
-  RS={meta,R:new WsetRec.RecIndex(meta,new Int8Array(xb),new Int8Array(eb)),ev,tech:"emb",liked:new Set(),disliked:new Set(),delta:{},qi:null,q:null,txt:await load("recsys_text")};
+  RS={meta,R:new WsetRec.RecIndex(meta,new Int8Array(xb),new Int8Array(eb)),ev,tech:"emb",liked:new Set(),disliked:new Set(),delta:{},qi:null,q:null,txt:await load(loc?"local/recsys_full_text":"recsys_text")};
+  $("rsix").innerHTML=loc?`<b>Index: all ${meta.n.toLocaleString()} wines</b> (local copy). The public site uses a 25,000-wine sample.`:`Index: a random sample of ${meta.n.toLocaleString()} of the 169,428 wines (about ${(100*meta.n/169428).toFixed(0)}%); the local copy of the project can search all of them.`;
   RS.lab=meta.ids.map((_,i)=>(lbl(i)+" "+sub(i)).toLowerCase());
   $("rtech").innerHTML=RT.map(([k,l])=>`<button data-t="${k}">${l}</button>`).join(""); document.querySelectorAll("#rtech button").forEach(b=>b.onclick=()=>{ RS.tech=b.dataset.t; rcompute(); });
   $("rsq").oninput=rsearch; $("rsr").onclick=()=>setQuery(Math.floor(Math.random()*meta.n)); $("rsl").onchange=()=>setQuery(+$("rsl").value);
   let tm=null; $("rst").oninput=()=>{ clearTimeout(tm); tm=setTimeout(textQuery,300); };
   ["rk","ral","rla","rfc","rfcv","rfk","rfp","rfo"].forEach(i=>$(i).oninput=$(i).onchange=rcompute);
-  rsearch(); const d=meta.dicts, c=meta.codes; let def=0, best=-99; for(let i=0;i<meta.n;i++) if(d.province[c.province[i]]==="Burgundy"&&d.group[c.group[i]]==="Pinot Noir"){ let n=0; for(let j=0;j<meta.dim_x;j++) if(meta.names[j].startsWith("a_")&&!meta.names[j].endsWith("_generic")&&RS.R.X[i*meta.dim_x+j]>.5) n++; const sc=(meta.points[i]>=90?10:0)-Math.abs(n-6); if(sc>best){ best=sc; def=i; } } setQuery(def);
+  rsearch(); const d=meta.dicts, c=meta.codes; let def=0, best=-99; for(let i=0;i<meta.n;i++) if(d.province[c.province[i]]==="Burgundy"&&d.group[c.group[i]]==="Pinot Noir"){ let n=0; for(let j=0;j<meta.dim_x;j++) if(meta.names[j].startsWith("a_")&&!meta.names[j].endsWith("_generic")&&RS.R.xval(i,j)>.5) n++; const sc=(meta.points[i]>=90?10:0)-Math.abs(n-6); if(sc>best){ best=sc; def=i; } } setQuery(def);
   rcbuild(); rcfBuild(); rglBuild(); revalBuild(); }
 function rsearch(){ const q=$("rsq").value.toLowerCase().trim().split(/\s+/).filter(Boolean), out=[]; for(let i=0;i<RS.meta.n&&out.length<60;i++) if(q.every(t=>RS.lab[i].includes(t))) out.push(i);
   $("rsl").innerHTML=out.map(i=>`<option value="${i}">${esc(lbl(i))} — ${esc(sub(i))}</option>`).join(""); $("rsn").textContent=q.length?`${out.length>=60?"60+":out.length} matches`:"type to search, or press “surprise me”"; }
@@ -594,7 +611,7 @@ function rcompute(){ if(!RS||!RS.q) return; const t=RS.tech, k=+$("rk").value, a
   document.querySelectorAll("#rtech button").forEach(b=>b.classList.toggle("on",b.dataset.t===t)); $("rala").style.display=["hybrid","mmr"].includes(t)?"":"none"; $("rlal").style.display=t==="mmr"?"":"none"; $("rfcl").textContent=$("rfcv").value+"% of the price";
   const {list,s}=rrecs(t,RS.q,k,excl,mask,alpha,lam); RS.last={list,s,t}; const noEmb=!RS.q.emb&&["emb","rrf"].includes(t);
   rrender("rres",list,s,t,noEmb?'<p class="note warn">This is a typed description: no text embedding is available in the browser, so this technique uses the WSET cues only.</p>':"");
-  rmap(list); rexplain(t); rjac(k,alpha,lam,mask,excl); }
+  rmap(list); rexplain(t); clearTimeout(RS.jt); RS.jt=setTimeout(()=>rjac(k,alpha,lam,mask,excl),40); }
 function rcard(i,s,t,showWhy=true,rank=null){ const m=RS.meta, q=RS.qi, sc=t==="hybrid"||t==="mmr"?`${s[i]>=0?"+":""}${s[i].toFixed(2)} (blend)`:t==="rrf"?s[i].toFixed(4):s[i].toFixed(3), w=t==="rrf"?Math.min(100,s[i]*4000):t==="hybrid"||t==="mmr"?Math.max(4,Math.min(100,(s[i]+1)*22)):Math.max(2,s[i]*100);
   const same=q==null?"":[["variety","grape"],["country","country"],["province","province"]].filter(([f])=>m.codes[f][i]===m.codes[f][q]).map(([,l])=>`<span class="di" style="border-color:#59a14f">same ${l}</span>`).join(" ");
   const why=showWhy&&q!=null?RS.R.shared(q,i).slice(0,4).map(c=>`<span class="di">${esc(featLab(c))}</span>`).join(" "):""; const note=RS.txt&&RS.txt[i]?`<details><summary class="note">note</summary><div class="note">${esc(RS.txt[i])}</div></details>`:"";

@@ -236,9 +236,11 @@ for p in keep_p:
     dist.append([[names[c], round(float(v), 2)] for c, v in o.head(5).items()] + [[names[c], round(float(v), 2)] for c, v in o.tail(3).items()])
 places = [dict(name=f"{meta.loc[p, 'region']} · {meta.loc[p, 'province']}, {meta.loc[p, 'country']}", country=meta.loc[p, "country"], province=meta.loc[p, "province"], lat=round(float(geo.loc[p, "lat"]), 3), lon=round(float(geo.loc[p, "lon"]), 3), n=int(pcount[p]),
                pts=round(float(meta.loc[p, "pts"]), 1), grapes=topg[p], more=dist[i]) for i, p in enumerate(keep_p)]
-# embedding space (20k sample, places with >=12 notes)
-e20d = e20.join(d.set_index("id")[["lat", "lon"]]).dropna(subset=["lat"]); ce = E.loc[e20d.index]
-pe = e20d.groupby("place").size(); pe = pe[pe >= 12].index; Ce = ce.groupby(e20d.place.values).mean().loc[pe]
+# embedding space: ALL notes (MiniLM, 169k), the same places as the WSET view (>= 40 notes)
+Eall = np.load(O / "emb_minilm_all.npy").astype(np.float32); assert len(Eall) == len(Xw), "embedding rows must match the corpus order"
+Eall = Eall[:, Eall.std(0) > 0]; Eall = (Eall - Eall.mean(0)) / Eall.std(0)
+e20d = full[["place"]].join(d.set_index("id")[["lat", "lon"]]).dropna(subset=["lat"]); ce = pd.DataFrame(Eall, index=Xw.index).loc[e20d.index]
+pe = e20d.groupby("place").size(); pe = pe[pe >= 40].index; Ce = ce.groupby(e20d.place.values).mean().loc[pe]
 Ce = (Ce - Ce.mean()).fillna(0); emb_res = None
 if len(pe) >= 30:
     Pc = PCA(12, random_state=1).fit_transform(Ce.values); u2 = umap.UMAP(n_components=2, n_neighbors=10, min_dist=0.35, random_state=1).fit_transform(Pc)

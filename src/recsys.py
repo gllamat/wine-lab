@@ -8,7 +8,7 @@ and writes a Python-vs-JS parity fixture. Techniques, in the order the dashboard
   hybrid z-scored score fusion of zw and emb, weight alpha
   rrf    reciprocal rank fusion of zw and emb
   mmr    maximal marginal relevance re-ranking of the hybrid list (relevance vs redundancy)
-Usage: recsys.py build | eval | fixture"""
+Usage: recsys.py build [--full] | eval | fixture      (--full: ALL wines, written to dashboard/data/local/, never deployed)"""
 import sys, json, hashlib
 from pathlib import Path
 import numpy as np, pandas as pd
@@ -28,9 +28,11 @@ def load_index():
 
 
 def build():
+    full = "--full" in sys.argv; out_dir = DASH / "local" if full else DASH; pre = "recsys_full_" if full else "recsys_"; out_dir.mkdir(parents=True, exist_ok=True)
     ids, X, spec, nm = G.corpus("lite"); E = np.load(ROOT / "outputs/emb_minilm_all.npy").astype(np.float32)
     mu, sd = X.mean(0), X.std(0) + 1e-6
-    order = np.argsort([hashlib.md5((SEED + i).encode()).hexdigest() for i in ids])[:N_ITEMS]; sel = np.sort(order)
+    if full: sel = np.arange(len(ids))
+    else: order = np.argsort([hashlib.md5((SEED + i).encode()).hexdigest() for i in ids])[:N_ITEMS]; sel = np.sort(order)
     Xs, Es = X[sel], E[sel]; Xq = np.clip(np.round(Xs * SX), -127, 127).astype(np.int8)
     emax = float(np.abs(Es).max()); SE = 127.0 / emax; Eq = np.clip(np.round(Es * SE), -127, 127).astype(np.int8)
     Xd = Xq.astype(np.float32) / SX; Ed = Eq.astype(np.float32) / SE            # dequantised = what the browser sees
@@ -47,9 +49,11 @@ def build():
                 price=[None if np.isnan(v) else float(v) for v in prc], points=[int(v) for v in pts_],
                 lat=[None if np.isnan(v) else round(float(v), 3) for v in coords[:, 0]], lon=[None if np.isnan(v) else round(float(v), 3) for v in coords[:, 1]],
                 names=names, mu=[round(float(v), 5) for v in mu], sd=[round(float(v), 5) for v in sd], sx=SX, se=SE, comps=np.round(comps, 5).tolist(), zmean=np.round(Z.mean(0), 5).tolist(), nlat=NLAT, dim_x=len(names), dim_e=int(E.shape[1]))
-    json.dump(meta, open(DASH / "recsys_meta.json", "w"), separators=(",", ":")); Xq.tofile(DASH / "recsys_x.bin"); Eq.tofile(DASH / "recsys_e.bin")
+    json.dump(meta, open(out_dir / f"{pre}meta.json", "w"), separators=(",", ":")); Xq.tofile(out_dir / f"{pre}x.bin"); Eq.tofile(out_dir / f"{pre}e.bin")
     raw = pd.read_parquet(ROOT.parent / "datasets/wine_reviews_deduped.parquet", columns=["description"]); from wsetkit import review_id
-    raw["id"] = raw.description.map(review_id); raw = raw.drop_duplicates("id").set_index("id"); json.dump([raw.loc[i, "description"] for i in ids[sel]], open(DASH / "recsys_text.json", "w"), separators=(",", ":"))
+    raw["id"] = raw.description.map(review_id); raw = raw.drop_duplicates("id").set_index("id"); json.dump([raw.loc[i, "description"] for i in ids[sel]], open(out_dir / f"{pre}text.json", "w"), separators=(",", ":"))
+    if full:
+        print("FULL index", len(sel), "| x.bin MB", round(Xq.nbytes / 1e6, 1), "| e.bin MB", round(Eq.nbytes / 1e6, 1)); return
     np.savez(ROOT / "outputs/recsys_index.npz", Xd=Xd, Ed=Ed, mu=mu, sd=sd, comps=comps, sel=sel, **{k: np.array(v) for k, v in meta_cols.items()}, vintage=vint, price=prc, points=pts_,
              lat=coords[:, 0], lon=coords[:, 1])
     print("index", len(sel), "| x.bin MB", round(Xq.nbytes / 1e6, 1), "| e.bin MB", round(Eq.nbytes / 1e6, 1), "| meta KB", round((DASH / "recsys_meta.json").stat().st_size / 1024))
