@@ -84,3 +84,19 @@ and cooked are successive states of the same fruit, so we treat it as one-of per
   "not cooked merely because candied/burnt" exclusions.
 - Result on 1,500 reviews: both name a single state in 406 reviews, exact agreement 0.93, kappa 0.87 (before: Jev said unripe for 95 reviews the matcher did not; now 9).
 - Still e.g.-lists (several allowed): aroma descriptors, tannin nature, texture, other appearance observations, pétillance.
+
+## 7. Terroir analysis (`src/terroir.py` -> `dashboard/data/terroir.json`, Terroir tab; replaces the Weather tab)
+
+Why: on a single review, grape, place, vintage and weather explain very little of the WSET profile (adjusted R2: grape 4.1%, place 4.3%,
+producer 4.6%, place x grape 8.5%, vintage 0.3%, within-place season weather 0.05%; text embeddings: place x grape 13.5%), so a raw
+correlation grid on reviews is unreadable. Method: units = place x grape x vintage; anomalies vs each grid cell's own 2000-2017 climate
+(NASA POWER daily data, all 18 seasons, not only vintages with reviews); within-group demeaning; cluster bootstrap over place x grape groups.
+
+Findings (associational): +1 SD warmer season -> +0.21 critic points (90% CI 0.17..0.25; Pinot Noir +0.37) and -0.05 on the 1-5 acidity cue;
+wetter season -> fewer points. A warm vs cool vintage cannot be recognised from the note profile (leave-vintage-out PLS R2 = -0.05).
+Regions <25 km apart taste ~56% as different as an average pair (net of grape); rank correlation of taste vs km is 0.31 within 1,600 km (Mantel p = 0.007).
+
+Panels: (1) variance explained, (2) climate response curves and a per-attribute table by grape, (3) vintage explorer per place x grape
+(100 combinations with >= 6 vintages, >= 150 notes), (4) taste map: place profiles (>= 40 notes, shrunk) projected with PCA/UMAP from the WSET vector
+(raw or net of grape) or text embeddings (20k sample), coloured by position in the plot, linked by box-selection to the world map; plus distance decay.
+Caveats: critic vocabulary, region-level coordinates for 75% of reviews, 0.5x0.625 degree weather grid, many attributes tested.

@@ -12,3 +12,6 @@ BERT/sentence embeddings, geography, vintage and growing-season weather. See `re
 - Quality is a PROXY from critic points (SAT has 6 levels; corpus minimum is 80 pts).
 - Data/outputs are git-ignored; source reviews are scraped Wine Enthusiast text (reportedly CC BY-NC-SA). The deployed dashboard carries aggregates only.
 - Setup: `python3 -m venv .venv && .venv/bin/pip install -r requirements.txt`. Weather: NASA POWER. Geocoding: OpenStreetMap Nominatim (validated in `src/places.py`).
+
+## Terroir tab
+`python src/terroir.py` (about 3 min; needs the vectors, weather cache and embeddings) writes `dashboard/data/terroir.json` (aggregates only, safe to deploy): variance explained, climate response curves, vintage explorer, taste map with linked selection, and geography-vs-taste distance decay. See reports/REVIEW_vs_WSET_L3_SAT.md section 7.
