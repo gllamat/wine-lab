@@ -32,3 +32,9 @@ Results: `experiments/blind_tasting/round_NNN/` and `dashboard/data/blind_rounds
 parity `node dashboard/causal_parity.js`), `src/causal_estimate.py` (adjustment gallery on the real data, placebo tests; needs `requirements/causal.txt`). Dashboard tab "Causal".
 
 **Environment**: `Dockerfile` targets `core`, `causal`, `embed`, `serve`; `docker-compose.yml`; `Makefile`; pinned `requirements/*.txt`; `scripts/smoke.py`. Data is mounted, never baked in.
+
+## Recommender lab (tab "Recommend")
+`python src/recsys.py build | eval | fixture` builds a 25,000-wine index (`dashboard/data/recsys_meta.json`, `recsys_x.bin`, `recsys_e.bin`; `recsys_text.json` has review text and stays local), evaluates the techniques
+offline on 3,000 queries (`recsys_eval.json`) and writes a parity fixture; `dashboard/recsys.js` is the browser engine (`node dashboard/recsys_parity.js`).
+Techniques (all content-based, since the corpus has critics' reviews, not consumer ratings): cosine kNN on raw cues, on standardised cues, in a 32-dim SVD taste space, on MiniLM embeddings; score fusion;
+reciprocal rank fusion; MMR diversification; plus filters (cheaper, other country, similar score), a Rocchio taste profile from thumbs, critiquing ("more acidity"), and a labelled toy collaborative-filtering demo.
