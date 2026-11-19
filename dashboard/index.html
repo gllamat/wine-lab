@@ -10,10 +10,9 @@
 <script src="causal.js"></script>
 <script src="recsys.js"></script>
 <style>
-:root{--bg:#fbf9f6;--panel:#fff;--ink:#241b1f;--muted:#6f6469;--line:#e6dfe2;--accent:#7b1e3a;--accent2:#c08a2d}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#17120f;--panel:#201a17;--ink:#f1e9e4;--muted:#a99c96;--line:#362d29;--accent:#d97a96;--accent2:#e0b050}}
-:root[data-theme="dark"]{--bg:#17120f;--panel:#201a17;--ink:#f1e9e4;--muted:#a99c96;--line:#362d29;--accent:#d97a96;--accent2:#e0b050}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}
+:root{--bg:#fff;--panel:#fff;--soft:#f5f5f5;--band:#e7e7e7;--ink:#313131;--muted:#6b6b6b;--line:#dcdcdc;--accent:#009999;--accent-d:#007878;--accent2:#808005;--link:#2375ae}
+:root[data-theme="dark"]{--bg:#111617;--panel:#182021;--soft:#1d2627;--band:#1d2627;--ink:#e9eeee;--muted:#9ba8a8;--line:#2b3638;--accent:#19b3b3;--accent-d:#009999;--accent2:#bdbd05;--link:#6fb3e0}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 'PT Sans',system-ui,-apple-system,Segoe UI,sans-serif}
 header{padding:20px 16px 8px;max-width:1200px;margin:0 auto;display:flex;gap:12px;align-items:baseline;flex-wrap:wrap}
 h1{font-size:22px;margin:0}h1 span{color:var(--accent)}header p{margin:0;color:var(--muted);font-size:13px}
 nav{max-width:1200px;margin:0 auto;padding:0 16px;display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--line)}
@@ -32,7 +31,7 @@ table{border-collapse:collapse;width:100%;font-size:13px}td,th{border-bottom:1px
 @media (max-width:600px){.plot{height:420px}}
 textarea,input[type=search]{width:100%;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:8px;font:inherit}
 .tk{display:inline-block;padding:1px 7px;margin:2px 2px;border-radius:999px;border:1px solid var(--line);font-size:13px}
-.k-aroma{background:#59a14f26;border-color:#59a14f}.k-structure{background:#4e79a726;border-color:#4e79a7}.k-readiness{background:#f28e2b26;border-color:#f28e2b}
+.k-aroma{background:#59a14f26;border-color:#59a14f}.k-structure{background:#00999926;border-color:#009999}.k-readiness{background:#d19a1c26;border-color:#d19a1c}
 .tk.neg{text-decoration:line-through;opacity:.55}.tk.pipe{border:0;color:var(--muted);padding:0}
 .lv{display:inline-flex;gap:2px;vertical-align:middle}.lv i{width:16px;height:9px;border-radius:2px;background:var(--line)}.lv i.on{background:var(--accent)}
 .sw{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:6px 14px;margin-top:8px}
@@ -49,18 +48,21 @@ tr.clk{cursor:pointer}tr.clk:hover{background:var(--line)}
 .sat.side .sat-colh{display:grid;grid-template-columns:130px 1fr 1fr;gap:10px;padding:4px 10px;font-weight:700;background:var(--line)}
 .sat-r2{display:grid;grid-template-columns:130px 1fr 1fr;gap:10px;padding:5px 10px;border-top:1px solid var(--line);align-items:start;border-left:3px solid transparent}
 .sat-r2.diff{border-left-color:var(--accent2);background:#e0b05012}.sat-r2.ok{border-left-color:#59a14f55}
-.neq{color:var(--accent2);font-weight:700}.nr{color:#4e79a7;font-weight:700}.one{color:var(--muted)}.sat-r2.near{border-left-color:#4e79a799}.sat-r2.one{border-left-color:var(--line)}.eq{color:#59a14f}.sat .tk.only{border-style:dashed}
+.neq{color:var(--accent2);font-weight:700}.nr{color:#009999;font-weight:700}.one{color:var(--muted)}.sat-r2.near{border-left-color:#00999999}.sat-r2.one{border-left-color:var(--line)}.eq{color:#59a14f}.sat .tk.only{border-style:dashed}
 .sat-c{min-width:0}.sat-c .sat-e{margin-top:2px}
 @media (max-width:760px){.sat-r2,.sat.side .sat-colh{grid-template-columns:1fr}}
 .sat .di.only{border-bottom:1px dashed var(--accent2);padding-bottom:0}
 .diagram{width:100%;height:auto}.diagram .bx{fill:var(--panel);stroke:var(--line)}.diagram .ar{stroke:var(--muted);fill:none;stroke-width:1.5;marker-end:url(#ar)}
 .diagram .t{fill:var(--ink);font:12.5px system-ui,sans-serif}.diagram .tb{font-weight:600;font-size:13.5px}.diagram .m{fill:var(--muted)}
-.diagram .fa{fill:#59a14f26;stroke:#59a14f}.diagram .fs{fill:#4e79a726;stroke:#4e79a7}.diagram .fr{fill:#f28e2b26;stroke:#f28e2b}.diagram .fn{fill:#8883;stroke:#888}.diagram .fe{fill:#b07aa126;stroke:#b07aa1}
+.diagram .fa{fill:#59a14f26;stroke:#59a14f}.diagram .fs{fill:#00999926;stroke:#009999}.diagram .fr{fill:#d19a1c26;stroke:#d19a1c}.diagram .fn{fill:#8883;stroke:#888}.diagram .fe{fill:#7a5fa626;stroke:#7a5fa6}
 </style>
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&display=swap">
 <link rel="stylesheet" href="site.css">
 </head>
 <body>
-<header><h1>Wine <span>Lab</span></h1><p>What 169,000 tasting notes can tell us about wine, and how data science does it</p><div class="modes" role="group" aria-label="Audience"><button data-m="wine" class="on">Wine lover</button><button data-m="ds">Data science</button></div><button id="theme" style="background:none;border:1px solid var(--line);color:var(--muted);border-radius:6px;padding:3px 8px;cursor:pointer">theme</button></header>
+<header><a class="brand" href="https://lamatuk.com" target="_blank" rel="noopener" title="Lamat UK"><img src="assets/lamat-logo.png" alt="Lamat logo" width="44" height="44"><span class="bn">LAMAT</span></a><div class="prod"><b>Wine Lab</b><span>Data science applied to wine · a Lamat UK demo</span></div><div class="modes" role="group" aria-label="Audience"><button data-m="wine" class="on">Wine lover</button><button data-m="ds">Data science</button></div><button id="theme" class="themebtn">theme</button></header>
 <div id="keyBanner" style="display:none"></div>
 <nav id="tabs"></nav>
 <main>
@@ -252,13 +254,14 @@ tr.clk{cursor:pointer}tr.clk:hover{background:var(--line)}
 <section id="about"></section>
 <div id="pagefoot"></div>
 </main>
+<footer class="sitefoot"><img src="assets/lamat-logo.png" alt="" width="22" height="22"><span>A <a href="https://lamatuk.com" target="_blank" rel="noopener">Lamat UK</a> demo · Wine Lab · data: Wine Enthusiast reviews (CC BY-NC-SA 4.0), NASA POWER, OpenStreetMap</span></footer>
 <script>
 const $=id=>document.getElementById(id);
 const cache={}; async function load(n){ if(cache[n]!==undefined) return cache[n]; try{const r=await fetch("data/"+n+".json"); cache[n]=r.ok?await r.json():null;}catch(e){cache[n]=null} return cache[n]; }
 const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const lay=(x={})=>Object.assign({paper_bgcolor:"rgba(0,0,0,0)",plot_bgcolor:"rgba(0,0,0,0)",font:{color:css("--ink")},margin:{l:50,r:10,t:30,b:40}},x);
 const missing=id=>{$(id).innerHTML='<p class="note">Data not generated yet — run build_dashboard.py.</p>'};
-const PAL=["#4e79a7","#f28e2b","#59a14f","#e15759","#b07aa1","#76b7b2","#edc948","#9c755f","#ff9da7","#bab0ac"];
+const PAL=["#009999","#d19a1c","#59a14f","#d1495b","#7a5fa6","#2375ae","#a8a805","#9c755f","#e377a2","#aab2b2"];
 const pct=x=>(100*x).toFixed(1)+"%";
 const shown={};
 async function overview(){ const o=await load("overview"); if(!o)return missing("overview");
@@ -356,7 +359,7 @@ function tasteView(){ const sp=$("ts").value; let pj=$("tp").value, dm=+$("td").
   if(dm===3&&pj==="umap") pj="pca";
   if(sp==="emb"){ const E=T.space.emb; if(!E) return null; const idx=[],xy=[],col=[]; E.names.forEach((n,k)=>{ if(byName.has(n)){ idx.push(byName.get(n)); xy.push((pj==="pca"?E.pca2:E.umap2)[k]); col.push((pj==="pca"?E.col_pca:E.col_umap)[k]); } }); return {idx,xy,col,axes:null,dm:2,pj}; }
   const S=sp==="raw"?T.space.raw:T.space.net; dm=pj==="umap"?2:dm; return {idx:T.places.map((_,i)=>i),xy:dm===3?S.pca3:(pj==="pca"?S.pca2:S.umap2),col:pj==="pca"?S.col_pca:S.col_umap,axes:pj==="pca"?S.axes:null,dm,pj}; }
-const CPAL=["#4e79a7","#f28e2b","#59a14f","#e15759","#b07aa1","#76b7b2","#edc948","#9c755f","#ff9da7","#bab0ac","#86bc86","#d37295"];
+const CPAL=["#009999","#d19a1c","#59a14f","#d1495b","#7a5fa6","#76b7b2","#edc948","#9c755f","#ff9da7","#bab0ac","#86bc86","#d37295"];
 const attrOf=(p,a)=>a==="pts"?p.pts:((TA.v||{})[p.name]||{})[a];
 function colourKey(V,cm){ const el=$("tKey"); if(cm!=="taste"){ el.innerHTML=cm==="attr"?`<span class="note">Colour = ${esc(TATTR.find(a=>a[0]===$("tat").value)[1])} (bar on the map).</span>`:cm==="country"?'<span class="note">Colour = country.</span>':'<span class="note">Colour = average critic points.</span>'; return; }
   let s='<svg viewBox="0 0 200 110" width="200" height="110" style="float:left;margin-right:12px"><g transform="translate(55,55)">'; for(let a=0;a<360;a+=10) for(const [r0,r1,rr] of [[0,26,.3],[26,50,.9]]){ const t0=a*Math.PI/180,t1=(a+10)*Math.PI/180; s+=`<path d="M${r0*Math.cos(t0)} ${-r0*Math.sin(t0)}L${r1*Math.cos(t0)} ${-r1*Math.sin(t0)}A${r1} ${r1} 0 0 0 ${r1*Math.cos(t1)} ${-r1*Math.sin(t1)}L${r0*Math.cos(t1)} ${-r0*Math.sin(t1)}Z" fill="hsl(${a+5} ${(0.35+0.55*rr)*100}% ${(0.62-0.18*rr)*100}%)"/>`; }
@@ -368,7 +371,7 @@ function drawTaste(){ const V=tasteView(); if(!V){ $("tSel").textContent="Embedd
   const sym=V.idx.map(pi=>$("tsh").checked?(((TA.v||{})[P[pi].name]||{}).red_share>=.5?"circle":"diamond"):"circle");
   const marker=(sz,bar)=>Object.assign({size:V.idx.map(pi=>sz+3*Math.log10(P[pi].n)),opacity:1,symbol:sym},(cm==="pts"||cm==="attr")?{color:colors,colorscale:cm==="attr"?"Viridis":"Turbo",cmin:cm==="attr"?lo:undefined,cmax:cm==="attr"?hi:undefined,showscale:!!bar,colorbar:bar?{title:{text:cm==="attr"?TATTR.find(a=>a[0]===at)[1]:"points",font:{size:11}},thickness:10,len:.6}:undefined,line:{width:.5,color:"#0007"}}:{color:colors,line:{width:.5,color:"#0007"}});
   const text=V.idx.map(pi=>{const p=P[pi], a=cm==="attr"?`<br>${TATTR.find(x=>x[0]===at)[1]}: ${attrOf(p,at)==null?"–":attrOf(p,at)}`:""; return `<b>${esc(p.name)}</b><br>${p.n} notes · ${p.pts} pts${a}<br>${esc(p.grapes)}<br><i>distinct: ${dd(p.more.map(x=>x[0]),3)}</i>`});
-  const ring={hoverinfo:"skip",showlegend:false,marker:{size:24,color:"rgba(0,0,0,0)",line:{width:3,color:"#fff"}}}, twin={type:"scattergeo",mode:"lines",lat:[],lon:[],hoverinfo:"skip",line:{color:"#e15759",width:1.6},showlegend:false};
+  const ring={hoverinfo:"skip",showlegend:false,marker:{size:24,color:"rgba(0,0,0,0)",line:{width:3,color:"#fff"}}}, twin={type:"scattergeo",mode:"lines",lat:[],lon:[],hoverinfo:"skip",line:{color:"#d1495b",width:1.6},showlegend:false};
   Plotly.react("tMap",[{type:"scattergeo",mode:"markers",lat:V.idx.map(pi=>P[pi].lat),lon:V.idx.map(pi=>P[pi].lon),customdata:V.idx,text,hoverinfo:"text",marker:marker(5,true),showlegend:false},Object.assign({type:"scattergeo",mode:"markers",lat:[],lon:[]},ring),twin],
     lay({dragmode:"select",margin:{l:0,r:0,t:0,b:0},geo:{projection:{type:"natural earth"},showland:true,landcolor:css("--panel"),showocean:true,oceancolor:css("--bg"),showcountries:true,countrycolor:css("--line"),bgcolor:"rgba(0,0,0,0)"}}),{responsive:true,displaylogo:false});
   const ax=V.axes, lo2={margin:{l:10,r:10,t:10,b:10}}; $("tAx").innerHTML=V.pj==="umap"?"· UMAP: only neighbourhoods are meaningful":"";
@@ -391,14 +394,14 @@ function twinsOf(c){ const V=TS.view, P=T.places, k=V.idx.indexOf(c); if(k<0) re
 function groupSummary(S){ const N=S.reduce((a,p)=>a+p.n,0), gr={}, ds={}; S.forEach(p=>{ p.grapes.split(", ").forEach(t=>{const m=t.match(/^(.*) \((\d+)\)$/); if(m) gr[m[1]]=(gr[m[1]]||0)+ +m[2]}); p.more.forEach(([n,v])=>{ds[n]=(ds[n]||[0,0]); ds[n][0]+=v*p.n; ds[n][1]+=p.n}); });
   const dv=Object.entries(ds).map(([n,[s,w]])=>[n,s/N,w]).filter(r=>r[2]>=N*.08); return {N,places:S.length,pts:S.reduce((a,p)=>a+p.pts*p.n,0)/N,grapes:Object.entries(gr).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([g,n])=>`${esc(g)} (${n})`).join(", "),up:[...new Set(dv.filter(r=>r[1]>0).sort((a,b)=>b[1]-a[1]).map(r=>plainD(r[0])))].slice(0,6).join(", "),dn:[...new Set(dv.filter(r=>r[1]<0).sort((a,b)=>a[1]-b[1]).map(r=>plainD(r[0])))].slice(0,4).join(", "),cty:[...new Set(S.map(p=>p.country))]}; }
 function paintSel(){ const V=TS.view; if(!V) return; const P=T.places, has=TS.sel.size>0, op=V.idx.map(pi=>!has||TS.sel.has(pi)?1:.12);
-  const cols=TS.grp?TS.base.map((c,k)=>TS.grp.has(V.idx[k])?(TS.grp.get(V.idx[k])===0?"#4e79a7":"#e15759"):c):TS.base, num=typeof TS.base[0]==="number", upd={"marker.opacity":[op],selectedpoints:[null]}; if(!num||TS.grp) upd["marker.color"]=[cols];
+  const cols=TS.grp?TS.base.map((c,k)=>TS.grp.has(V.idx[k])?(TS.grp.get(V.idx[k])===0?"#009999":"#d1495b"):c):TS.base, num=typeof TS.base[0]==="number", upd={"marker.opacity":[op],selectedpoints:[null]}; if(!num||TS.grp) upd["marker.color"]=[cols];
   ["tMap","tProj"].forEach(id=>{ try{Plotly.restyle(id,upd,[0])}catch(e){} });
   const f=TS.focus, lines={lat:[[]],lon:[[]]}; if(f){ const a=P[f.c]; f.twins.forEach(t=>{ lines.lat[0].push(a.lat,P[t].lat,null); lines.lon[0].push(a.lon,P[t].lon,null); }); } try{ Plotly.restyle("tMap",lines,[2]); }catch(e){}
   const S=[...TS.sel].filter(i=>V.idx.includes(i)).map(i=>P[i]);
   if(!S.length){ $("tSel").innerHTML="Select places on the map or in the taste plot (drag a box), <b>click one place to see its taste twins</b>, or try a comparison below: the selection is highlighted in both views."; return; }
   if(TS.grp){ const A=[...TS.grp].filter(([,g])=>g===0).map(([i])=>P[i]), B=[...TS.grp].filter(([,g])=>g===1).map(([i])=>P[i]), a=groupSummary(A), b=groupSummary(B), cen=L=>[L.reduce((s,p)=>s+p.lat,0)/L.length,L.reduce((s,p)=>s+p.lon,0)/L.length], ca=cen(A), cb=cen(B), km=WsetGuess.haversine(ca[0],ca[1],cb[0],cb[1]);
     const col=(g,s,c)=>`<div><b style="color:${c}">${esc(g)}</b>: ${s.places} places, ${s.N.toLocaleString()} notes, avg ${s.pts.toFixed(1)} pts<br>Main grapes: ${s.grapes}<br>Distinctive (net of grape): <b>more</b> ${s.up||"–"}${s.dn?` · <b>less</b> ${s.dn}`:""}</div>`;
-    $("tSel").innerHTML=`<div class="grid2">${col(TS.gnames[0],a,"#4e79a7")}${col(TS.gnames[1],b,"#e15759")}</div><p class="note">The two groups' centres are about ${Math.round(km).toLocaleString()} km apart on the map. The taste plot shows how far apart they are in taste.</p>`; return; }
+    $("tSel").innerHTML=`<div class="grid2">${col(TS.gnames[0],a,"#009999")}${col(TS.gnames[1],b,"#d1495b")}</div><p class="note">The two groups' centres are about ${Math.round(km).toLocaleString()} km apart on the map. The taste plot shows how far apart they are in taste.</p>`; return; }
   const s=groupSummary(S); let h=f?`<b>Taste twins of ${esc(P[f.c].name)}</b> (nearest in this plot): `+f.twins.map(t=>`${esc(P[t].name)} <span class="note">${Math.round(WsetGuess.haversine(P[f.c].lat,P[f.c].lon,P[t].lat,P[t].lon)).toLocaleString()} km</span>`).join(" · ")+"<br>":"";
   $("tSel").innerHTML=h+`<b>${s.places} places</b> (${s.cty.slice(0,6).join(", ")}${s.cty.length>6?"…":""}) · ${s.N.toLocaleString()} notes · avg ${s.pts.toFixed(1)} pts<br>Main grapes: ${s.grapes}<br>Distinctive in these places (net of grape, vs all places): <b>more</b> ${s.up||"–"}${s.dn?` · <b>less</b> ${s.dn}`:""}${S.length<=6&&!f?"<br>"+S.map(p=>`<span class="note">${esc(p.name)}: ${esc(dd(p.more.map(x=>x[0]),4))}</span>`).join("<br>"):""}`; }
 function tastePreset(i){ const [name,fa,fb]=PRESETS[i], P=T.places, V=TS.view; if(!V) return; const A=V.idx.filter(k=>fa(P[k])), B=V.idx.filter(k=>fb(P[k])); if(!A.length||!B.length){ $("tSel").textContent="This comparison needs places not present in the current space."; return; }
@@ -487,7 +490,7 @@ async function guessRounds(){ const R=await load("blind_rounds"), el=$("gRounds"
 /* ---------- Causal tab ---------- */
 let CD=null, CZ=null; const CW={};
 const nice=n=>String(n).replace(/_/g," ");
-const KCOL={observed:["#4e79a7","#4e79a722"],derived:["#4e79a7","#4e79a722"],latent:["#888780","#88878014"],new_data:["#ba7517","#ef9f2722"],selection:["#7f77dd","#7f77dd22"],new_data_acquired:["#4e79a7","#4e79a722"]};
+const KCOL={observed:["#009999","#00999922"],derived:["#009999","#00999922"],latent:["#888780","#88878014"],new_data:["#ba7517","#ef9f2722"],selection:["#7f77dd","#7f77dd22"],new_data_acquired:["#009999","#00999922"]};
 const arrowStr=(g,p)=>p.map((n,i)=>i===0?nice(n):(g.ch[p[i-1]].has(n)?" → ":" ← ")+nice(n)).join("");
 async function causal(){ CD=await load("dags"); CZ=await load("causal"); if(!CD){ $("causal").innerHTML='<p class="note">Run src/causal.py export and src/causal_estimate.py.</p>'; return; }
   $("cwg").innerHTML=CD.map(d=>`<option value="${d.id}">${esc(d.name)}</option>`).join(""); $("cgd").innerHTML=$("cwg").innerHTML;
@@ -508,7 +511,7 @@ function drawGallery(){ const o=$("cgo").value, did=$("cgd").value, S=CZ.specs.f
 function drawBlocks(){ const B=[["Chain","A → B → C",{A:[30,40],B:[130,40],C:[230,40]},[["A","B"],["B","C"]],"B","weather → ripeness → note: conditioning on ripeness blocks the very effect you want. Do not adjust for a mediator."],
   ["Fork","A ← B → C",{B:[130,20],A:[40,70],C:[220,70]},[["B","A"],["B","C"]],"B","place → grape and place → note: A and C look related only because of B. Adjusting for place removes this confounding. Do adjust."],
   ["Collider","A → B ← C",{A:[40,20],C:[220,20],B:[130,70]},[["A","B"],["C","B"]],"B","quality → reviewed ← producer: reviewed wines are picked by both. Conditioning on “was reviewed” links quality and producer that were unrelated. Do not adjust."]];
-  $("cBlocks").innerHTML=B.map((b,i)=>`<div class="panel"><b>${b[0]}</b> <span class="note">${b[1]}</span><svg viewBox="0 0 260 100" width="100%" style="max-height:110px"><defs><marker id="ar${i}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5"/></marker></defs>${b[3].map(([f,t])=>{const p=b[2][f],q=b[2][t],dx=q[0]-p[0],dy=q[1]-p[1],L=Math.hypot(dx,dy);return `<line x1="${p[0]+dx/L*16}" y1="${p[1]+dy/L*16}" x2="${q[0]-dx/L*18}" y2="${q[1]-dy/L*18}" stroke="${css("--muted")}" stroke-width="1.5" marker-end="url(#ar${i})"/>`}).join("")}${Object.entries(b[2]).map(([n,p])=>`<circle cx="${p[0]}" cy="${p[1]}" r="15" fill="${n==="B"?"#f28e2b33":"#4e79a733"}" stroke="${n==="B"?"#f28e2b":"#4e79a7"}"/><text x="${p[0]}" y="${p[1]+4}" text-anchor="middle" font-size="13" fill="${css("--ink")}">${n}</text>`).join("")}</svg>
+  $("cBlocks").innerHTML=B.map((b,i)=>`<div class="panel"><b>${b[0]}</b> <span class="note">${b[1]}</span><svg viewBox="0 0 260 100" width="100%" style="max-height:110px"><defs><marker id="ar${i}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5"/></marker></defs>${b[3].map(([f,t])=>{const p=b[2][f],q=b[2][t],dx=q[0]-p[0],dy=q[1]-p[1],L=Math.hypot(dx,dy);return `<line x1="${p[0]+dx/L*16}" y1="${p[1]+dy/L*16}" x2="${q[0]-dx/L*18}" y2="${q[1]-dy/L*18}" stroke="${css("--muted")}" stroke-width="1.5" marker-end="url(#ar${i})"/>`}).join("")}${Object.entries(b[2]).map(([n,p])=>`<circle cx="${p[0]}" cy="${p[1]}" r="15" fill="${n==="B"?"#d19a1c33":"#00999933"}" stroke="${n==="B"?"#d19a1c":"#009999"}"/><text x="${p[0]}" y="${p[1]+4}" text-anchor="middle" font-size="13" fill="${css("--ink")}">${n}</text>`).join("")}</svg>
     <label><input type="checkbox" data-b="${i}"> condition on B</label><div id="cb${i}" style="margin-top:6px"></div><p class="note">${b[5]}</p></div>`).join("");
   const upd=i=>{ const b=B[i], g=new WsetCausal.DAG(Object.fromEntries(Object.keys(b[2]).map(n=>[n,{kind:"observed"}])),b[3]), on=document.querySelector(`[data-b="${i}"]`).checked, ind=g.dsep(["A"],["C"],on?["B"]:[]);
     $("cb"+i).innerHTML=`A and C are <b style="color:${ind?"#3a7ca5":"#d1495b"}">${ind?"independent (path blocked)":"associated (path open)"}</b> ${on?"given B":"without conditioning"}`; };
@@ -528,7 +531,7 @@ function cwSvg(g,x,y,Z,cond){ const {lv,by,L,maxc}=cwLayout(g), W=160, H=30, gx=
   let s=`<svg viewBox="0 0 ${wd} ${ht}" width="${Math.max(wd,700)}" style="max-width:none"><defs><marker id="cwa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M1 1L9 5L1 9" fill="none" stroke="context-stroke" stroke-width="1.6"/></marker></defs>`;
   for(const [a,b] of g.edges){ const p=[pos[a][0]+W,pos[a][1]+H/2], q=[pos[b][0],pos[b][1]+H/2], dx=(q[0]-p[0])/2; s+=`<path d="M${p[0]} ${p[1]} C${p[0]+dx} ${p[1]},${q[0]-dx} ${q[1]},${q[0]-2} ${q[1]}" fill="none" stroke="${css("--muted")}" stroke-opacity=".45" stroke-width="1" marker-end="url(#cwa)"/>`; }
   for(const n of Object.keys(g.nodes)){ const k=g.nodes[n].kind||"observed", [st,fi]=KCOL[k]||KCOL.observed, isX=n===x, isY=n===y, inZ=Z.has(n), inC=cond.includes(n);
-    s+=`<g><rect x="${pos[n][0]}" y="${pos[n][1]}" width="${W}" height="${H}" rx="6" fill="${isX?"#d85a3044":isY?"#3b9d5b44":fi}" stroke="${isX?"#d85a30":isY?"#3b9d5b":inZ?"#4e79a7":inC?"#7f77dd":st}" stroke-width="${isX||isY||inZ||inC?2.5:1}" ${k==="latent"?'stroke-dasharray="4 3"':""}/><text x="${pos[n][0]+W/2}" y="${pos[n][1]+H/2+4}" text-anchor="middle" font-size="11" fill="${css("--ink")}">${esc(nice(n)).slice(0,26)}${inZ?" ✓":""}${inC?" ◉":""}</text></g>`; }
+    s+=`<g><rect x="${pos[n][0]}" y="${pos[n][1]}" width="${W}" height="${H}" rx="6" fill="${isX?"#d85a3044":isY?"#3b9d5b44":fi}" stroke="${isX?"#d85a30":isY?"#3b9d5b":inZ?"#009999":inC?"#7f77dd":st}" stroke-width="${isX||isY||inZ||inC?2.5:1}" ${k==="latent"?'stroke-dasharray="4 3"':""}/><text x="${pos[n][0]+W/2}" y="${pos[n][1]+H/2+4}" text-anchor="middle" font-size="11" fill="${css("--ink")}">${esc(nice(n)).slice(0,26)}${inZ?" ✓":""}${inC?" ◉":""}</text></g>`; }
   return s+"</svg>"; }
 function cwRender(){ const g=CW.g, x=$("cwx").value, y=$("cwy").value, cond=$("cwc").checked?CW.cond.filter(c=>c in g.nodes):[]; if(!x||!y||x===y){ return; }
   const Z=CW.Z; $("cwSvg").innerHTML=cwSvg(g,x,y,Z,cond);
@@ -660,7 +663,7 @@ const SAMPLES=["Crisp green apple and lemon zest, bright acidity, no oak. Light-
  "Deep ruby in color. Aromas of leather, forest floor and mushroom, with firm tannins on the palate. Drink now or hold."];
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 function label(kind,f1,f2){ if(kind==="structure"){const lv=(LEX.scales[f1]||[])[+f2-1]; return `${f1} = ${lv||f2}`} if(kind==="cat")return `${f1} = ${f2}`; if(kind==="readiness")return f1.replace("_"," "); return `${f1} / ${f2}`; }
-const TIERC={primary:"#59a14f",secondary:"#b07aa1",tertiary:"#c8782a"};
+const TIERC={primary:"#59a14f",secondary:"#7a5fa6",tertiary:"#c8782a"};
 const NICE={suitable:"suitable for bottle ageing",not_suitable:"not suitable for bottle ageing","pétillance":"pétillance (still wines only)",tired:"tired / past its best",fully_developed:"fully developed"};
 const fmt=n=>NICE[n]||String(n).replace(/-$/,"(-)").replace(/\+$/,"(+)").replace(/_/g," ");
 const QB=[[82,"acceptable"],[86,"good"],[90,"very_good"],[101,"outstanding"]];
@@ -817,7 +820,7 @@ async function missingTab(){ MS=await load("missing"); if(!MS)return missing("mi
   $("mcsv").onclick=()=>{const h="country,province,region_1,reviews,reviews_vintage_2000_17,geo_level,lat,lon,weather,gaps\n"+MF.map(r=>r.slice(0,9).concat([r[9].join("; ")]).map(x=>'"'+String(x??"").replace(/"/g,'""')+'"').join(",")).join("\n");
     const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([h],{type:"text/csv"})); a.download="missing_locations.csv"; a.click()}; drawMiss(); }
 async function about(){ const m=await load("meta"); if(m)$("built").textContent="Data built "+m.built+" · sample "+m.sample; }
-$("theme").onclick=()=>{const r=document.documentElement; r.dataset.theme=(r.dataset.theme==="dark"||(!r.dataset.theme&&matchMedia("(prefers-color-scheme:dark)").matches))?"light":"dark"; window.siteRefresh&&window.siteRefresh()};
+$("theme").onclick=()=>{const r=document.documentElement; r.dataset.theme=r.dataset.theme==="dark"?"light":"dark"; window.siteRefresh&&window.siteRefresh()};
 async function keyBanner(){ const k=await load("key_status"); if(!k)return; const el=$("keyBanner"); const fmt=x=>x?new Date(x).toLocaleString():"never";
   const left=k.expires_on?Math.ceil((new Date(k.expires_on+"T23:59:59")-Date.now())/864e5):null; let cls="",msg="";
   if(k.status==="invalid_or_expired"||k.status==="payment_or_quota"||k.status==="missing"){ cls="bad";
