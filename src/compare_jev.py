@@ -7,6 +7,7 @@ from sklearn.metrics import cohen_kappa_score
 sys.path.insert(0, str(Path(__file__).parent))
 from wsetkit import ROOT, Lexicon
 
+SLOTS = {"dried_fruit"}   # primary fruit_ripeness descriptor also matches tertiary red/white dried_fruit
 J = []
 for f in ("outputs/jev_pilot.jsonl", "outputs/jev_1000.jsonl"):
     J += [json.loads(l) for l in open(ROOT / f)]
@@ -16,6 +17,7 @@ ids = [j["id"] for j in J]; V = vec.loc[ids]; N = nm.loc[ids]
 lex = Lexicon()
 get = lambda k, f: np.array([j["answers"][k][f] for j in J])
 P = lambda k: get(k, "noul")
+RIP = np.array([j["answers"]["ripeness"]["choice"] for j in J])   # assumption A1: one-of fruit ripeness
 print(f"reviews {len(J)} | model {set(j['model'] for j in J)} | questions per review {len(J[0]['answers'])}\n")
 
 
@@ -27,7 +29,7 @@ def kap(jv, mv):
 rows = []
 for cl, d in lex.descriptors:
     if d.endswith("_generic"): continue
-    pj = np.maximum(P(f"nose__{cl}__{d}"), P(f"palate__{cl}__{d}")) >= 0.5; mv = V[f"a_{cl}__{d}"].values == 1
+    pj = (RIP == d) if cl == "fruit_ripeness" else np.maximum(P(f"nose__{cl}__{d}"), P(f"palate__{cl}__{d}")) >= 0.5; mv = (V[[c for c in V if c.startswith("a_") and c.endswith("__" + d) and (c[2:].split("__")[0] == cl or d in SLOTS)]] == 1).any(axis=1).values
     rows.append(dict(cluster=cl, tier=lex.tier[cl], descriptor=d, jev=pj.mean(), det=mv.mean(), both=int((pj & mv).sum()), jev_only=int((pj & ~mv).sum()), det_only=int((~pj & mv).sum()), kappa=kap(pj, mv)))
 dd = pd.DataFrame(rows)
 print("DESCRIPTOR LEVEL (99 SAT descriptors): total mentions found by both / Jev only / deterministic only")
@@ -38,7 +40,7 @@ print("most deterministic-only:", dd.sort_values("det_only", ascending=False).he
 rows = []
 for cl, tier in lex.tier.items():
     ds = [d for c, d in lex.descriptors if c == cl and not d.endswith("_generic")]
-    pj = np.max([np.maximum(P(f"nose__{cl}__{d}"), P(f"palate__{cl}__{d}")) for d in ds], axis=0) >= 0.5; mv = V["c_" + cl].values == 1
+    pj = (RIP != "not_stated") if cl == "fruit_ripeness" else np.max([np.maximum(P(f"nose__{cl}__{d}"), P(f"palate__{cl}__{d}")) for d in ds], axis=0) >= 0.5; mv = V["c_" + cl].values == 1
     rows.append(dict(cluster=cl, tier=tier, jev=pj.mean(), det=mv.mean(), agree=(pj == mv).mean(), kappa=kap(pj, mv)))
 cc = pd.DataFrame(rows); print("\nCLUSTER LEVEL\n", cc.round(2).to_string(index=False)); print(f"mean kappa {cc.kappa.mean():.2f} | agreement {cc.agree.mean():.2f}")
 # ---- scales
@@ -62,7 +64,11 @@ print(f"  petillance: Jev {jp.mean():.3f} | det {dp.mean():.3f} | both {int((jp 
 jc = np.array([j["answers"]["app__colour"]["choice"] for j in J]); mc = V["cat_colour"].values
 b = (jc != "not_stated") & pd.notna(mc)
 print(f"  colour: Jev states {np.mean(jc != 'not_stated'):.3f} | det {pd.notna(mc).mean():.3f} | both {int(b.sum())} -> agree {np.mean([x in str(y).split('|') for x, y in zip(jc[b], mc[b])]) if b.any() else float('nan'):.2f}")
-pc = P("nose__condition") >= .5; print(f"  condition(unclean): Jev {pc.mean():.3f} | det {V['cat_condition'].notna().mean():.3f}")
+cj = np.array([j["answers"]["condition"]["choice"] for j in J]); print(f"  condition (one-of): Jev clean {np.mean(cj == 'clean'):.3f} / unclean {np.mean(cj == 'unclean'):.3f} / not stated {np.mean(cj == 'not_stated'):.3f} | det unclean {V['cat_condition'].notna().mean():.3f} | both unclean {int(((cj == 'unclean') & V['cat_condition'].notna().values).sum())}")
+print("\nFRUIT RIPENESS, one of per note (assumption A1) rows = Jev, cols = deterministic")
+dr = V["fruit_ripeness"].fillna("none").where(V["fruit_ripeness_mixed"] == 0, "mixed").values
+print(pd.crosstab(pd.Series(RIP, name="jev"), pd.Series(dr, name="det")).to_string())
+bk = (RIP != "not_stated") & (dr != "none") & (dr != "mixed"); print(f"both state a single value: {int(bk.sum())} -> exact agreement {np.mean(RIP[bk] == dr[bk]):.2f}, kappa {cohen_kappa_score(RIP[bk], dr[bk]):.2f}")
 ja = np.array([j["answers"]["ageing"]["choice"] for j in J]); da = V["bottle_ageing"].fillna("not_stated").values
 print("\nBOTTLE AGEING (rows = Jev)\n", pd.crosstab(pd.Series(ja, name="jev"), pd.Series(da, name="det")).to_string())
 q = get("quality", "score"); print(f"\nQUALITY: Jev score vs critic points Spearman {spearmanr(q, N.points.values).correlation:.2f}")

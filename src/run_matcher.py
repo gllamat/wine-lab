@@ -3,7 +3,7 @@ import sys, json, collections, hashlib
 from pathlib import Path
 import numpy as np, pandas as pd
 sys.path.insert(0, str(Path(__file__).parent))
-from wsetkit import Lexicon, review_id, quality_band, readiness_outcome, ageing_outcome, ROOT
+from wsetkit import Lexicon, review_id, quality_band, readiness_outcome, ageing_outcome, resolve_ripeness, ROOT
 
 SRC = ROOT.parent / "datasets/wine_reviews_deduped.parquet"
 OUT = ROOT / "outputs"; OUT.mkdir(exist_ok=True)
@@ -39,7 +39,11 @@ def main():
         row = {"id": r.id}
         pos = [h for h in hits if not h["neg"]]
         ar = [h for h in pos if h["kind"] == "aroma"]
-        dset = {(h["f1"], h["f2"]) for h in ar}
+        dset = {(h["f1"], h["f2"]) for h in ar if h["f1"] != "fruit_ripeness"}
+        rip, rip_mixed = resolve_ripeness([h["f2"] for h in ar if (h["f1"] == "fruit_ripeness" or (h["f1"] in ("tertiary_red", "tertiary_white") and h["f2"] in ("dried_fruit", "cooked_fruit")))])     # assumption A1: one-of (tertiary dried/cooked fruit = same words)
+        if rip:
+            dset.add(("fruit_ripeness", rip))
+        row["fruit_ripeness"] = rip; row["fruit_ripeness_mixed"] = int(rip_mixed)
         for c, d in descs:
             row[f"a_{c}__{d}"] = int((c, d) in dset)
         cs = {h["f1"] for h in ar}

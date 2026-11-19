@@ -3,7 +3,7 @@ import sys, json
 from pathlib import Path
 import pandas as pd
 sys.path.insert(0, str(Path(__file__).parent))
-from wsetkit import Lexicon, ROOT, review_id
+from wsetkit import Lexicon, ROOT, review_id, resolve_ripeness
 import yaml
 
 
@@ -41,7 +41,8 @@ def parity_fixture(n=3000):
         for name, lx in (("embed", lx_all), ("rule", lx_rule)):
             toks, cov, hits, yrs = lx.match(t, c)
             row[name] = dict(toks=toks, hits=[[h["kind"], h["f1"], h["f2"], h["surface"], h["neg"], h["tag"], h["scope"], h["amb"], h["ctiers"]] for h in hits],
-                             years=[list(y) for y in yrs])
+                             years=[list(y) for y in yrs],
+                             ripeness=list(resolve_ripeness([h["f2"] for h in hits if h["kind"] == "aroma" and not h["neg"] and (h["f1"] == "fruit_ripeness" or (h["f1"] in ("tertiary_red", "tertiary_white") and h["f2"] in ("dried_fruit", "cooked_fruit")))])))
         out.append(row)
     json.dump(out, open(ROOT / "outputs/parity.json", "w"))
     print("parity fixture", len(out))

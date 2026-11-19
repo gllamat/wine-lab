@@ -148,6 +148,12 @@
       return { toks, covered, hits, years };
     }
   }
-  const api = { tokenize, lemma, Matcher };
+  // Assumption A1 (lexicon/structure.yaml): fruit ripeness is one-of per note -> [state|null, mixed]
+  function resolveRipeness(hits) {
+    const s = new Set(hits.filter(h => h.kind === "aroma" && !h.neg && (h.f1 === "fruit_ripeness" || ((h.f1 === "tertiary_red" || h.f1 === "tertiary_white") && (h.f2 === "dried_fruit" || h.f2 === "cooked_fruit")))).map(h => h.f2));
+    if (s.size > 1) s.delete("ripe_fruit");
+    return s.size === 1 ? [[...s][0], false] : [null, s.size > 0];
+  }
+  const api = { tokenize, lemma, Matcher, resolveRipeness };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.WsetMatcher = api;
 })(typeof self !== "undefined" ? self : this);

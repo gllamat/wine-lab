@@ -45,7 +45,7 @@ def descriptors():
     for tier in ("primary", "secondary", "tertiary"):
         for cl, ds in a[tier].items():
             for d in ds:
-                if not d.endswith("_generic"):
+                if not d.endswith("_generic") and cl != "fruit_ripeness":   # one-of: asked once, see q['ripeness']
                     out.append((cl, d, EXTRA_NICE.get((cl, d), DESC_NICE.get(d, d.replace("_", " ")))))
     return out
 
@@ -60,7 +60,15 @@ def build_questions():
                             criteria={**{c: f"Colour described as {c}" for c in COLOURS}, "not_stated": "No colour is described"})
     for k, what in APP_OTHER.items():
         q[f"appother__{k}"] = dict(type="noul", instructions=f"Does the note mention {what} when describing the appearance?")
-    q["nose__condition"] = dict(type="noul", instructions="Does the note indicate a fault or unclean nose (cork taint, volatile acidity, brettanomyces, reduction, etc.)?")
+    q["condition"] = dict(type="choice", instructions="WSET card, NOSE condition (choose one): is the wine's nose clean or unclean (faulty: cork taint, volatile acidity, brettanomyces, reduction, etc.)?",
+                          criteria=dict(clean="The note says the wine is clean/sound", unclean="The note indicates a fault or unclean nose", not_stated="Condition is not mentioned"))
+    q["ripeness"] = dict(type="choice", instructions="WSET Wine-Lexicon 'Fruit ripeness' (choose ONE: the states are successive stages of the same fruit, so a wine has only one). "
+                         "Which single state best describes the fruit character the note gives for this wine? A wine merely called fruity, rich, juicy, lush or full-bodied, or that only names a fruit, is NOT stated.",
+                         criteria=dict(unripe_fruit="Unripe or underripe fruit: the note says the fruit is unripe, underripe or not fully ripe. Tartness, crispness, fresh acidity, or merely naming green apple, lime or gooseberry is NOT unripe",
+                                       ripe_fruit="Ripe fruit: the note says the fruit is ripe, fully ripe or sun-ripened (fresh fruit at its peak)",
+                                       dried_fruit="Dried fruit: raisin, prune, fig, dried apricot, dried cherry and the like",
+                                       cooked_fruit="Cooked fruit: the note says the fruit is stewed, baked, jammy, compote, cooked or overripe. Candied, burnt, sweet or sticky fruit is NOT cooked unless it is described that way",
+                                       not_stated="The note does not say which stage of ripeness the fruit is in"))
     for cl, d, nice in descriptors():
         head = CLUSTER_HEAD[cl]
         q[f"nose__{cl}__{d}"] = dict(type="noul", instructions=f"Does the note describe {nice} among the aromas on the NOSE? (WSET lexicon cluster: {head})")

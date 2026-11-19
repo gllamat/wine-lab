@@ -108,7 +108,7 @@ secondary:
     oak_generic: [oak, oaky, new oak, french oak, american oak, barrel, barrel note, wood, woody, woodsy, toasted oak, oak spice, oak influence, oak treatment, oak aging, oak ageing, resin, resinous, pine, pine needle, sawdust, pencil shavings, pencil lead, pencil, butterscotch, nutmeg]
 tertiary:
   tertiary_red:
-    dried_fruit: [dried fruit, raisin, raisined, prune, dried plum, fig, dried cherry, dried cranberry, dried strawberry, dried blackberry, dried red fruit]
+    dried_fruit: [dried fruit, raisin, raisined, prune, dried plum, fig, dried cherry, dried cranberry, dried strawberry, dried blackberry, dried red fruit, raisiny, prunes, figs, dried black cherry, dried black fruit, dried cranberries, dried apple skin, dried apple skins, dried cherries, dried strawberries, dried fig]
     cooked_fruit: [cooked plum, cooked cherry, cooked red plum, cooked blackberry, stewed plum, stewed blackberry, cooked red fruit, stewed red fruit]
     leather: [leather, leathery, saddle, old leather]
     earth: [earth, earthy, soil, dirt, loam, damp earth, wet earth, truffle]
@@ -120,7 +120,7 @@ tertiary:
     caramel: [caramel, caramelized, toffee, fudge, molasses, brown sugar, maple, maple syrup]
     tertiary_red_generic: [farmyard, barnyard, brett, sweaty, horse, animal, tar, tarry, vegetal]
   tertiary_white:
-    dried_fruit: [dried fruit, raisin, raisined, sultana, dried apricot, dried apple, dried banana, dried peach, dried pear, dried pineapple, dried mango, dried citrus]
+    dried_fruit: [dried fruit, raisin, raisined, sultana, dried apricot, dried apple, dried banana, dried peach, dried pear, dried pineapple, dried mango, dried citrus, raisiny, prunes, figs, dried apple skin, dried apple skins, dried apricots, dried fig]
     orange_marmalade: [marmalade, orange marmalade]
     petrol: [petrol, kerosene, diesel, gasoline, petroleum]
     cinnamon: [cinnamon]

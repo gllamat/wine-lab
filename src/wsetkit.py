@@ -284,3 +284,13 @@ def ageing_outcome(drink_now, can_age):
     if drink_now:
         return "not_suitable"
     return None
+
+
+def resolve_ripeness(descs):
+    """Assumption A1 (lexicon/structure.yaml): fruit ripeness is one-of per note. Returns (state | None, mixed)."""
+    s = set(descs)
+    if len(s) > 1:
+        s.discard("ripe_fruit")          # generic baseline loses to a more specific state
+    if len(s) == 1:
+        return next(iter(s)), False
+    return None, bool(s)

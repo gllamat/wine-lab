@@ -1845,3 +1845,26 @@ categorical:
 - form: fizz
   set:
     appearance_other: bubbles
+
+# ---- ONE-OF FIELDS --------------------------------------------------------------------------
+# WSET L4 card, notes to students: "For lines where the entries are separated by a hyphen you must select
+# one and only one of these options." Lines with "e.g." + commas are prompts (several allowed).
+exclusive:
+  card_hyphen_lines:               # one and only one value per wine (by WSET's own rule)
+    appearance: [clarity, intensity, colour]
+    nose: [condition, intensity]
+    palate: [sweetness, acidity, tannin_level, alcohol, body, flavour_intensity, finish]
+    conclusions: [quality, bottle_ageing]
+  # ASSUMPTION A1 (project decision, not stated by WSET): the Wine-Lexicon lists fruit ripeness with commas,
+  # but the four entries are successive states of the same fruit, so a wine can only have ONE of them.
+  # We read it as one-of per tasting note.
+  assumption_A1:
+    field: fruit_ripeness
+    options: [unripe_fruit, ripe_fruit, dried_fruit, cooked_fruit]
+    scope: whole note (one value per wine)
+    deterministic_rule: >
+      Take the fruit_ripeness descriptors matched without negation, plus the tertiary (red/white wine) "dried fruit" and
+      "cooked fruit" descriptors, which are the same words. "ripe fruit" is the generic baseline: it is dropped
+      when a more specific state is also present ("ripe, jammy" = cooked). If two or more specific states remain,
+      the note is flagged "mixed" and no value is set (never guessed).
+    jev: one single-choice question (unripe / ripe / dried / cooked / not_stated)

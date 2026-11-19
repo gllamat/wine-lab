@@ -68,3 +68,19 @@ Reason: the user supplied the newer L4 card. Differences vs L3 (2016) and what c
 - Jev prompt: 238 typed questions - every lexicon descriptor asked separately for NOSE and PALATE (the earlier cluster-level prompt could not say "cloves").
   Redo cost $0.58 for 1,500 reviews (full corpus ~$65). Comparison: descriptor level - both 4,431 mentions, Jev only 2,588, deterministic only 1,033.
   Jev answers "ripe fruit" for 83% of reviews (question probably too loose); finish/flavour intensity/tannin nature/texture are stated far more often by Jev.
+
+## 6. One-of fields and assumption A1 (2026-11-19)
+
+The L4 card states: *"For lines where the entries are separated by a hyphen you must select one and only one of these options."*
+Hyphen lines: clarity, intensity, colour, nose condition, nose intensity, sweetness, acidity, tannin level, alcohol, body,
+flavour intensity, finish, quality, bottle ageing. All were already single-valued in the Jev prompt except **nose condition**,
+which was a yes/no question and is now a single choice (clean / unclean / not stated).
+
+**A1 (our assumption, not WSET's):** the Wine-Lexicon prints *fruit ripeness* with commas (a prompt list), but unripe, ripe, dried
+and cooked are successive states of the same fruit, so we treat it as one-of per note.
+- Deterministic: fruit_ripeness hits plus tertiary dried/cooked fruit (same words); "ripe fruit" is the generic baseline and
+  loses to a specific state; two or more specific states = `mixed`, no value set (0.05% of reviews). Columns `fruit_ripeness`, `fruit_ripeness_mixed`.
+- Jev: 8 yes/no questions replaced by one 5-way choice (`ripeness`), with explicit "not unripe merely because tart/green apple" and
+  "not cooked merely because candied/burnt" exclusions.
+- Result on 1,500 reviews: both name a single state in 406 reviews, exact agreement 0.93, kappa 0.87 (before: Jev said unripe for 95 reviews the matcher did not; now 9).
+- Still e.g.-lists (several allowed): aroma descriptors, tannin nature, texture, other appearance observations, pétillance.
