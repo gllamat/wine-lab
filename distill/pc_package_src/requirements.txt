@@ -1,0 +1,15 @@
+# torch is installed separately by setup_windows.bat (CUDA 12.8 build, needed for the RTX 50-series)
+transformers>=4.44
+pandas
+pyarrow
+scikit-learn
+matplotlib
+plotly
+gradio>=5
+jupyterlab
+ipywidgets
+sentencepiece
+protobuf
+kaleido
+nbconvert
+pyyaml

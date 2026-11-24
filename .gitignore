@@ -18,3 +18,7 @@ dashboard/data/recsys_text.json
 outputs/recsys_index.npz
 
 dashboard/data/local/
+distill/pack/
+distill/wset_distill_pc/
+distill/wset_distill_pc.zip
+distill/__pycache__/
