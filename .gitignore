@@ -22,3 +22,6 @@ distill/pack/
 distill/wset_distill_pc/
 distill/wset_distill_pc.zip
 distill/__pycache__/
+experiments/recsys_sanity/panel_preview.html
+experiments/recsys_sanity/sanity_lists.json
+experiments/recsys_sanity/jev_vectors.npy

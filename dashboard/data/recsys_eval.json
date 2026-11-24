@@ -1,6 +1,7 @@
 {
  "k": 10,
  "queries": 3000,
+ "coverage_queries": 8000,
  "n_items": 25000,
  "techniques": {
   "random": {
@@ -13,10 +14,11 @@
    "ild": 0.5349284796820747,
    "countries": 4.852333333333333,
    "wineries": 9.983333333333333,
-   "coverage": 0.69704,
-   "hub_max": 8,
-   "never": 0.30296,
-   "hub_top1pct_share": 0.041833333333333333
+   "coverage": 0.95856,
+   "hub_max": 12,
+   "never": 0.04144,
+   "hub_top1pct_share": 0.027475,
+   "gini": 0.30917367
   },
   "raw": {
    "group": 0.16366666666666665,
@@ -28,10 +30,11 @@
    "ild": 0.5001330475559941,
    "countries": 3.978,
    "wineries": 9.959,
-   "coverage": 0.50216,
-   "hub_max": 19,
-   "never": 0.49784,
-   "hub_top1pct_share": 0.08846666666666667
+   "coverage": 0.7152,
+   "hub_max": 47,
+   "never": 0.2848,
+   "hub_top1pct_share": 0.0815875,
+   "gini": 0.6305039100000001
   },
   "zw": {
    "group": 0.1812,
@@ -43,10 +46,11 @@
    "ild": 0.4873738555908203,
    "countries": 3.891,
    "wineries": 9.946333333333333,
-   "coverage": 0.596,
-   "hub_max": 21,
-   "never": 0.404,
-   "hub_top1pct_share": 0.07066666666666667
+   "coverage": 0.84384,
+   "hub_max": 49,
+   "never": 0.15616,
+   "hub_top1pct_share": 0.06505,
+   "gini": 0.4999785239999999
   },
   "latent": {
    "group": 0.17446666666666666,
@@ -58,10 +62,11 @@
    "ild": 0.4930826690815113,
    "countries": 3.958,
    "wineries": 9.952333333333334,
-   "coverage": 0.62596,
-   "hub_max": 10,
-   "never": 0.37404,
-   "hub_top1pct_share": 0.0536
+   "coverage": 0.8724,
+   "hub_max": 21,
+   "never": 0.1276,
+   "hub_top1pct_share": 0.0408875,
+   "gini": 0.44030451200000004
   },
   "emb": {
    "group": 0.3679,
@@ -73,10 +78,11 @@
    "ild": 0.26024752830222797,
    "countries": 3.1416666666666666,
    "wineries": 9.853666666666667,
-   "coverage": 0.50472,
-   "hub_max": 24,
-   "never": 0.49528,
-   "hub_top1pct_share": 0.1004
+   "coverage": 0.71608,
+   "hub_max": 64,
+   "never": 0.28392,
+   "hub_top1pct_share": 0.0924375,
+   "gini": 0.630305998
   },
   "hybrid": {
    "group": 0.2687333333333333,
@@ -88,10 +94,11 @@
    "ild": 0.37728222913388854,
    "countries": 3.591666666666667,
    "wineries": 9.926666666666666,
-   "coverage": 0.5722,
-   "hub_max": 17,
-   "never": 0.4278,
-   "hub_top1pct_share": 0.07063333333333334
+   "coverage": 0.80896,
+   "hub_max": 39,
+   "never": 0.19104,
+   "hub_top1pct_share": 0.060625,
+   "gini": 0.530523421
   },
   "rrf": {
    "group": 0.31526666666666664,
@@ -103,10 +110,11 @@
    "ild": 0.35745778100755476,
    "countries": 3.444,
    "wineries": 9.911333333333333,
-   "coverage": 0.5778,
-   "hub_max": 24,
-   "never": 0.4222,
-   "hub_top1pct_share": 0.0743
+   "coverage": 0.82312,
+   "hub_max": 37,
+   "never": 0.17688,
+   "hub_top1pct_share": 0.0641125,
+   "gini": 0.5284960060000001
   },
   "mmr": {
    "group": 0.2661,
@@ -118,10 +126,75 @@
    "ild": 0.38624389866016534,
    "countries": 3.6333333333333333,
    "wineries": 9.934,
-   "coverage": 0.5824,
-   "hub_max": 15,
-   "never": 0.4176,
-   "hub_top1pct_share": 0.06793333333333333
+   "coverage": 0.82188,
+   "hub_max": 36,
+   "never": 0.17812,
+   "hub_top1pct_share": 0.0576875,
+   "gini": 0.51586217
+  },
+  "jev": {
+   "group": 0.22723333333333334,
+   "country": 0.4442,
+   "province": 0.24733333333333332,
+   "winery": 0.0032,
+   "dpoints": 2.5057666666666667,
+   "price_ratio": 1.0,
+   "ild": 0.46270472320274075,
+   "countries": 3.662,
+   "wineries": 9.919,
+   "coverage": 0.82156,
+   "hub_max": 31,
+   "never": 0.17844,
+   "hub_top1pct_share": 0.057575,
+   "gini": 0.518243733
+  },
+  "jevh": {
+   "group": 0.36806666666666665,
+   "country": 0.5506333333333333,
+   "province": 0.3446666666666667,
+   "winery": 0.006166666666666667,
+   "dpoints": 2.4473666666666665,
+   "price_ratio": 1.0,
+   "ild": 0.3024954496313024,
+   "countries": 3.1696666666666666,
+   "wineries": 9.883333333333333,
+   "coverage": 0.74812,
+   "hub_max": 66,
+   "never": 0.25188,
+   "hub_top1pct_share": 0.077025,
+   "gini": 0.5931055329999999
+  },
+  "jevh+rules": {
+   "group": 0.4461,
+   "country": 0.5464333333333333,
+   "province": 0.3461,
+   "winery": 0.006166666666666667,
+   "dpoints": 2.4601333333333333,
+   "price_ratio": 1.0,
+   "ild": 0.3125580195815475,
+   "countries": 3.2096666666666667,
+   "wineries": 9.862666666666666,
+   "coverage": 0.7648,
+   "hub_max": 58,
+   "never": 0.2352,
+   "hub_top1pct_share": 0.0729,
+   "gini": 0.577733015
+  },
+  "jevh+rules+fair": {
+   "group": 0.4539,
+   "country": 0.5656666666666667,
+   "province": 0.3583,
+   "winery": 0.0071,
+   "dpoints": 2.4847333333333332,
+   "price_ratio": 1.0,
+   "ild": 0.3479533965075458,
+   "countries": 3.2663333333333333,
+   "wineries": 9.858333333333333,
+   "coverage": 0.8998,
+   "hub_max": 19,
+   "never": 0.1002,
+   "hub_top1pct_share": 0.0385125,
+   "gini": 0.41163371199999993
   }
  },
  "jaccard": {

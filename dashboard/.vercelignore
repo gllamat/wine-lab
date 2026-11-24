@@ -8,3 +8,6 @@ causal_parity.js
 data/recsys_text.json
 recsys_parity.js
 data/local/
+recsys_jev_parity.js
+data/phrases_eval.json
+phrases_parity.js

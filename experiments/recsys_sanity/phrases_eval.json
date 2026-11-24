@@ -1,0 +1,32 @@
+{
+ "min_support": 20,
+ "min_precision": 0.6,
+ "queries": 1200,
+ "techniques": {
+  "typed: WSET cues (zw)": {
+   "style_gap": 0.2568870523415978,
+   "taste": 0.4432584345340729,
+   "lists_with_hard_clash": 0.43,
+   "pairs": 4356
+  },
+  "typed: learned phrases": {
+   "style_gap": 0.20621403912543154,
+   "taste": 0.4755447506904602,
+   "lists_with_hard_clash": 0.38916666666666666,
+   "pairs": 4345
+  },
+  "reference: the wine's own Jev vector": {
+   "style_gap": 0.11146891255883082,
+   "taste": 0.5873385071754456,
+   "lists_with_hard_clash": 0.2825,
+   "pairs": 4037
+  },
+  "random, same colour": {
+   "style_gap": 0.3727128981251412,
+   "taste": 0.07643362879753113,
+   "lists_with_hard_clash": 0.0,
+   "pairs": 4427
+  }
+ },
+ "rules_clean": 7337
+}
